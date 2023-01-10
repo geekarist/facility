@@ -27,6 +27,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("org.oolong-kt:oolong:2.1.1")
             }
         }
         val jvmTest by getting
