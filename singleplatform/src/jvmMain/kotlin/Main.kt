@@ -6,13 +6,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.*
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 
 @Composable
 @Preview
-fun App() {
+fun App(props: App.Props?) {
     var text by remember { mutableStateOf("Hello, World!") }
 
     MaterialTheme {
@@ -24,8 +25,19 @@ fun App() {
     }
 }
 
-fun main() = application {
-    Window(onCloseRequest = ::exitApplication) {
-        App()
+fun main() {
+    application {
+        val appProps by rememberSaveable { mutableStateOf<App.Props?>(null) }
+        Window(onCloseRequest = ::exitApplication) {
+            App(appProps)
+        }
+
+        LaunchedEffect(Unit) {
+            // TODO: launch Oolong runtime
+        }
     }
+}
+
+object App {
+    data class Props(val text: String)
 }
