@@ -1,10 +1,9 @@
 import kotlinx.coroutines.CoroutineScope
 import oolong.Dispatch
 import oolong.effect.none
-import oolong.next.next
 
 object App {
-    fun init() = next<_, Event>(Model("Yo"))
+    fun init() = Model("Yo") to none<Event>()
 
     fun update(event: Event, model: Model): Pair<Model, suspend CoroutineScope.(Dispatch<Event>) -> Any?> {
         println(event)
