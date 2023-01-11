@@ -1,6 +1,4 @@
-import org.jetbrains.compose.compose
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("multiplatform")
@@ -24,12 +22,15 @@ kotlin {
         withJava()
     }
     sourceSets {
+        @Suppress("UNUSED_VARIABLE")
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:-1.6.0")
                 implementation("org.oolong-kt:oolong:2.1.1")
             }
         }
+        @Suppress("UNUSED_VARIABLE")
         val jvmTest by getting
     }
 }

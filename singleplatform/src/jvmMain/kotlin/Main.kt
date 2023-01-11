@@ -28,7 +28,7 @@ fun main() {
         Window(onCloseRequest = ::exitApplication) {
             App(appProps)
         }
-
+        val coroutineScope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
             runtime(
                 init = App::init,
@@ -37,7 +37,9 @@ fun main() {
                 render = { props: App.Props ->
                     appProps = props
                     null
-                })
+                },
+                renderContext = coroutineScope.coroutineContext
+            )
         }
     }
 }
