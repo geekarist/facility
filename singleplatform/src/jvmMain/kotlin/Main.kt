@@ -11,14 +11,14 @@ import oolong.runtime
 @Composable
 @Preview
 fun App(props: App.Props?) {
-    var text by remember { mutableStateOf("Hello, World!") }
-
     MaterialTheme {
-        Button(onClick = {
-            text = "Hello, Desktop!"
-        }) {
-            Text(text)
-        }
+        props?.let {
+            Button(onClick = {
+                props.dispatch(App.Event.ButtonClicked)
+            }) {
+                Text(props.text)
+            }
+        } ?: Text("Loading...")
     }
 }
 
