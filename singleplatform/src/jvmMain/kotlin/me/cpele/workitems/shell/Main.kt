@@ -1,3 +1,5 @@
+package me.cpele.workitems.shell.me.cpele.workitems.runtime
+
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
@@ -6,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import me.cpele.workitems.core.App
 import oolong.runtime
 
 @Composable

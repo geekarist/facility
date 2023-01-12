@@ -1,3 +1,5 @@
+package me.cpele.workitems.core
+
 import kotlinx.coroutines.CoroutineScope
 import oolong.Dispatch
 import oolong.effect.none
