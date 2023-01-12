@@ -22,6 +22,11 @@ kotlin {
         withJava()
     }
     sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("org.oolong-kt:oolong:2.1.1")
+            }
+        }
         @Suppress("UNUSED_VARIABLE")
         val jvmMain by getting {
             dependencies {
@@ -29,6 +34,7 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:-1.6.0")
                 implementation("org.oolong-kt:oolong:2.1.1")
             }
+            dependsOn(commonMain)
         }
         @Suppress("UNUSED_VARIABLE")
         val jvmTest by getting

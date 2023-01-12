@@ -5,7 +5,7 @@ import oolong.Dispatch
 import oolong.effect.none
 
 object App {
-    fun init() = Model("Yo") to none<Event>()
+    fun init() = Model("Yeah") to none<Event>()
 
     fun update(
         @Suppress("UNUSED_PARAMETER") event: Event,
