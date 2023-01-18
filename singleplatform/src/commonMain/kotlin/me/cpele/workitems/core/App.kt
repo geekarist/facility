@@ -1,12 +1,10 @@
 package me.cpele.workitems.core
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import oolong.Dispatch
 import oolong.effect
 import oolong.effect.none
-import org.jetbrains.skia.impl.Log
 import java.net.URL
 
 object App {
@@ -16,11 +14,11 @@ object App {
 
         is Event.ButtonClicked -> model.copy(text = "Hi! Please hold...") to
                 effect { dispatch ->
-                    val url = URL("http://localhost:8080/hello")
+                    val url = URL("http://localhost:8000/hello")
                     val helloEvent = withContext(Dispatchers.IO) {
                         try {
                             val helloBody = url.openStream().use { inputStream ->
-                                inputStream.readAllBytes().toString()
+                                inputStream.readAllBytes().decodeToString().trim()
                             }
                             Event.GotHello(helloBody)
                         } catch (e: Exception) {
