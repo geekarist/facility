@@ -1,6 +1,5 @@
 package me.cpele.workitems.shell
 
-import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -12,8 +11,7 @@ import me.cpele.workitems.core.App
 import oolong.runtime
 
 @Composable
-@Preview
-fun App(props: App.Props?) {
+fun Ui(props: App.Props?) {
     MaterialTheme {
         props?.let {
             Button(onClick = {
@@ -29,7 +27,7 @@ fun main() {
     application {
         var appProps by rememberSaveable { mutableStateOf<App.Props?>(null) }
         Window(onCloseRequest = ::exitApplication) {
-            App(appProps)
+            Ui(appProps)
         }
         val coroutineScope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
