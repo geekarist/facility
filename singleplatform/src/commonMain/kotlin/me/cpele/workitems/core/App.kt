@@ -1,20 +1,48 @@
 package me.cpele.workitems.core
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import oolong.Dispatch
+import oolong.effect
 import oolong.effect.none
+import org.jetbrains.skia.impl.Log
+import java.net.URL
 
 object App {
     fun init() = Model("Yeah") to none<Event>()
 
-    fun update(
-        @Suppress("UNUSED_PARAMETER") event: Event,
-        model: Model
-    ): Pair<Model, suspend CoroutineScope.(Dispatch<Event>) -> Any?> =
-        model.copy(text = "Hello! Thanks for clicking \uD83D\uDE0C") to none()
+    fun update(event: Event, model: Model) = when (event) {
+
+        is Event.ButtonClicked -> model.copy(text = "Hi! Please hold...") to
+                effect { dispatch ->
+                    val url = URL("http://localhost:8080/hello")
+                    val helloEvent = withContext(Dispatchers.IO) {
+                        try {
+                            val helloBody = url.openStream().use { inputStream ->
+                                inputStream.readAllBytes().toString()
+                            }
+                            Event.GotHello(helloBody)
+                        } catch (e: Exception) {
+                            Event.Failure("Sorry, we're unavailable... Hello anyway.", e)
+                        }
+                    }
+                    dispatch(helloEvent)
+                }
+
+        is Event.GotHello -> model to effect { _: Dispatch<Event> ->
+            println("Got successful greeting: $event")
+        }
+
+        is Event.Failure -> model to effect { _: Dispatch<Event> ->
+            println("Got failed greeting: $event")
+        }
+    }
 
     sealed class Event {
         object ButtonClicked : Event()
+        data class GotHello(val helloBody: String) : Event()
+        data class Failure(val msg: String, val throwable: Throwable? = null) : Event()
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = Props(model.text, dispatch)
