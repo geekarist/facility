@@ -28,12 +28,10 @@ object App {
                     dispatch(helloEvent)
                 }
 
-        is Event.GotHello -> model to effect { _: Dispatch<Event> ->
-            println("Got successful greeting: $event")
-        }
-
-        is Event.Failure -> model to effect { _: Dispatch<Event> ->
+        is Event.GotHello -> model.copy(text = event.helloBody) to none()
+        is Event.Failure -> model.copy(text = event.msg) to effect { _: Dispatch<Event> ->
             println("Got failed greeting: $event")
+            event.throwable?.printStackTrace()
         }
     }
 
