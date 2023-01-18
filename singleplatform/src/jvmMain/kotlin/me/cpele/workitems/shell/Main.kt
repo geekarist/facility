@@ -1,4 +1,4 @@
-package me.cpele.workitems.shell.me.cpele.workitems.runtime
+package me.cpele.workitems.shell
 
 import androidx.compose.desktop.ui.tooling.preview.Preview
 import androidx.compose.material.Button
