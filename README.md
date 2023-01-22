@@ -12,12 +12,21 @@ TODO
 
 ## Planned
 
-- Show an overview of your work items 
+- Show an overview of your work items
+    - Slack
+        - User adds a 👀 reaction on several Slack messages
+        - They launch the app
+        - They see the above messages displayed in a list
+        - The messages are ordered with the newest messages first
+    - Jira
+    - GitHub
+    - Emails
+    - Calendar
+    - Other
 - Always show the latest info (real-time updates)
 - Summarize each item: title, description, status, source 
 - Open any item
 - Let you order items 
-- Display a list of work items like Jira tickets, GitHub issues, Slack messages, emails, calendar events, other items 
 
 ## Contribute
 
