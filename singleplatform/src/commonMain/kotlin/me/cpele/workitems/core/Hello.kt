@@ -7,7 +7,8 @@ import oolong.effect
 import oolong.effect.none
 import java.net.URL
 
-object App {
+@Deprecated("Was just a hello world")
+object Hello {
     fun init() = Model("Yeah") to none<Event>()
 
     fun update(event: Event, model: Model) = when (event) {

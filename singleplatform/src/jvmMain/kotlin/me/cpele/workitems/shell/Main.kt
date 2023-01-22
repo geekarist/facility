@@ -11,11 +11,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import me.cpele.workitems.core.App
+import me.cpele.workitems.core.Hello
 import oolong.runtime
 
 @Composable
-fun Ui(props: App.Props?) {
+fun Ui(props: Hello.Props?) {
     MaterialTheme {
         Box(Modifier.fillMaxSize().padding(32.dp)) {
             props?.let {
@@ -27,17 +27,17 @@ fun Ui(props: App.Props?) {
 
 fun main() {
     application {
-        var appProps by rememberSaveable { mutableStateOf<App.Props?>(null) }
+        var appProps by rememberSaveable { mutableStateOf<Hello.Props?>(null) }
         Window(onCloseRequest = ::exitApplication) {
             Ui(appProps)
         }
         val coroutineScope = rememberCoroutineScope()
         LaunchedEffect(Unit) {
             runtime(
-                init = App::init,
-                update = App::update,
-                view = App::view,
-                render = { props: App.Props ->
+                init = Hello::init,
+                update = Hello::update,
+                view = Hello::view,
+                render = { props: Hello.Props ->
                     appProps = props
                     null
                 },
