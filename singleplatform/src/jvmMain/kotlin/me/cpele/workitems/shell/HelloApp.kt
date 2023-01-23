@@ -47,5 +47,3 @@ object HelloApp {
         }
     }
 }
-
-fun main() = HelloApp.run()
