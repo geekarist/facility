@@ -1,3 +1,3 @@
 package me.cpele.workitems.shell
 
-fun main() = HelloApp.run()
+fun main() = WorkItemsApp.run()
