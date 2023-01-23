@@ -14,19 +14,20 @@ import androidx.compose.ui.window.application
 import me.cpele.workitems.core.Hello
 import oolong.runtime
 
-@Composable
-fun Ui(props: Hello.Props?) {
-    MaterialTheme {
-        Box(Modifier.fillMaxSize().padding(32.dp)) {
-            props?.let {
-                Text(props.text)
-            } ?: Text("Loading...")
+@Deprecated("Was just to discover Oolong")
+object HelloApp {
+    @Composable
+    fun Ui(props: Hello.Props?) {
+        MaterialTheme {
+            Box(Modifier.fillMaxSize().padding(32.dp)) {
+                props?.let {
+                    Text(props.text)
+                } ?: Text("Loading...")
+            }
         }
     }
-}
 
-fun main() {
-    application {
+    fun run() = application {
         var appProps by rememberSaveable { mutableStateOf<Hello.Props?>(null) }
         Window(onCloseRequest = ::exitApplication) {
             Ui(appProps)
@@ -46,3 +47,5 @@ fun main() {
         }
     }
 }
+
+fun main() = HelloApp.run()
