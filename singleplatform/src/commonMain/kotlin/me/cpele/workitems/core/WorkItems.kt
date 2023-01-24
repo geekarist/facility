@@ -46,13 +46,13 @@ object WorkItems {
     }
 
     fun view(model: Model, function: (Event) -> Unit) = Props(items = model.items.map { (title, desc, status) ->
-        Props.Item(title = title, desc = desc, status = status.toString())
+        Props.Item(title = title, desc = desc, status = status.text)
     })
 
     data class Model(val status: Status, val items: List<Item>) {
         data class Item(val title: String, val desc: String, val status: Status) {
-            enum class Status {
-                ToDo, InProgress, Done
+            enum class Status(val text: String) {
+                ToDo(text = "To do"), InProgress("In progress"), Done("Done")
             }
         }
 
