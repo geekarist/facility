@@ -27,7 +27,7 @@ object WorkItemsApp {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         itemsIndexed(items) { _, item ->
                             Card {
-                                Column {
+                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row {
                                         Text(item.title)
                                         Text(item.status)
