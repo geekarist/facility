@@ -32,10 +32,14 @@ object WorkItemsApp {
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Row {
-                                        Text(modifier = Modifier.weight(1f), text = item.title)
-                                        Text(item.status)
+                                        Text(
+                                            modifier = Modifier.weight(1f),
+                                            text = item.title,
+                                            style = MaterialTheme.typography.h5
+                                        )
+                                        Text(text = item.status, style = MaterialTheme.typography.subtitle1)
                                     }
-                                    Text(item.desc)
+                                    Text(text = item.desc, style = MaterialTheme.typography.body1)
                                 }
                             }
                         }
