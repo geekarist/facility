@@ -1,7 +1,12 @@
 package me.cpele.workitems.shell
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -18,7 +23,24 @@ object WorkItemsApp {
     fun Ui(props: WorkItems.Props?) {
         MaterialTheme {
             Box(Modifier.padding(32.dp)) {
-                Text("Yo")
+                val items = props?.items
+                if (items.isNullOrEmpty()) {
+                    Text("You're all done! Good job.")
+                } else {
+                    LazyColumn {
+                        itemsIndexed(items) { _, item ->
+                            Card {
+                                Column {
+                                    Row {
+                                        Text(item.title)
+                                        Text(item.status)
+                                    }
+                                    Text(item.desc)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

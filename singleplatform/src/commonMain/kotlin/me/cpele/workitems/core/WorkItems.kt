@@ -66,5 +66,8 @@ object WorkItems {
         class ItemsLoaded(val items: List<Model.Item>) : Event()
     }
 
-    class Props
+    data class Props(val items: List<Item> = emptyList()) {
+
+        data class Item(val title: String, val desc: String, val status: String)
+    }
 }
