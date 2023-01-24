@@ -5,7 +5,15 @@ import oolong.Dispatch
 import oolong.effect.none
 
 object WorkItems {
-    fun init() = Model() to none<Event>()
+    fun init() = Model(
+        items = listOf(
+            Model.Item(
+                title = "First item",
+                desc = "First item description",
+                status = Model.Item.Status.ToDo,
+            )
+        )
+    ) to none<Event>()
 
     fun update(
         event: Event,
@@ -16,7 +24,14 @@ object WorkItems {
 
     fun view(model: Model, function: (Event) -> Unit) = Props()
 
-    class Model
+    class Model(val items: List<Item>) {
+        class Item(val title: String, val desc: String, val status: Status) {
+            enum class Status {
+                ToDo, InProgress, Done
+            }
+        }
+    }
+
     class Event
     class Props
 
