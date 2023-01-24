@@ -1,9 +1,6 @@
 package me.cpele.workitems.shell
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Card
@@ -27,7 +24,7 @@ object WorkItemsApp {
                 if (items.isNullOrEmpty()) {
                     Text("You're all done! Good job.")
                 } else {
-                    LazyColumn {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         itemsIndexed(items) { _, item ->
                             Card {
                                 Column {
