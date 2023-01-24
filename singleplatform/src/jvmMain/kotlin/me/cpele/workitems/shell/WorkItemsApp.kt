@@ -1,5 +1,6 @@
 package me.cpele.workitems.shell
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -9,6 +10,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -26,7 +28,9 @@ object WorkItemsApp {
                 } else {
                     LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         itemsIndexed(items) { _, item ->
-                            Card {
+                            Card(
+                                Modifier.border(Dp.Hairline, color = MaterialTheme.colors.primary).fillParentMaxWidth()
+                            ) {
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row {
                                         Text(item.title)
