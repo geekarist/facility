@@ -32,7 +32,7 @@ object WorkItemsApp {
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Row {
-                                        Text(item.title)
+                                        Text(modifier = Modifier.weight(1f), text = item.title)
                                         Text(item.status)
                                     }
                                     Text(item.desc)
