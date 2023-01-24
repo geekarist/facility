@@ -45,7 +45,9 @@ object WorkItems {
         is Event.ItemsLoaded -> model.copy(status = Model.Status.Success, items = event.items) to none()
     }
 
-    fun view(model: Model, function: (Event) -> Unit) = Props()
+    fun view(model: Model, function: (Event) -> Unit) = Props(items = model.items.map { (title, desc, status) ->
+        Props.Item(title = title, desc = desc, status = status.toString())
+    })
 
     data class Model(val status: Status, val items: List<Item>) {
         data class Item(val title: String, val desc: String, val status: Status) {
