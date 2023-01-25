@@ -19,12 +19,16 @@ object WorkItemsApp {
     @Composable
     fun Ui(props: WorkItems.Props?) {
         MaterialTheme {
-            Box(Modifier.padding(32.dp)) {
+            Box {
                 val items = props?.items
                 if (items.isNullOrEmpty()) {
                     Text("You're all done! Good job.")
                 } else {
-                    LazyColumn(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    LazyColumn(
+                        modifier = Modifier.padding(8.dp),
+                        contentPadding = PaddingValues(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         itemsIndexed(items) { _, item ->
                             Card(Modifier.fillMaxWidth()) {
                                 Column(
