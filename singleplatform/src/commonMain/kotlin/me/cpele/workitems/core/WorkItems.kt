@@ -1,9 +1,8 @@
 package me.cpele.workitems.core
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import oolong.Dispatch
+import oolong.Effect
 import oolong.effect
 import oolong.effect.none
 import java.awt.Desktop
@@ -18,7 +17,7 @@ interface Slack {
 }
 
 object WorkItems {
-    fun getInit(slack: Slack): () -> Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = {
+    fun getInit(slack: Slack): () -> Pair<Model, Effect<Event>> = {
         Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
             dispatch(Event.SlackMessagesFetched(slack.fetchMessages()))
         }
@@ -26,7 +25,7 @@ object WorkItems {
 
     fun update(
         event: Event, model: Model
-    ): Pair<Model, suspend CoroutineScope.(Dispatch<Event>) -> Any?> = when (event) {
+    ): Pair<Model, Effect<Event>> = when (event) {
 
         is Event.SlackMessagesFetched -> {
             event.result.map {
@@ -38,10 +37,10 @@ object WorkItems {
                         url = "TODO"
                     )
                 }
-                Model(Model.Status.Success, items) to none<Event>()
+                Model(Model.Status.Success, items)
             }.getOrElse { _ ->
-                Model(Model.Status.Failure, emptyList()) to none()
-            }
+                Model(Model.Status.Failure, emptyList())
+            } to none()
         }
 
         is Event.ItemClicked -> model to effect { _ ->
@@ -50,7 +49,6 @@ object WorkItems {
                 Desktop.getDesktop().browse(URI.create(event.itemModel.url))
             }
         }
-
     }
 
     fun view(model: Model, dispatch: (Event) -> Unit) = when (model.status) {
