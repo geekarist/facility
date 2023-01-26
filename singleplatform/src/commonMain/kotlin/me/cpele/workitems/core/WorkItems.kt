@@ -2,7 +2,6 @@ package me.cpele.workitems.core
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import oolong.Dispatch
 import oolong.effect
@@ -10,46 +9,27 @@ import oolong.effect.none
 import java.awt.Desktop
 import java.net.URI
 
+interface Slack {
+    fun fetchMessages(): List<Message>
+
+    class Message
+}
+
 object WorkItems {
-    fun init() = Model(items = listOf(), status = Model.Status.Loading) to
-            effect { dispatch ->
-                dispatch(Event.LoadingStarted)
-                delay(2000)
-                val newItems =
-                    listOf(
-                        Model.Item(
-                            title = "First loaded item",
-                            desc = "First loaded item description",
-                            status = Model.Item.Status.ToDo,
-                            url = "https://google.fr/search?q=first+task",
-                        ),
-                        Model.Item(
-                            title = "Second loaded item",
-                            desc = "Second loaded item description",
-                            status = Model.Item.Status.ToDo,
-                            url = "https://google.fr/search?q=second+task",
-                        ),
-                        Model.Item(
-                            title = "Third loaded item",
-                            desc = "Third loaded item description",
-                            status = Model.Item.Status.InProgress,
-                            url = "https://google.fr/search?q=third+task",
-                        ),
-                        Model.Item(
-                            title = "Fourth loaded item",
-                            desc = "Fourth loaded item description",
-                            status = Model.Item.Status.Done,
-                            url = "https://google.fr/search?q=fourth+task",
-                        )
-                    )
-                dispatch(Event.ItemsLoaded(newItems))
-            }
+    fun getInit(slack: Slack): () -> Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = {
+        Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
+            dispatch(Event.LoadingStarted)
+            val messages: List<Slack.Message> = slack.fetchMessages()
+            dispatch(Event.SlackMessagesFetched(messages))
+        }
+    }
 
     fun update(
         event: Event,
         model: Model
     ): Pair<Model, suspend CoroutineScope.(Dispatch<Event>) -> Any?> = when (event) {
         Event.LoadingStarted -> model.copy(status = Model.Status.Loading) to none()
+        is Event.SlackMessagesFetched -> TODO()
         is Event.ItemsLoaded -> model.copy(status = Model.Status.Success, items = event.items) to none()
         is Event.ItemClicked -> model to effect { _ ->
             println("Opening item: ${event.itemModel}...")
@@ -57,6 +37,7 @@ object WorkItems {
                 Desktop.getDesktop().browse(URI.create(event.itemModel.url))
             }
         }
+
     }
 
     fun view(model: Model, dispatch: (Event) -> Unit) = Props(items = model.items.map { itemModel ->
@@ -81,6 +62,7 @@ object WorkItems {
 
     sealed class Event {
         object LoadingStarted : Event()
+        data class SlackMessagesFetched(val messages: List<Slack.Message>) : Event()
         data class ItemsLoaded(val items: List<Model.Item>) : Event()
         data class ItemClicked(val itemModel: Model.Item) : Event()
     }
