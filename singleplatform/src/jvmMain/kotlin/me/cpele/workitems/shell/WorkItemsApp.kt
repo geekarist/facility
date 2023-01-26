@@ -69,7 +69,7 @@ object WorkItemsApp {
         }
         LaunchedEffect(Unit) {
             runtime(
-                init = WorkItems.getInit(DefaultSlack), update = WorkItems::update, view = WorkItems::view, render = {
+                init = WorkItems.makeInit(DefaultSlack), update = WorkItems::update, view = WorkItems::view, render = {
                     it.also { workItemsProps = it }
                 }, renderContext = coroutineScope.coroutineContext
             )

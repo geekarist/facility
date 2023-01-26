@@ -17,7 +17,7 @@ interface Slack {
 }
 
 object WorkItems {
-    fun getInit(slack: Slack): () -> Pair<Model, Effect<Event>> = {
+    fun makeInit(slack: Slack): () -> Pair<Model, Effect<Event>> = {
         Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
             dispatch(Event.SlackMessagesFetched(slack.fetchMessages()))
         }
