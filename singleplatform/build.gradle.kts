@@ -34,6 +34,7 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
                 implementation("org.oolong-kt:oolong:2.1.1")
+                implementation("com.slack.api:slack-api-client:1.27.3")
             }
             dependsOn(commonMain)
         }
