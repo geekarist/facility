@@ -31,11 +31,11 @@ object WorkItemsApp {
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         itemsIndexed(items) { _, item ->
-                            Card(Modifier.fillMaxWidth()) {
+                            Card(Modifier.fillMaxWidth().clickable {
+                                item.onClick()
+                            }) {
                                 Column(
-                                    modifier = Modifier.padding(8.dp).fillMaxWidth().clickable {
-                                        item.onClick()
-                                    },
+                                    modifier = Modifier.padding(8.dp).fillMaxWidth(),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Row {
@@ -66,13 +66,9 @@ object WorkItemsApp {
         }
         LaunchedEffect(Unit) {
             runtime(
-                init = WorkItems::init,
-                update = WorkItems::update,
-                view = WorkItems::view,
-                render = {
+                init = WorkItems::init, update = WorkItems::update, view = WorkItems::view, render = {
                     it.also { workItemsProps = it }
-                },
-                renderContext = coroutineScope.coroutineContext
+                }, renderContext = coroutineScope.coroutineContext
             )
         }
     }
