@@ -10,27 +10,37 @@ import java.awt.Desktop
 import java.net.URI
 
 interface Slack {
-    fun fetchMessages(): List<Message>
+    fun fetchMessages(): Result<List<Message>>
 
-    class Message
+    interface Message {
+        val text: String
+    }
 }
 
 object WorkItems {
     fun getInit(slack: Slack): () -> Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = {
         Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
-            dispatch(Event.LoadingStarted)
-            val messages: List<Slack.Message> = slack.fetchMessages()
-            dispatch(Event.SlackMessagesFetched(messages))
+            dispatch(Event.SlackMessagesFetched(slack.fetchMessages()))
         }
     }
 
     fun update(
-        event: Event,
-        model: Model
+        event: Event, model: Model
     ): Pair<Model, suspend CoroutineScope.(Dispatch<Event>) -> Any?> = when (event) {
-        Event.LoadingStarted -> model.copy(status = Model.Status.Loading) to none()
-        is Event.SlackMessagesFetched -> TODO()
+
+        is Event.SlackMessagesFetched -> {
+            event.result.map {
+                val items = it.map {
+                    Model.Item(title = "Unknown title", desc = it.text, status = Model.Item.Status.ToDo, url = "TODO")
+                }
+                Model(Model.Status.Success, items) to none<Event>()
+            }.getOrElse { _ ->
+                Model(Model.Status.Failure, emptyList()) to none()
+            }
+        }
+
         is Event.ItemsLoaded -> model.copy(status = Model.Status.Success, items = event.items) to none()
+
         is Event.ItemClicked -> model to effect { _ ->
             println("Opening item: ${event.itemModel}...")
             withContext(Dispatchers.IO) {
@@ -57,12 +67,12 @@ object WorkItems {
         sealed class Status {
             object Loading : Status()
             object Success : Status()
+            object Failure : Status()
         }
     }
 
     sealed class Event {
-        object LoadingStarted : Event()
-        data class SlackMessagesFetched(val messages: List<Slack.Message>) : Event()
+        data class SlackMessagesFetched(val result: Result<List<Slack.Message>>) : Event()
         data class ItemsLoaded(val items: List<Model.Item>) : Event()
         data class ItemClicked(val itemModel: Model.Item) : Event()
     }
