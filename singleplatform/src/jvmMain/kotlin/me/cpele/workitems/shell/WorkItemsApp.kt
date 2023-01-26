@@ -1,5 +1,6 @@
 package me.cpele.workitems.shell
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -32,7 +33,9 @@ object WorkItemsApp {
                         itemsIndexed(items) { _, item ->
                             Card(Modifier.fillMaxWidth()) {
                                 Column(
-                                    modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                                    modifier = Modifier.padding(8.dp).fillMaxWidth().clickable {
+                                        item.onClick()
+                                    },
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Row {
