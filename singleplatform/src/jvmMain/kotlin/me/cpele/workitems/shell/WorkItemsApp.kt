@@ -20,7 +20,7 @@ object WorkItemsApp {
     @Composable
     fun Ui(props: WorkItems.Props?) {
         MaterialTheme {
-            Box {
+            Box(Modifier.padding(16.dp)) {
                 val items = props?.items
                 if (items.isNullOrEmpty()) {
                     Text("You're all done! Good job.")
