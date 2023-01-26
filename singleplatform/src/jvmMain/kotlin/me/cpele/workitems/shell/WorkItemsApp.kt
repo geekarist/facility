@@ -9,6 +9,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
@@ -18,11 +19,13 @@ import oolong.runtime
 
 object WorkItemsApp {
     @Composable
-    fun Ui(props: WorkItems.Props?) {
+    fun Ui(props: WorkItems.Props) {
         MaterialTheme {
-            Box(Modifier.padding(16.dp)) {
-                val items = props?.items
-                if (items.isNullOrEmpty()) {
+            Box(Modifier.padding(16.dp).fillMaxSize()) {
+                Text(modifier = Modifier.align(Alignment.TopEnd), text = props.status)
+
+                val items = props.items
+                if (items.isEmpty()) {
                     Text("You're all done! Good job.")
                 } else {
                     LazyColumn(
@@ -58,7 +61,7 @@ object WorkItemsApp {
 
     fun run() = application {
         var workItemsProps by rememberSaveable {
-            mutableStateOf<WorkItems.Props?>(null)
+            mutableStateOf(WorkItems.Props())
         }
         val coroutineScope = rememberCoroutineScope()
         Window(onCloseRequest = ::exitApplication) {

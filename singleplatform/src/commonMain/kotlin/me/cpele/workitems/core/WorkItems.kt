@@ -30,16 +30,19 @@ object WorkItems {
 
         is Event.SlackMessagesFetched -> {
             event.result.map {
-                val items = it.map {
-                    Model.Item(title = "Unknown title", desc = it.text, status = Model.Item.Status.ToDo, url = "TODO")
+                val items = it.map { message ->
+                    Model.Item(
+                        title = "Unknown title",
+                        desc = message.text,
+                        status = Model.Item.Status.ToDo,
+                        url = "TODO"
+                    )
                 }
                 Model(Model.Status.Success, items) to none<Event>()
             }.getOrElse { _ ->
                 Model(Model.Status.Failure, emptyList()) to none()
             }
         }
-
-        is Event.ItemsLoaded -> model.copy(status = Model.Status.Success, items = event.items) to none()
 
         is Event.ItemClicked -> model to effect { _ ->
             println("Opening item: ${event.itemModel}...")
@@ -50,12 +53,19 @@ object WorkItems {
 
     }
 
-    fun view(model: Model, dispatch: (Event) -> Unit) = Props(items = model.items.map { itemModel ->
-        Props.Item(title = itemModel.title,
-            desc = itemModel.desc,
-            status = itemModel.status.text,
-            onClick = { dispatch(Event.ItemClicked(itemModel)) })
-    })
+    fun view(model: Model, dispatch: (Event) -> Unit) = when (model.status) {
+
+        Model.Status.Loading -> Props(status = "⏳")
+
+        Model.Status.Success -> Props(status = "✅", items = model.items.map { itemModel ->
+            Props.Item(title = itemModel.title,
+                desc = itemModel.desc,
+                status = itemModel.status.text,
+                onClick = { dispatch(Event.ItemClicked(itemModel)) })
+        })
+
+        Model.Status.Failure -> Props(status = "⚠")
+    }
 
     data class Model(val status: Status, val items: List<Item>) {
         data class Item(val title: String, val desc: String, val status: Status, val url: String) {
@@ -73,11 +83,10 @@ object WorkItems {
 
     sealed class Event {
         data class SlackMessagesFetched(val result: Result<List<Slack.Message>>) : Event()
-        data class ItemsLoaded(val items: List<Model.Item>) : Event()
         data class ItemClicked(val itemModel: Model.Item) : Event()
     }
 
-    data class Props(val items: List<Item> = emptyList()) {
+    data class Props(val status: String = "✅", val items: List<Item> = emptyList()) {
         data class Item(val title: String, val desc: String, val status: String, val onClick: () -> Unit)
     }
 }
