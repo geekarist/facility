@@ -37,9 +37,9 @@ object WorkItems {
                         url = "TODO"
                     )
                 }
-                Model(Model.Status.Success, items)
+                model.copy(status = Model.Status.Success, items = items)
             }.getOrElse { _ ->
-                Model(Model.Status.Failure, emptyList())
+                model.copy(status = Model.Status.Failure, items = emptyList())
             } to none()
         }
 
@@ -47,7 +47,7 @@ object WorkItems {
             println("Opening item: ${event.itemModel}...")
             withContext(Dispatchers.IO) {
                 Desktop.getDesktop().browse(URI.create(event.itemModel.url))
-            }
+            } // TODO: move to Platform interface?
         }
     }
 
