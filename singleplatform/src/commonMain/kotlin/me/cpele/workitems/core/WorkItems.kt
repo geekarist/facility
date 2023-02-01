@@ -7,6 +7,8 @@ import oolong.effect
 import oolong.effect.none
 import java.awt.Desktop
 import java.net.URI
+import java.util.logging.Level
+import java.util.logging.Logger
 
 interface Slack {
     fun fetchMessages(): Result<List<Message>>
@@ -28,19 +30,22 @@ object WorkItems {
     ): Pair<Model, Effect<Event>> = when (event) {
 
         is Event.SlackMessagesFetched -> {
-            event.result.map {
-                val items = it.map { message ->
+            event.result.map { messages ->
+                val items = messages.map { message ->
                     Model.Item(
-                        title = "Unknown title",
-                        desc = message.text,
-                        status = Model.Item.Status.ToDo,
-                        url = "TODO"
+                        title = "Unknown title", desc = message.text, status = Model.Item.Status.ToDo, url = "TODO"
                     )
                 }
-                model.copy(status = Model.Status.Success, items = items)
-            }.getOrElse { _ ->
-                model.copy(status = Model.Status.Failure, items = emptyList())
-            } to none()
+                model.copy(status = Model.Status.Success, items = items) to none<Event>()
+            }.getOrElse { thrown: Throwable ->
+                model.copy(
+                    status = Model.Status.Failure
+                ) to effect {
+                    val level = Level.WARNING
+                    val msg = "Error fetching Slack messages"
+                    Logger.getAnonymousLogger().log(level, msg, thrown)
+                }
+            }
         }
 
         is Event.ItemClicked -> model to effect { _ ->
