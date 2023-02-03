@@ -13,8 +13,12 @@ object DefaultSlack : Slack {
         val methods: MethodsClient = slack.methods(token)
         val request: SearchMessagesRequest = SearchMessagesRequest.builder().query("hello").build()
         val response: SearchMessagesResponse = methods.searchMessages(request)
-        response.messages.matches.map {
-            Message(it.text)
+        if (response.isOk) {
+            response.messages.matches.map {
+                Message(it.text)
+            }
+        } else {
+            throw IllegalStateException("Error fetching Slack messages, response: $response")
         }
     }
 
