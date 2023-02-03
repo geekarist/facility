@@ -11,7 +11,7 @@ object DefaultSlack : Slack {
         val slack: RemoteSlack = RemoteSlack.getInstance()
         val token = System.getProperty("slack.token")
         val methods: MethodsClient = slack.methods(token)
-        val request: SearchMessagesRequest = SearchMessagesRequest.builder().query("hello").build()
+        val request: SearchMessagesRequest = SearchMessagesRequest.builder().token(token).query("hello").build()
         val response: SearchMessagesResponse = methods.searchMessages(request)
         if (response.isOk) {
             response.messages.matches.map {
