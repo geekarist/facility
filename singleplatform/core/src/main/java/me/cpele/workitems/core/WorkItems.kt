@@ -6,19 +6,6 @@ import oolong.Effect
 import oolong.effect
 import oolong.effect.none
 
-interface Slack {
-    fun fetchMessages(): Result<List<Message>>
-
-    interface Message {
-        val text: String
-    }
-}
-
-interface Platform {
-    fun logw(thrown: Throwable, makeMessage: () -> String)
-    fun openUri(url: String)
-}
-
 object WorkItems {
     fun makeInit(slack: Slack): () -> Pair<Model, Effect<Event>> = {
         Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
