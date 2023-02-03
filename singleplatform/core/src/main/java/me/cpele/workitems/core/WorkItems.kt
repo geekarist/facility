@@ -19,14 +19,16 @@ interface Platform {
     fun openUri(url: String)
 }
 
+typealias Change<ModelT, EventT> = Pair<ModelT, Effect<EventT>>
+
 object WorkItems {
-    fun makeInit(slack: Slack): () -> Pair<Model, Effect<Event>> = {
+    fun makeInit(slack: Slack): () -> Change<Model, Event> = {
         Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
             dispatch(Event.SlackMessagesFetched(slack.fetchMessages()))
         }
     }
 
-    fun makeUpdate(platform: Platform): (Event, Model) -> Pair<Model, Effect<Event>> = { event, model ->
+    fun makeUpdate(platform: Platform): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
             is Event.SlackMessagesFetched -> {
                 event.result.map { messages ->
