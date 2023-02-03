@@ -9,7 +9,7 @@ import com.slack.api.Slack as RemoteSlack
 object DefaultSlack : Slack {
     override fun fetchMessages() = Result.runCatching {
         val slack: RemoteSlack = RemoteSlack.getInstance()
-        val token = "TODO"
+        val token = System.getProperty("slack.token")
         val methods: MethodsClient = slack.methods(token)
         val request: SearchMessagesRequest = SearchMessagesRequest.builder().query("hello").build()
         val response: SearchMessagesResponse = methods.searchMessages(request)
