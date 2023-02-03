@@ -18,7 +18,7 @@ object DefaultSlack : Slack {
                 Message(it.text)
             }
         } else {
-            throw IllegalStateException("Error fetching Slack messages, response: $response")
+            throw IllegalStateException("Error fetching Slack messages, request: $request, response: $response")
         }
     }
 
