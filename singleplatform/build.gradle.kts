@@ -24,7 +24,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("org.oolong-kt:oolong:2.1.1")
+                implementation(project(":core"))
             }
         }
 
