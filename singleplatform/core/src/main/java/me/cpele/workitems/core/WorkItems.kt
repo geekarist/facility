@@ -5,10 +5,6 @@ import kotlinx.coroutines.withContext
 import oolong.Effect
 import oolong.effect
 import oolong.effect.none
-import java.awt.Desktop
-import java.net.URI
-import java.util.logging.Level
-import java.util.logging.Logger
 
 interface Slack {
     fun fetchMessages(): Result<List<Message>>
@@ -18,6 +14,11 @@ interface Slack {
     }
 }
 
+interface Platform {
+    fun logw(thrown: Throwable, makeMessage: () -> String)
+    fun openUri(url: String)
+}
+
 object WorkItems {
     fun makeInit(slack: Slack): () -> Pair<Model, Effect<Event>> = {
         Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
@@ -25,34 +26,33 @@ object WorkItems {
         }
     }
 
-    fun update(
-        event: Event, model: Model
-    ): Pair<Model, Effect<Event>> = when (event) {
-
-        is Event.SlackMessagesFetched -> {
-            event.result.map { messages ->
-                val items = messages.map { message ->
-                    Model.Item(
-                        title = "Unknown title", desc = message.text, status = Model.Item.Status.ToDo, url = "TODO"
-                    )
-                }
-                model.copy(status = Model.Status.Success, items = items) to none<Event>()
-            }.getOrElse { thrown: Throwable ->
-                model.copy(
-                    status = Model.Status.Failure
-                ) to effect {
-                    val level = Level.WARNING
-                    val msg = "Error fetching Slack messages"
-                    Logger.getAnonymousLogger().log(level, msg, thrown)
+    fun makeUpdate(platform: Platform): (Event, Model) -> Pair<Model, Effect<Event>> = { event, model ->
+        when (event) {
+            is Event.SlackMessagesFetched -> {
+                event.result.map { messages ->
+                    val items = messages.map { message ->
+                        Model.Item(
+                            title = "Unknown title",
+                            desc = message.text,
+                            status = Model.Item.Status.ToDo,
+                            url = "TODO"
+                        )
+                    }
+                    model.copy(status = Model.Status.Success, items = items) to none<Event>()
+                }.getOrElse { thrown: Throwable ->
+                    model.copy(
+                        status = Model.Status.Failure
+                    ) to effect {
+                        platform.logw(thrown) { "Error fetching Slack messages" }
+                    }
                 }
             }
-        }
 
-        is Event.ItemClicked -> model to effect { _ ->
-            println("Opening item: ${event.itemModel}...")
-            withContext(Dispatchers.IO) {
-                Desktop.getDesktop().browse(URI.create(event.itemModel.url))
-            } // TODO: move to Platform interface?
+            is Event.ItemClicked -> model to effect { _ ->
+                withContext(Dispatchers.IO) {
+                    platform.openUri(event.itemModel.url)
+                }
+            }
         }
     }
 
