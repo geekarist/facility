@@ -10,6 +10,7 @@ object DefaultSlack : Slack {
     override fun fetchMessages() = Result.runCatching {
         val slack: RemoteSlack = RemoteSlack.getInstance()
         val token = System.getProperty("slack.token")
+        // TODO! Request user token. See file:///home/cp/Workspaces/mirrors/api.slack.com_apis/api.slack.com/authentication/oauth-v2.html#
         val methods: MethodsClient = slack.methods(token)
         val request: SearchMessagesRequest = SearchMessagesRequest.builder().token(token).query("hello").build()
         val response: SearchMessagesResponse = methods.searchMessages(request)

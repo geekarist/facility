@@ -1,3 +1,5 @@
 package me.cpele.workitems.shell
 
-fun main() = WorkItemsApp.run()
+import me.cpele.workitems.core.WorkItems
+
+fun main() = WorkItems.application()
