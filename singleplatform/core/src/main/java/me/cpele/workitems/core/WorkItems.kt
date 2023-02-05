@@ -76,7 +76,11 @@ object WorkItems {
         data class ItemClicked(val itemModel: Model.Item) : Event()
     }
 
-    data class Props(val status: String = "✅", val items: List<Item> = emptyList()) {
+    data class Props(
+        val status: String = "✅",
+        val items: List<Item> = emptyList(),
+        val signIn: SignIn.Props = SignIn.Props()
+    ) {
         data class Item(val title: String, val desc: String, val status: String, val onClick: () -> Unit)
     }
 }
