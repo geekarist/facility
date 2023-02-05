@@ -20,8 +20,6 @@ import me.cpele.workitems.core.SignIn
 import me.cpele.workitems.core.WorkItems
 import oolong.runtime
 
-// TODO: rename file to App
-
 @Composable
 fun WorkItems.Ui(props: WorkItems.Props) {
     MaterialTheme {
