@@ -62,11 +62,6 @@ fun WorkItems.Ui(props: WorkItems.Props) {
     }
 }
 
-@Composable
-private fun SignIn.Ui(modifier: Modifier = Modifier, props: SignIn.Props) {
-    Text(modifier = modifier, text = props.text)
-}
-
 fun WorkItems.application() = application {
     var workItemsProps by rememberSaveable {
         mutableStateOf(WorkItems.Props())
