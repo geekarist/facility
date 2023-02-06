@@ -10,22 +10,18 @@ import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.application
-import me.cpele.workitems.core.SignIn
+import me.cpele.workitems.core.Authentication
 import me.cpele.workitems.core.WorkItems
-import oolong.runtime
 
 @Composable
 fun WorkItems.Ui(props: WorkItems.Props) {
     MaterialTheme {
         Box(Modifier.padding(16.dp).fillMaxSize()) {
             Text(modifier = Modifier.align(Alignment.TopEnd), text = props.status)
-            SignIn.Ui(modifier = Modifier.align(Alignment.BottomEnd), props = props.signIn)
+            Authentication.Ui(modifier = Modifier.align(Alignment.BottomEnd), props = props.signIn)
 
             val items = props.items
             if (items.isEmpty()) {
@@ -62,22 +58,10 @@ fun WorkItems.Ui(props: WorkItems.Props) {
     }
 }
 
-fun WorkItems.application() = application {
-    var workItemsProps by rememberSaveable {
-        mutableStateOf(WorkItems.Props())
-    }
-    val coroutineScope = rememberCoroutineScope()
-    Window(onCloseRequest = ::exitApplication) {
-        WorkItems.Ui(workItemsProps)
-    }
-    LaunchedEffect(Unit) {
-        runtime(
-            init = makeInit(DefaultSlack),
-            update = makeUpdate(DesktopPlatform),
-            view = WorkItems::view,
-            render = {
-                it.also { workItemsProps = it }
-            }, renderContext = coroutineScope.coroutineContext
-        )
-    }
-}
+fun WorkItems.app() = app(
+    initProps = WorkItems.Props(),
+    init = makeInit(DefaultSlack),
+    update = makeUpdate(DesktopPlatform),
+    view = WorkItems::view
+) { WorkItems.Ui(it) }
+

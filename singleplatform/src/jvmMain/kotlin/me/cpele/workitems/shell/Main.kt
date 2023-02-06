@@ -1,5 +1,6 @@
 package me.cpele.workitems.shell
 
-import me.cpele.workitems.core.WorkItems
+import me.cpele.workitems.core.Authentication
 
-fun main(): Unit = WorkItems.application()
+fun main(): Unit = Authentication.app()
+
