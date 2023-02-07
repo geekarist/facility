@@ -4,6 +4,18 @@ import kotlinx.coroutines.CoroutineScope
 import oolong.Effect
 import oolong.effect.none
 
+/**
+ * Authentication program.
+ *
+ * - Shows a list of icons, each of them a provider of work items
+ * like Slack, Jira, etc.
+ * - When unauthenticated:
+ *     - Icon shows in grayscale
+ *     - On click display provider info, login button
+ * - When authenticated:
+ *     - Icon shows in color
+ *     - On click display account info, logout button
+ */
 object Authentication {
     fun init(): Pair<Model, Effect<Event>> = Model() to none()
 
