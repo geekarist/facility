@@ -10,9 +10,9 @@ import oolong.effect.none
  * ## Model
  *
  * - List of providers
- * - Provider has description, optional account, interface
- * - Account has info like login, tokens, avatar, etc.
+ * - Provider has description, optional account, interface, auth status,
  * - Auth status: absent, pending, failure, complete
+ * - Account has info like login, tokens, avatar, etc.
  * - Status message
  *
  * ## Update
@@ -40,14 +40,14 @@ object Authentication {
         model: Model
     ): Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = model to none()
 
-    fun view(model: Model, function: (Event) -> Unit): Props = Props()
+    fun view(model: Model, dispatch: (Event) -> Unit): Props = Props()
 
     class Event
 
     data class Model(val providers: List<Provider>) {
-        class Provider {
+        data class Provider(val description: String, val account: Account)
 
-        }
+        data class Account(val login: String, val token: String, val avatarUrl: String)
     }
 
     class Props(val text: String = "Yo")
