@@ -2,7 +2,10 @@ package me.cpele.workitems.core
 
 import kotlinx.coroutines.CoroutineScope
 import oolong.Effect
+import oolong.effect
 import oolong.effect.none
+import java.util.logging.Level
+import java.util.logging.Logger
 
 /**
  * # Authentication program
@@ -36,13 +39,27 @@ object Authentication {
     fun init(): Pair<Model, Effect<Event>> = Model(emptyList()) to none()
 
     fun update(
-        event: Event,
-        model: Model
-    ): Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = model to none()
+        event: Event, model: Model
+    ): Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = when (event) {
+        Event.Initiate.Slack -> TODO()
+        else -> model to effect {
+            Logger.getAnonymousLogger().log(Level.INFO, "Unknown event: $event")
+        }
+    }
 
-    fun view(model: Model, dispatch: (Event) -> Unit): Props = Props()
+    fun view(model: Model, dispatch: (Event) -> Unit) = Props(
+        onClickSlack = { dispatch(Event.Initiate.Slack) },
+        onClickJira = { dispatch(Event.Initiate.Jira) },
+        onClickGitHub = { dispatch(Event.Initiate.GitHub) },
+    )
 
-    class Event
+    sealed interface Event {
+        sealed interface Initiate : Event {
+            object Slack : Initiate
+            object Jira : Initiate
+            object GitHub : Initiate
+        }
+    }
 
     data class Model(val providers: List<Provider>) {
         data class Provider(val description: String, val account: Account)
@@ -50,5 +67,10 @@ object Authentication {
         data class Account(val login: String, val token: String, val avatarUrl: String)
     }
 
-    class Props(val text: String = "Yo")
+    data class Props(
+        val text: String = "Yo",
+        val onClickSlack: () -> Unit = {},
+        val onClickJira: () -> Unit = {},
+        val onClickGitHub: () -> Unit = {},
+    )
 }
