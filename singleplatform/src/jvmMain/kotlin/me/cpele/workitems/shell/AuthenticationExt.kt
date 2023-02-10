@@ -20,21 +20,20 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
         modifier = modifier.padding(horizontal = 8.dp).wrapContentSize(unbounded = true),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Button(onClick = { props.onClickSlack() }) {
-            Text("Slack")
-        }
-        Button(onClick = { props.onClickJira() }) {
-            Text("Jira")
-        }
-        Button(onClick = { props.onClickGitHub() }) {
-            Text("GitHub")
+        props.buttons.forEach { button ->
+            Button(onClick = button.onClick) {
+                Text(button.text)
+            }
         }
     }
-    Dialog(visible = props.isDialogOpen, onCloseRequest = {}) {
-        Text("Yo")
+    Dialog(visible = props.dialog.isOpen, onCloseRequest = {}) {
+        Text(props.dialog.text)
+        Button(onClick = props.dialog.button.onClick) {
+            Text(props.dialog.button.text)
+        }
     }
 }
 
 fun Authentication.app() = app(
-    Authentication.Props(), Authentication::init, Authentication::update, Authentication::view
+    Authentication::init, Authentication::update, Authentication::view
 ) { Ui(props = it) }

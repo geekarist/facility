@@ -79,7 +79,6 @@ object WorkItems {
     data class Props(
         val status: String = "✅",
         val items: List<Item> = emptyList(),
-        val signIn: Authentication.Props = Authentication.Props()
     ) {
         data class Item(val title: String, val desc: String, val status: String, val onClick: () -> Unit)
     }

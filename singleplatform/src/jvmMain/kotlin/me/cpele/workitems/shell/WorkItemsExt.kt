@@ -13,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import me.cpele.workitems.core.Authentication
 import me.cpele.workitems.core.WorkItems
 
 @Composable
@@ -21,7 +20,6 @@ fun WorkItems.Ui(props: WorkItems.Props) {
     MaterialTheme {
         Box(Modifier.padding(16.dp).fillMaxSize()) {
             Text(modifier = Modifier.align(Alignment.TopEnd), text = props.status)
-            Authentication.Ui(modifier = Modifier.align(Alignment.BottomEnd), props = props.signIn)
 
             val items = props.items
             if (items.isEmpty()) {
@@ -59,7 +57,6 @@ fun WorkItems.Ui(props: WorkItems.Props) {
 }
 
 fun WorkItems.app() = app(
-    initProps = WorkItems.Props(),
     init = makeInit(DefaultSlack),
     update = makeUpdate(DesktopPlatform),
     view = WorkItems::view

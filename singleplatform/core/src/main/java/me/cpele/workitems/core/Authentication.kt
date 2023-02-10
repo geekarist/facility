@@ -7,71 +7,37 @@ import oolong.effect.none
 import java.util.logging.Level
 import java.util.logging.Logger
 
-/**
- * # Authentication program
- *
- * ## Model
- *
- * - List of providers
- * - Provider has description, optional account, interface, auth status,
- * - Auth status: absent, pending, failure, complete
- * - Account has info like login, tokens, avatar, etc.
- * - Status message
- *
- * ## Update
- *
- * - Initially no provider
- * - Login requested for given provider ⇒ contact provider to initiate login, record pending auth status
- * - Provider authenticated account ⇒ record account info, record completed auth status
- * - Error requesting account ⇒ record error status message
- * - Auth request refused ⇒ record failure status message
- * - Provider info requested ⇒ expose appropriate info, either about provider or account
- * - Logout requested ⇒ contact provider to request logout, record deleted auth status
- *
- * ## View
- *
- * - List of icons, each of them a provider of work items like Slack, Jira, etc.
- * - Provider without account displays as grayscale icon. On click show *provider* info, *login* button.
- * - Provider with account displays as color icon. On click show *account* info, *logout* button.
- * - Optional error message modal dialog
- */
 object Authentication {
-    fun init(): Pair<Model, Effect<Event>> = Model(emptyList()) to none()
+    fun init(): Pair<Model, Effect<Event>> = Model() to none()
 
     fun update(
         event: Event, model: Model
     ): Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = when (event) {
-        Event.Initiate.Slack -> TODO()
         else -> model to effect {
             Logger.getAnonymousLogger().log(Level.INFO, "Unknown event: $event")
         }
     }
 
     fun view(model: Model, dispatch: (Event) -> Unit) = Props(
-        onClickSlack = { dispatch(Event.Initiate.Slack) },
-        onClickJira = { dispatch(Event.Initiate.Jira) },
-        onClickGitHub = { dispatch(Event.Initiate.GitHub) },
+        Props.Dialog(isOpen = false, text = "Yo", button = Props.Button("Yo") {}),
+        listOf(
+            Props.Button("Slack") {},
+            Props.Button("Jira") {},
+            Props.Button("GitHub") {},
+        )
     )
 
     sealed interface Event {
-        sealed interface Initiate : Event {
-            object Slack : Initiate
-            object Jira : Initiate
-            object GitHub : Initiate
-        }
     }
 
-    data class Model(val providers: List<Provider>) {
-        data class Provider(val description: String, val account: Account)
-
-        data class Account(val login: String, val token: String, val avatarUrl: String)
-    }
+    class Model
 
     data class Props(
-        val text: String = "Yo",
-        val onClickSlack: () -> Unit = {},
-        val onClickJira: () -> Unit = {},
-        val onClickGitHub: () -> Unit = {},
-        val isDialogOpen: Boolean = false,
-    )
+        val dialog: Dialog,
+        val buttons: List<Button>
+    ) {
+        data class Dialog(val isOpen: Boolean, val text: String, val button: Button)
+
+        data class Button(val text: String, val onClick: () -> Unit)
+    }
 }

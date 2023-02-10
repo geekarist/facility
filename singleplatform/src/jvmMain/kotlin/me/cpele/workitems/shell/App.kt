@@ -8,14 +8,15 @@ import oolong.Effect
 import oolong.runtime
 
 fun <PropsT, ModelT, EventT> app(
-    initProps: PropsT,
     init: () -> Pair<ModelT, Effect<EventT>>,
     update: (EventT, ModelT) -> Pair<ModelT, Effect<EventT>>,
     view: (ModelT, (EventT) -> Unit) -> PropsT,
     ui: @Composable (PropsT) -> Unit
 ) {
     application {
-        var props by rememberSaveable {
+        var props: PropsT by rememberSaveable {
+            val initModel = init().first
+            val initProps = view(initModel) {}
             mutableStateOf(initProps)
         }
         val coroutineScope = rememberCoroutineScope()
