@@ -72,5 +72,6 @@ object Authentication {
         val onClickSlack: () -> Unit = {},
         val onClickJira: () -> Unit = {},
         val onClickGitHub: () -> Unit = {},
+        val isDialogOpen: Boolean = false,
     )
 }

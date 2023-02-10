@@ -8,9 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.Button
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import me.cpele.workitems.core.Authentication
 
 @Composable
@@ -28,6 +29,9 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
         Button(onClick = { props.onClickGitHub() }) {
             Text("GitHub")
         }
+    }
+    Dialog(visible = props.isDialogOpen, onCloseRequest = {}) {
+        Text("Yo")
     }
 }
 
