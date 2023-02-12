@@ -2,35 +2,36 @@ package me.cpele.workitems.core
 
 import kotlinx.coroutines.CoroutineScope
 import oolong.Effect
-import oolong.effect
 import oolong.effect.none
-import java.util.logging.Level
-import java.util.logging.Logger
 
 object Authentication {
-    fun init(): Pair<Model, Effect<Event>> = Model() to none()
+    fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ChooseProvider) to none()
 
     fun update(
-        event: Event, model: Model
-    ): Pair<Model, suspend CoroutineScope.((Event) -> Unit) -> Any?> = when (event) {
-        else -> model to effect {
-            Logger.getAnonymousLogger().log(Level.INFO, "Unknown event: $event")
-        }
+        message: Message, model: Model
+    ): Pair<Model, suspend CoroutineScope.((Message) -> Unit) -> Any?> = when (message) {
+        Message.ProviderSelected -> model.copy(step = Model.Step.DetailProvider) to none()
     }
 
-    fun view(model: Model, dispatch: (Event) -> Unit) = Props(
-        Props.Dialog(isOpen = false, text = "Yo", button = Props.Button("Yo") {}),
+    fun view(model: Model, dispatch: (Message) -> Unit) = Props(
+        Props.Dialog(isOpen = model.step == Model.Step.DetailProvider, text = "Yo", button = Props.Button("Yo") {}),
         listOf(
-            Props.Button("Slack") {},
+            Props.Button("Slack") { dispatch(Message.ProviderSelected) },
             Props.Button("Jira") {},
             Props.Button("GitHub") {},
         )
     )
 
-    sealed interface Event {
+    sealed interface Message {
+        object ProviderSelected : Message
     }
 
-    class Model
+    data class Model(val step: Step) {
+        enum class Step {
+            ChooseProvider,
+            DetailProvider
+        }
+    }
 
     data class Props(
         val dialog: Dialog,
