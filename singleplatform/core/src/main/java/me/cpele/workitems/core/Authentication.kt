@@ -11,10 +11,16 @@ object Authentication {
         message: Message, model: Model
     ): Pair<Model, suspend CoroutineScope.((Message) -> Unit) -> Any?> = when (message) {
         Message.ProviderSelected -> model.copy(step = Model.Step.DetailProvider) to none()
+        Message.DeselectProvider -> model.copy(step = Model.Step.ChooseProvider) to none()
     }
 
     fun view(model: Model, dispatch: (Message) -> Unit) = Props(
-        Props.Dialog(isOpen = model.step == Model.Step.DetailProvider, text = "Yo", button = Props.Button("Yo") {}),
+        Props.Dialog(
+            isOpen = model.step == Model.Step.DetailProvider,
+            text = "Yo",
+            button = Props.Button("Yo") {},
+            onClose = { dispatch(Message.DeselectProvider) }
+        ),
         listOf(
             Props.Button("Slack") { dispatch(Message.ProviderSelected) },
             Props.Button("Jira") {},
@@ -24,6 +30,7 @@ object Authentication {
 
     sealed interface Message {
         object ProviderSelected : Message
+        object DeselectProvider : Message
     }
 
     data class Model(val step: Step) {
@@ -37,7 +44,7 @@ object Authentication {
         val dialog: Dialog,
         val buttons: List<Button>
     ) {
-        data class Dialog(val isOpen: Boolean, val text: String, val button: Button)
+        data class Dialog(val isOpen: Boolean, val text: String, val button: Button, val onClose: () -> Unit)
 
         data class Button(val text: String, val onClick: () -> Unit)
     }

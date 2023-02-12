@@ -2,10 +2,7 @@
 
 package me.cpele.workitems.shell
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
@@ -26,10 +23,12 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
             }
         }
     }
-    Dialog(visible = props.dialog.isOpen, onCloseRequest = {}) {
-        Text(props.dialog.text)
-        Button(onClick = props.dialog.button.onClick) {
-            Text(props.dialog.button.text)
+    Dialog(visible = props.dialog.isOpen, onCloseRequest = { props.dialog.onClose() }) {
+        Column {
+            Text(props.dialog.text)
+            Button(onClick = props.dialog.button.onClick) {
+                Text(props.dialog.button.text)
+            }
         }
     }
 }
