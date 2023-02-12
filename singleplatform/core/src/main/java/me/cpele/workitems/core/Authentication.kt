@@ -5,38 +5,38 @@ import oolong.Effect
 import oolong.effect.none
 
 object Authentication {
-    fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ChooseProvider) to none()
+    fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ProviderSelection) to none()
 
     fun update(
         message: Message, model: Model
     ): Pair<Model, suspend CoroutineScope.((Message) -> Unit) -> Any?> = when (message) {
-        Message.ProviderSelected -> model.copy(step = Model.Step.DetailProvider) to none()
-        Message.DeselectProvider -> model.copy(step = Model.Step.ChooseProvider) to none()
+        Message.InspectProvider -> model.copy(step = Model.Step.ProviderInspection) to none()
+        Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
     }
 
     fun view(model: Model, dispatch: (Message) -> Unit) = Props(
         Props.Dialog(
-            isOpen = model.step == Model.Step.DetailProvider,
+            isOpen = model.step == Model.Step.ProviderInspection,
             text = "Yo",
             button = Props.Button("Yo") {},
-            onClose = { dispatch(Message.DeselectProvider) }
+            onClose = { dispatch(Message.DismissProvider) }
         ),
         listOf(
-            Props.Button("Slack") { dispatch(Message.ProviderSelected) },
+            Props.Button("Slack") { dispatch(Message.InspectProvider) },
             Props.Button("Jira") {},
             Props.Button("GitHub") {},
         )
     )
 
     sealed interface Message {
-        object ProviderSelected : Message
-        object DeselectProvider : Message
+        object InspectProvider : Message
+        object DismissProvider : Message
     }
 
     data class Model(val step: Step) {
         enum class Step {
-            ChooseProvider,
-            DetailProvider
+            ProviderSelection,
+            ProviderInspection
         }
     }
 
