@@ -23,11 +23,13 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
             }
         }
     }
-    Dialog(visible = props.dialog.isOpen, onCloseRequest = { props.dialog.onClose() }) {
-        Column {
-            Text(props.dialog.text)
-            Button(onClick = props.dialog.button.onClick) {
-                Text(props.dialog.button.text)
+    props.dialog?.let { dialog ->
+        Dialog(onCloseRequest = { dialog.onClose() }) {
+            Column {
+                Text(dialog.text)
+                Button(onClick = dialog.button.onClick) {
+                    Text(dialog.button.text)
+                }
             }
         }
     }
