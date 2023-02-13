@@ -14,17 +14,21 @@ object Authentication {
         Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
     }
 
-    fun view(model: Model, dispatch: (Message) -> Unit) = Props(
-        dialog = (model.step as? Model.Step.ProviderInspection)?.let { inspectionStep: Model.Step.ProviderInspection ->
-            Props.Dialog(text = inspectionStep.provider.description,
-                button = Props.Button("Log in") {},
-                onClose = { dispatch(Message.DismissProvider) })
-        }, buttons = listOf(
-            Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack)) },
-            Props.Button("Jira") { dispatch(Message.InspectProvider(Model.Provider.Jira)) },
-            Props.Button("GitHub") { dispatch(Message.InspectProvider(Model.Provider.GitHub)) },
+    fun view(model: Model, dispatch: (Message) -> Unit) =
+        Props(
+            dialog = model.step
+                .let { it as? Model.Step.ProviderInspection }
+                ?.let { inspectionStep ->
+                    Props.Dialog(text = inspectionStep.provider.description,
+                        button = Props.Button("Log in") {},
+                        onClose = { dispatch(Message.DismissProvider) })
+                },
+            buttons = listOf(
+                Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack)) },
+                Props.Button("Jira") { dispatch(Message.InspectProvider(Model.Provider.Jira)) },
+                Props.Button("GitHub") { dispatch(Message.InspectProvider(Model.Provider.GitHub)) },
+            )
         )
-    )
 
     sealed interface Message {
         data class InspectProvider(val provider: Model.Provider) : Message
@@ -40,8 +44,9 @@ object Authentication {
         enum class Provider(
             val description: String
         ) {
-            Slack(description = "Slack lets you use reactions to tag certain messages, turning them into work items"),
-            Jira(description = "Jira tickets assigned to you appear as work items"),
+            Slack(description = "Slack lets you use reactions to tag certain messages, turning them into work items"), Jira(
+                description = "Jira tickets assigned to you appear as work items"
+            ),
             GitHub(description = "GitHub issues or PRs assigned to you appear as work items");
         }
     }
