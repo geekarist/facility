@@ -17,7 +17,7 @@ object Authentication {
     fun view(model: Model, dispatch: (Message) -> Unit) = Props(
         dialog = (model.step as? Model.Step.ProviderInspection)?.let { inspectionStep: Model.Step.ProviderInspection ->
             Props.Dialog(text = inspectionStep.provider.description,
-                button = Props.Button("Yo") {},
+                button = Props.Button("Log in") {},
                 onClose = { dispatch(Message.DismissProvider) })
         }, buttons = listOf(
             Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack)) },
@@ -41,8 +41,8 @@ object Authentication {
             val description: String
         ) {
             Slack(description = "Slack lets you use reactions to tag certain messages, turning them into work items"),
-            Jira(description = "Jira tickets appear as work items in this app"),
-            GitHub(description = "GitHub issues or PRs appear as work items in this app");
+            Jira(description = "Jira tickets assigned to you appear as work items"),
+            GitHub(description = "GitHub issues or PRs assigned to you appear as work items");
         }
     }
 
