@@ -25,7 +25,7 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
     }
     props.dialog?.let { dialog ->
         Dialog(onCloseRequest = { dialog.onClose() }) {
-            Column {
+            Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(dialog.text)
                 Button(onClick = dialog.button.onClick) {
                     Text(dialog.button.text)
