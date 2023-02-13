@@ -16,10 +16,10 @@ object Authentication {
 
     fun view(model: Model, dispatch: (Message) -> Unit) = Props(
         dialog = (model.step as? Model.Step.ProviderInspection)?.let { inspectionStep: Model.Step.ProviderInspection ->
-                Props.Dialog(text = "TODO: Inspect provider: ${inspectionStep.provider}",
-                    button = Props.Button("Yo") {},
-                    onClose = { dispatch(Message.DismissProvider) })
-            }, buttons = listOf(
+            Props.Dialog(text = inspectionStep.provider.description,
+                button = Props.Button("Yo") {},
+                onClose = { dispatch(Message.DismissProvider) })
+        }, buttons = listOf(
             Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack)) },
             Props.Button("Jira") { dispatch(Message.InspectProvider(Model.Provider.Jira)) },
             Props.Button("GitHub") { dispatch(Message.InspectProvider(Model.Provider.GitHub)) },
@@ -37,8 +37,12 @@ object Authentication {
             data class ProviderInspection(val provider: Provider) : Step
         }
 
-        enum class Provider {
-            Slack, Jira, GitHub
+        enum class Provider(
+            val description: String
+        ) {
+            Slack(description = "Slack lets you use reactions to tag certain messages, turning them into work items"),
+            Jira(description = "Jira tickets appear as work items in this app"),
+            GitHub(description = "GitHub issues or PRs appear as work items in this app");
         }
     }
 
