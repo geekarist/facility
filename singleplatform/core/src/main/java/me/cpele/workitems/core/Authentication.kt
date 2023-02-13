@@ -4,6 +4,9 @@ import kotlinx.coroutines.CoroutineScope
 import oolong.Effect
 import oolong.effect.none
 
+/**
+ * This program implements the authentication process.
+ */
 object Authentication {
     fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ProviderSelection) to none()
 
