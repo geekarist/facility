@@ -23,5 +23,9 @@ object DefaultSlack : Slack {
         }
     }
 
+    override fun logIn(): Result<String> = Result.runCatching {
+        TODO()
+    }
+
     data class Message(override val text: String) : Slack.Message
 }

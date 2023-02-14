@@ -1,8 +1,10 @@
 package me.cpele.workitems.core
 
-import kotlinx.coroutines.CoroutineScope
 import oolong.Effect
+import oolong.effect
 import oolong.effect.none
+import java.util.logging.Level
+import java.util.logging.Logger
 
 /**
  * This program implements the authentication process.
@@ -10,11 +12,22 @@ import oolong.effect.none
 object Authentication {
     fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ProviderSelection) to none()
 
-    fun update(
-        message: Message, model: Model
-    ): Pair<Model, suspend CoroutineScope.((Message) -> Unit) -> Any?> = when (message) {
-        is Message.InspectProvider -> model.copy(step = Model.Step.ProviderInspection(provider = message.provider)) to none()
-        Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
+    fun makeUpdate(slack: Slack) = { message: Message, model: Model ->
+        when (message) {
+            is Message.InspectProvider -> model.copy(step = Model.Step.ProviderInspection(provider = message.provider)) to none()
+            Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
+            is Message.InitiateLogin -> model to when (message.provider) {
+                Model.Provider.Slack -> effect<Message> { dispatch ->
+                    dispatch(Message.GotLoginResult(slack.logIn()))
+                }
+                Model.Provider.Jira -> TODO()
+                Model.Provider.GitHub -> TODO()
+            }
+
+            is Message.GotLoginResult -> model to effect {
+                Logger.getAnonymousLogger().log(Level.INFO, "Got login result: ${message.tokenResult}")
+            }
+        }
     }
 
     fun view(model: Model, dispatch: (Message) -> Unit) =
@@ -23,7 +36,7 @@ object Authentication {
                 .let { it as? Model.Step.ProviderInspection }
                 ?.let { inspectionStep ->
                     Props.Dialog(text = inspectionStep.provider.description,
-                        button = Props.Button("Log in") {},
+                        button = Props.Button("Log in") { dispatch(Message.InitiateLogin(inspectionStep.provider)) },
                         onClose = { dispatch(Message.DismissProvider) })
                 },
             buttons = listOf(
@@ -35,6 +48,8 @@ object Authentication {
 
     sealed interface Message {
         data class InspectProvider(val provider: Model.Provider) : Message
+        data class InitiateLogin(val provider: Model.Provider) : Message
+        data class GotLoginResult(val tokenResult: Result<String>) : Message
         object DismissProvider : Message
     }
 

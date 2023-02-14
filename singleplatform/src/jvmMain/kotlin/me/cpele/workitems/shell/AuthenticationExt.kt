@@ -36,5 +36,5 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
 }
 
 fun Authentication.app() = app(
-    Authentication::init, Authentication::update, Authentication::view
+    ::init, makeUpdate(DefaultSlack), ::view
 ) { Ui(props = it) }
