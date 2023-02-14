@@ -14,12 +14,16 @@ object Authentication {
 
     fun makeUpdate(slack: Slack) = { message: Message, model: Model ->
         when (message) {
+
             is Message.InspectProvider -> model.copy(step = Model.Step.ProviderInspection(provider = message.provider)) to none()
+
             Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
+
             is Message.InitiateLogin -> model to when (message.provider) {
                 Model.Provider.Slack -> effect<Message> { dispatch ->
                     dispatch(Message.GotLoginResult(slack.logIn()))
                 }
+
                 Model.Provider.Jira -> TODO()
                 Model.Provider.GitHub -> TODO()
             }
@@ -36,7 +40,9 @@ object Authentication {
                 .let { it as? Model.Step.ProviderInspection }
                 ?.let { inspectionStep ->
                     Props.Dialog(text = inspectionStep.provider.description,
-                        button = Props.Button("Log in") { dispatch(Message.InitiateLogin(inspectionStep.provider)) },
+                        button = Props.Button("Log in") {
+                            dispatch(Message.InitiateLogin(inspectionStep.provider))
+                        },
                         onClose = { dispatch(Message.DismissProvider) })
                 },
             buttons = listOf(
@@ -62,9 +68,8 @@ object Authentication {
         enum class Provider(
             val description: String
         ) {
-            Slack(description = "Slack lets you use reactions to tag certain messages, turning them into work items"), Jira(
-                description = "Jira tickets assigned to you appear as work items"
-            ),
+            Slack(description = "Slack lets you use reactions to tag certain messages, turning them into work items"),
+            Jira(description = "Jira tickets assigned to you appear as work items"),
             GitHub(description = "GitHub issues or PRs assigned to you appear as work items");
         }
     }

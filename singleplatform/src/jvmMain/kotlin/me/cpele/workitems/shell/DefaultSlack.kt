@@ -4,6 +4,8 @@ import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
 import com.slack.api.methods.response.search.SearchMessagesResponse
 import me.cpele.workitems.core.Slack
+import java.awt.Desktop
+import java.net.URI
 import com.slack.api.Slack as RemoteSlack
 
 object DefaultSlack : Slack {
@@ -24,6 +26,12 @@ object DefaultSlack : Slack {
     }
 
     override fun logIn(): Result<String> = Result.runCatching {
+        val clientId = "TODO"
+        val userScope = "search:read"
+        val baseUrl = "https://slack.com/oauth/v2/authorize"
+        val redirectUri = "https://TODO"
+        val url = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$redirectUri"
+        Desktop.getDesktop().browse(URI.create(url))
         TODO()
     }
 
