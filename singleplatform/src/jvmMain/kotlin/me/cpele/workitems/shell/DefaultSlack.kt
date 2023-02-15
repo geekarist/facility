@@ -12,7 +12,6 @@ object DefaultSlack : Slack {
     override fun fetchMessages() = Result.runCatching {
         val slack: RemoteSlack = RemoteSlack.getInstance()
         val token = System.getProperty("slack.token")
-        // TODO! Request user token. See file:///home/cp/Workspaces/mirrors/api.slack.com_apis/api.slack.com/authentication/oauth-v2.html#
         val methods: MethodsClient = slack.methods(token)
         val request: SearchMessagesRequest = SearchMessagesRequest.builder().token(token).query("hello").build()
         val response: SearchMessagesResponse = methods.searchMessages(request)
@@ -26,14 +25,19 @@ object DefaultSlack : Slack {
     }
 
     override fun logIn(): Result<String> = Result.runCatching {
-        val clientId = "TODO"
+        val clientId = System.getProperty("slack.client.id")
         val userScope = "search:read"
         val baseUrl = "https://slack.com/oauth/v2/authorize"
-        val redirectUri = "https://TODO"
+        // TODO: Embed HTTP server, expose to internet, configure Slack app accordingly
+        val redirectUri = "https://localhost:8080"
         val url = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$redirectUri"
         Desktop.getDesktop().browse(URI.create(url))
         TODO()
     }
 
     data class Message(override val text: String) : Slack.Message
+}
+
+fun main() {
+    println(DefaultSlack.fetchMessages())
 }
