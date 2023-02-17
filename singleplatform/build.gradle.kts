@@ -25,6 +25,8 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation(project(":core"))
+                implementation("io.ktor:ktor-server-core:2.2.3")
+                implementation("io.ktor:ktor-server-netty:2.2.3")
             }
         }
 
