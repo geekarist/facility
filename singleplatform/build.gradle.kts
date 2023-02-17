@@ -27,6 +27,7 @@ kotlin {
                 implementation(project(":core"))
                 implementation("io.ktor:ktor-server-core:2.2.3")
                 implementation("io.ktor:ktor-server-netty:2.2.3")
+                implementation("com.ngrok:ngrok-api-java:0.6.0")
             }
         }
 
