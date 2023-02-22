@@ -15,7 +15,10 @@ object Authentication {
     fun makeUpdate(slack: Slack) = { message: Message, model: Model ->
         when (message) {
 
-            is Message.InspectProvider -> model.copy(step = Model.Step.ProviderInspection(provider = message.provider)) to none()
+            is Message.InspectProvider ->
+                model.copy(
+                    step = Model.Step.ProviderInspection(provider = message.provider)
+                ) to none()
 
             Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
 
@@ -39,11 +42,15 @@ object Authentication {
             dialog = model.step
                 .let { it as? Model.Step.ProviderInspection }
                 ?.let { inspectionStep ->
-                    Props.Dialog(text = inspectionStep.provider.description,
+                    Props.Dialog.of(
                         button = Props.Button("Log in") {
                             dispatch(Message.InitiateLogin(inspectionStep.provider))
                         },
-                        onClose = { dispatch(Message.DismissProvider) })
+                        onClose = { dispatch(Message.DismissProvider) },
+                        inspectionStep.provider.description,
+                        "Expecting temporary authorization code on http:localhost/TODO:1234...",
+                        "Tunnelling through https://TODO:5678...",
+                    )
                 },
             buttons = listOf(
                 Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack)) },
@@ -77,8 +84,16 @@ object Authentication {
     data class Props(
         val dialog: Dialog? = null, val buttons: List<Button>
     ) {
-        data class Dialog(val text: String, val button: Button, val onClose: () -> Unit)
+        data class Dialog(val texts: Collection<String>, val button: Button, val onClose: () -> Unit) {
+            companion object
+        }
 
         data class Button(val text: String, val onClick: () -> Unit)
     }
+
+    private fun Props.Dialog.Companion.of(
+        button: Props.Button,
+        onClose: () -> Unit,
+        vararg texts: String
+    ): Props.Dialog = Props.Dialog(texts.toList(), button, onClose)
 }
