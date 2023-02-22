@@ -43,7 +43,6 @@ object DefaultSlack : Slack {
             val clientId = System.getProperty("slack.client.id")
             val userScope = "search:read"
             val baseUrl = "https://slack.com/oauth/v2/authorize"
-            // TODO: Embed HTTP server ✅, expose to internet, give exposed URL to Slack
             val redirectUri = "https://TODO:TODO/auth-callback-ack"
             val uuid = UUID.randomUUID().toString()
             val tmpAuthorizationCode = suspendCoroutine { continuation: Continuation<String> ->
