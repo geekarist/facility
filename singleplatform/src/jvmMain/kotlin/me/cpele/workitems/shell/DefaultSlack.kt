@@ -14,10 +14,8 @@ import java.net.URI
 import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
-import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
 import com.slack.api.Slack as RemoteSlack
 
 object DefaultSlack : Slack {
@@ -45,36 +43,46 @@ object DefaultSlack : Slack {
             val baseUrl = "https://slack.com/oauth/v2/authorize"
             val redirectUri = "https://TODO:TODO/auth-callback-ack"
             val uuid = UUID.randomUUID().toString()
-            val tmpAuthorizationCode = suspendCoroutine { continuation: Continuation<String> ->
-                @OptIn(DelicateCoroutinesApi::class)
-                GlobalScope.launch {
-                    embeddedServer(factory = Netty, port = 8080) {
-                        routing {
-                            get("/auth-callback-ack") {
-                                val params = call.request.queryParameters
-                                val code = params["code"]
-                                val state = params["state"]
-                                if (state == uuid && code != null) {
-                                    continuation.resume(code)
-                                } else if (state != uuid) {
-                                    continuation.resumeWithException(
-                                        IllegalStateException("Called back with invalid state: $state. Should be: $uuid")
-                                    )
-                                } else {
-                                    continuation.resumeWithException(
-                                        IllegalStateException("Called back with null in params: $params")
-                                    )
-                                }
-                            }
-                        }
-                    }.start(wait = true)
-                }
-                val url = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$redirectUri&state=$uuid"
-                Desktop.getDesktop().browse(URI.create(url))
-            }
+            val deferredTmpAuthCode = expectTmpAuthCode(uuid)
+            // TODO: Expose embedded server route URL
+            val authUrl = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$redirectUri&state=$uuid"
+            Desktop.getDesktop().browse(URI.create(authUrl))
+            val tmpAuthorizationCode = deferredTmpAuthCode.await()
+            // TODO: Exchange code for token
             Logger.getAnonymousLogger()
                 .log(Level.FINE, "Got temporary authorization code: $tmpAuthorizationCode")
             TODO()
+        }
+    }
+
+    private suspend fun expectTmpAuthCode(uuid: String): Deferred<String> = coroutineScope {
+        async {
+            suspendCancellableCoroutine { continuation ->
+                val server = embeddedServer(factory = Netty, port = 8080) {
+                    routing {
+                        get("/auth-callback-ack") {
+                            val params = call.request.queryParameters
+                            val code = params["code"]
+                            val state = params["state"]
+                            if (state == uuid && code != null) {
+                                continuation.resume(code)
+                            } else if (state != uuid) {
+                                continuation.resumeWithException(
+                                    IllegalStateException("Called back with invalid state: $state. Should be: $uuid")
+                                )
+                            } else {
+                                continuation.resumeWithException(
+                                    IllegalStateException("Called back with null in params: $params")
+                                )
+                            }
+                        }
+                    }
+                }
+                continuation.invokeOnCancellation {
+                    server.stop()
+                }
+                server.start(wait = true)
+            }
         }
     }
 
