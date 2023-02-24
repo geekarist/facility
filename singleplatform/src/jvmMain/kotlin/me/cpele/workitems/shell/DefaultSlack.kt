@@ -37,32 +37,46 @@ object DefaultSlack : Slack {
         }
     }
 
-    private fun asyncExposeLocalHttpServer(port: Int, log: String): String {
-        TODO("Not yet implemented")
-    }
-
     override suspend fun logIn(): Result<String> = Result.runCatching {
         withContext(Dispatchers.IO) {
+            // Start local HTTP route
             val localPort = 8080
             val uuid = UUID.randomUUID().toString()
             val exposedPath = "/auth-callback-ack"
             val deferredTmpAuthCode = asyncExpectCodeHttpCallback(port = localPort, path = exposedPath, uuid = uuid)
-            // TODO: Expose embedded server route URL
-            val exposeLogPath = File.createTempFile(uuid, ".json").path
-            asyncExposeLocalHttpServer(port = localPort, log = exposeLogPath)
+
+            // Expose local HTTP route, get exposed URL
+            val exposeLogFile = File.createTempFile(uuid, ".json")
+            val exposeLogPath = exposeLogFile.path
+            val exposeProcess = asyncExposeLocalHttpServer(port = localPort, path = exposeLogPath)
             val exposedBaseUrl = extractExposedBaseUrl(exposeLogPath)
+            exposeProcess?.destroy()
+            exposeLogFile.delete()
+
+            // Build authorization URL, open with browser
             val exposedUrl = "$exposedBaseUrl:$localPort/$exposedPath"
-            val baseUrl = "https://slack.com/oauth/v2/authorize"
-            val clientId = System.getProperty("slack.client.id")
-            val userScope = "search:read"
-            val authUrl = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$exposedUrl&state=$uuid"
+            val authUrl = authUrlOf(System.getProperty("slack.client.id"), exposedUrl, uuid)
             Desktop.getDesktop().browse(URI.create(authUrl))
+
+            // Await temporary auth code
             val tmpAuthorizationCode = deferredTmpAuthCode.await()
+
             // TODO: Exchange code for token
             Logger.getAnonymousLogger()
                 .log(Level.FINE, "Got temporary authorization code: $tmpAuthorizationCode")
             TODO()
         }
+    }
+
+    private fun asyncExposeLocalHttpServer(port: Int, path: String): Process? {
+        val command = "ngrok http $port --log-format=json --log=$path"
+        return Runtime.getRuntime().exec(command) ?: throw IllegalStateException("Got")
+    }
+
+    private fun authUrlOf(clientId: String?, exposedUrl: String, uuid: String): String {
+        val baseUrl = "https://slack.com/oauth/v2/authorize"
+        val userScope = "search:read"
+        return "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$exposedUrl&state=$uuid"
     }
 
     private fun extractExposedBaseUrl(exposeLogPath: String): String {
