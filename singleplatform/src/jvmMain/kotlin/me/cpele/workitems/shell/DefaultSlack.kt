@@ -10,6 +10,7 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.*
 import me.cpele.workitems.core.Slack
 import java.awt.Desktop
+import java.io.File
 import java.net.URI
 import java.util.*
 import java.util.logging.Level
@@ -36,23 +37,24 @@ object DefaultSlack : Slack {
         }
     }
 
-    private fun asyncExposeLocalHttpServer(port: Int): String {
+    private fun asyncExposeLocalHttpServer(port: Int, log: String): String {
         TODO("Not yet implemented")
     }
 
     override suspend fun logIn(): Result<String> = Result.runCatching {
         withContext(Dispatchers.IO) {
-            val clientId = System.getProperty("slack.client.id")
-            val userScope = "search:read"
+            val localPort = 8080
             val uuid = UUID.randomUUID().toString()
             val exposedPath = "/auth-callback-ack"
-            val localPort = 8080
             val deferredTmpAuthCode = asyncExpectCodeHttpCallback(port = localPort, path = exposedPath, uuid = uuid)
             // TODO: Expose embedded server route URL
-            val exposedBaseUrl =
-                asyncExposeLocalHttpServer(port = localPort) // E.g. https://d441-41-44-151-245.eu.ngrok.io
+            val exposeLogPath = File.createTempFile(uuid, ".json").path
+            asyncExposeLocalHttpServer(port = localPort, log = exposeLogPath)
+            val exposedBaseUrl = extractExposedBaseUrl(exposeLogPath)
             val exposedUrl = "$exposedBaseUrl:$localPort/$exposedPath"
             val baseUrl = "https://slack.com/oauth/v2/authorize"
+            val clientId = System.getProperty("slack.client.id")
+            val userScope = "search:read"
             val authUrl = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$exposedUrl&state=$uuid"
             Desktop.getDesktop().browse(URI.create(authUrl))
             val tmpAuthorizationCode = deferredTmpAuthCode.await()
@@ -61,6 +63,10 @@ object DefaultSlack : Slack {
                 .log(Level.FINE, "Got temporary authorization code: $tmpAuthorizationCode")
             TODO()
         }
+    }
+
+    private fun extractExposedBaseUrl(exposeLogPath: String): String {
+        TODO("Not yet implemented")
     }
 
     private suspend fun asyncExpectCodeHttpCallback(port: Int, path: String, uuid: String): Deferred<String> =
