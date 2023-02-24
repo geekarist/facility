@@ -36,16 +36,24 @@ object DefaultSlack : Slack {
         }
     }
 
+    private fun asyncExposeLocalHttpServer(port: Int): String {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun logIn(): Result<String> = Result.runCatching {
         withContext(Dispatchers.IO) {
             val clientId = System.getProperty("slack.client.id")
             val userScope = "search:read"
-            val baseUrl = "https://slack.com/oauth/v2/authorize"
-            val redirectUri = "https://TODO:TODO/auth-callback-ack"
             val uuid = UUID.randomUUID().toString()
-            val deferredTmpAuthCode = expectTmpAuthCode(uuid)
+            val exposedPath = "/auth-callback-ack"
+            val localPort = 8080
+            val deferredTmpAuthCode = asyncExpectCodeHttpCallback(port = localPort, path = exposedPath, uuid = uuid)
             // TODO: Expose embedded server route URL
-            val authUrl = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$redirectUri&state=$uuid"
+            val exposedBaseUrl =
+                asyncExposeLocalHttpServer(port = localPort) // E.g. https://d441-41-44-151-245.eu.ngrok.io
+            val exposedUrl = "$exposedBaseUrl:$localPort/$exposedPath"
+            val baseUrl = "https://slack.com/oauth/v2/authorize"
+            val authUrl = "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$exposedUrl&state=$uuid"
             Desktop.getDesktop().browse(URI.create(authUrl))
             val tmpAuthorizationCode = deferredTmpAuthCode.await()
             // TODO: Exchange code for token
@@ -55,36 +63,37 @@ object DefaultSlack : Slack {
         }
     }
 
-    private suspend fun expectTmpAuthCode(uuid: String): Deferred<String> = coroutineScope {
-        async {
-            suspendCancellableCoroutine { continuation ->
-                val server = embeddedServer(factory = Netty, port = 8080) {
-                    routing {
-                        get("/auth-callback-ack") {
-                            val params = call.request.queryParameters
-                            val code = params["code"]
-                            val state = params["state"]
-                            if (state == uuid && code != null) {
-                                continuation.resume(code)
-                            } else if (state != uuid) {
-                                continuation.resumeWithException(
-                                    IllegalStateException("Called back with invalid state: $state. Should be: $uuid")
-                                )
-                            } else {
-                                continuation.resumeWithException(
-                                    IllegalStateException("Called back with null in params: $params")
-                                )
+    private suspend fun asyncExpectCodeHttpCallback(port: Int, path: String, uuid: String): Deferred<String> =
+        coroutineScope {
+            async {
+                suspendCancellableCoroutine { continuation ->
+                    val server = embeddedServer(factory = Netty, port = port) {
+                        routing {
+                            get(path) {
+                                val params = call.request.queryParameters
+                                val code = params["code"]
+                                val state = params["state"]
+                                if (state == uuid && code != null) {
+                                    continuation.resume(code)
+                                } else if (state != uuid) {
+                                    continuation.resumeWithException(
+                                        IllegalStateException("Called back with invalid state: $state. Should be: $uuid")
+                                    )
+                                } else {
+                                    continuation.resumeWithException(
+                                        IllegalStateException("Called back with null in params: $params")
+                                    )
+                                }
                             }
                         }
                     }
+                    continuation.invokeOnCancellation {
+                        server.stop()
+                    }
+                    server.start(wait = true)
                 }
-                continuation.invokeOnCancellation {
-                    server.stop()
-                }
-                server.start(wait = true)
             }
         }
-    }
 
     data class Message(override val text: String) : Slack.Message
 }
