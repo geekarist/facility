@@ -44,13 +44,14 @@ object DefaultSlack : Slack {
             val uuid = UUID.randomUUID().toString()
             val exposedPath = "/auth-callback-ack"
             val deferredTmpAuthCode = asyncExpectCodeHttpCallback(port = localPort, path = exposedPath, uuid = uuid)
+            Logger.getAnonymousLogger().log(Level.INFO, "Embedded server started")
 
             // Expose local HTTP route, get exposed URL
             val exposeLogFile = File.createTempFile(uuid, ".json")
             val exposeLogPath = exposeLogFile.path
             val exposeProcess = asyncExposeLocalHttpServer(port = localPort, path = exposeLogPath)
             val exposedBaseUrl = extractExposedBaseUrl(exposeLogPath)
-            exposeProcess?.destroy()
+            exposeProcess.destroy()
             exposeLogFile.delete()
 
             // Build authorization URL, open with browser
@@ -68,9 +69,10 @@ object DefaultSlack : Slack {
         }
     }
 
-    private fun asyncExposeLocalHttpServer(port: Int, path: String): Process? {
+    private fun asyncExposeLocalHttpServer(port: Int, path: String): Process {
         val command = "ngrok http $port --log-format=json --log=$path"
-        return Runtime.getRuntime().exec(command) ?: throw IllegalStateException("Got")
+        Logger.getAnonymousLogger().log(Level.INFO, "Starting command: $command")
+        return Runtime.getRuntime().exec(command) ?: throw IllegalStateException("Got null Process")
     }
 
     private fun authUrlOf(clientId: String?, exposedUrl: String, uuid: String): String {
@@ -110,6 +112,7 @@ object DefaultSlack : Slack {
                     continuation.invokeOnCancellation {
                         server.stop()
                     }
+                    Logger.getAnonymousLogger().log(Level.INFO, "Starting embedded server: $server")
                     server.start(wait = true)
                 }
             }
