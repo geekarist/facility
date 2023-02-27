@@ -72,7 +72,14 @@ object DefaultSlack : Slack {
     private fun asyncExposeLocalHttpServer(port: Int, path: String): Process {
         val command = "ngrok http $port --log-format=json --log=$path"
         Logger.getAnonymousLogger().log(Level.INFO, "Starting command: $command")
-        return Runtime.getRuntime().exec(command) ?: throw IllegalStateException("Got null Process")
+        val process = Runtime.getRuntime().exec(command) ?: throw IllegalStateException("Got null Process")
+        process.inputStream.bufferedReader().useLines {
+            it.forEach {
+                logi { "Got command output line: $it" }
+            }
+        }
+        // TODO: Wait for process, call async
+        return process
     }
 
     private fun authUrlOf(clientId: String?, exposedUrl: String, uuid: String): String {
@@ -81,42 +88,51 @@ object DefaultSlack : Slack {
         return "$baseUrl?client_id=$clientId&user_scope=$userScope&redirect_uri=$exposedUrl&state=$uuid"
     }
 
-    private fun extractExposedBaseUrl(exposeLogPath: String): String {
+    private suspend fun extractExposedBaseUrl(exposeLogPath: String): String {
+        logi { "Exposed log file path: $exposeLogPath" }
+        delay(30000)
         TODO("Not yet implemented")
     }
 
-    private suspend fun asyncExpectCodeHttpCallback(port: Int, path: String, uuid: String): Deferred<String> =
-        coroutineScope {
-            async {
-                suspendCancellableCoroutine { continuation ->
-                    val server = embeddedServer(factory = Netty, port = port) {
-                        routing {
-                            get(path) {
-                                val params = call.request.queryParameters
-                                val code = params["code"]
-                                val state = params["state"]
-                                if (state == uuid && code != null) {
-                                    continuation.resume(code)
-                                } else if (state != uuid) {
-                                    continuation.resumeWithException(
-                                        IllegalStateException("Called back with invalid state: $state. Should be: $uuid")
-                                    )
-                                } else {
-                                    continuation.resumeWithException(
-                                        IllegalStateException("Called back with null in params: $params")
-                                    )
-                                }
+    private fun CoroutineScope.asyncExpectCodeHttpCallback(port: Int, path: String, uuid: String): Deferred<String> =
+        async {
+            suspendCancellableCoroutine { continuation ->
+                val server = embeddedServer(factory = Netty, port = port) {
+                    logi { "Configuring server application" }
+                    routing {
+                        logi { "Configuring server routing" }
+                        get(path) {
+                            logi { "Got GET on $path" }
+                            val params = call.request.queryParameters
+                            val code = params["code"]
+                            val state = params["state"]
+                            if (state == uuid && code != null) {
+                                logi { "State matches, got code: $code" }
+                                continuation.resume(code)
+                            } else if (state != uuid) {
+                                logi { "State does not match" }
+                                continuation.resumeWithException(
+                                    IllegalStateException("Called back with invalid state: $state. Should be: $uuid")
+                                )
+                            } else {
+                                logi { "State matches but got null code" }
+                                continuation.resumeWithException(
+                                    IllegalStateException("Called back with null in params: $params")
+                                )
                             }
                         }
                     }
-                    continuation.invokeOnCancellation {
-                        server.stop()
-                    }
-                    Logger.getAnonymousLogger().log(Level.INFO, "Starting embedded server: $server")
-                    server.start(wait = true)
                 }
+                continuation.invokeOnCancellation {
+                    logi { "Coroutine cancelled, stopping server" }
+                    server.stop()
+                }
+                logi { "Starting embedded server: $server" }
+                server.start(wait = true)
             }
         }
+
+    private inline fun logi(msg: () -> String) = Logger.getAnonymousLogger().log(Level.INFO, msg())
 
     data class Message(override val text: String) : Slack.Message
 }
