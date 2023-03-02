@@ -70,14 +70,9 @@ object DefaultSlack : Slack {
     }
 
     private fun asyncExposeLocalHttpServer(port: Int, path: String): Process {
-        val command = "ngrok http $port --log-format=json --log=$path"
+        val command = listOf("ngrok", "http", "$port", "--log-format=json", "--log=$path")
         Logger.getAnonymousLogger().log(Level.INFO, "Starting command: $command")
-        val process = Runtime.getRuntime().exec(command) ?: throw IllegalStateException("Got null Process")
-        process.inputStream.bufferedReader().useLines {
-            it.forEach {
-                logi { "Got command output line: $it" }
-            }
-        }
+        val process = ProcessBuilder().command(command).redirectErrorStream(true).start()
         // TODO: Wait for process, call async
         return process
     }
@@ -90,8 +85,13 @@ object DefaultSlack : Slack {
 
     private suspend fun extractExposedBaseUrl(exposeLogPath: String): String {
         logi { "Exposed log file path: $exposeLogPath" }
-        delay(30000)
-        TODO("Not yet implemented")
+        repeat(30) {
+            val content = File(exposeLogPath).bufferedReader().useLines { objStr ->
+                // TODO: Parse log file to extract URL
+            }
+            delay(1000)
+        }
+        TODO()
     }
 
     private fun CoroutineScope.asyncExpectCodeHttpCallback(port: Int, path: String, uuid: String): Deferred<String> =
