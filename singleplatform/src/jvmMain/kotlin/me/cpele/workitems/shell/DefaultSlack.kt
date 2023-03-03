@@ -9,10 +9,7 @@ import io.ktor.server.netty.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.*
 import me.cpele.workitems.core.Slack
-import java.awt.Desktop
 import java.io.File
-import java.net.URI
-import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.coroutines.resume
@@ -39,32 +36,6 @@ object DefaultSlack : Slack {
 
     override suspend fun logIn(): Result<String> = Result.runCatching {
         withContext(Dispatchers.IO) {
-            // Start local HTTP route
-            val localPort = 8080
-            val uuid = UUID.randomUUID().toString()
-            val exposedPath = "/auth-callback-ack"
-            val deferredTmpAuthCode = asyncExpectCodeHttpCallback(port = localPort, path = exposedPath, uuid = uuid)
-            Logger.getAnonymousLogger().log(Level.INFO, "Embedded server started")
-
-            // Expose local HTTP route, get exposed URL
-            val exposeLogFile = File.createTempFile(uuid, ".json")
-            val exposeLogPath = exposeLogFile.path
-            val exposeProcess = asyncExposeLocalHttpServer(port = localPort, path = exposeLogPath)
-            val exposedBaseUrl = extractExposedBaseUrl(exposeLogPath)
-            exposeProcess.destroy()
-            exposeLogFile.delete()
-
-            // Build authorization URL, open with browser
-            val exposedUrl = "$exposedBaseUrl:$localPort/$exposedPath"
-            val authUrl = authUrlOf(System.getProperty("slack.client.id"), exposedUrl, uuid)
-            Desktop.getDesktop().browse(URI.create(authUrl))
-
-            // Await temporary auth code
-            val tmpAuthorizationCode = deferredTmpAuthCode.await()
-
-            // TODO: Exchange code for token
-            Logger.getAnonymousLogger()
-                .log(Level.FINE, "Got temporary authorization code: $tmpAuthorizationCode")
             TODO()
         }
     }
