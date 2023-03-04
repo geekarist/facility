@@ -3,8 +3,12 @@ package me.cpele.workitems.shell
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
 import com.slack.api.methods.response.search.SearchMessagesResponse
+import io.ktor.http.*
+import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.logging.*
 import io.ktor.server.netty.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -38,10 +42,13 @@ object DefaultSlack : Slack {
         embeddedServer(factory = Netty, port = 8080) {
             routing {
                 trace {
-                    logi { "Got routing trace: ${it}" }
+                    logi { "Got routing trace: $it, call request: ${it.call.request.toLogString()}" }
                 }
-                get("/code-ack") {
-                    TODO()
+                get("/code-ack?token={token}") {
+                    call.request.queryParameters["token"]?.let { token ->
+                        call.respond(HttpStatusCode.OK)
+                        emit(Slack.LoginStatus.Success(token))
+                    } ?: emit(Slack.LoginStatus.Failure(IllegalStateException("Called without a token")))
                 }
             }
         }.start()
