@@ -44,11 +44,19 @@ object DefaultSlack : Slack {
                 trace {
                     logi { "Got routing trace: $it, call request: ${it.call.request.toLogString()}" }
                 }
-                get("/code-ack?token={token}") {
-                    call.request.queryParameters["token"]?.let { token ->
-                        call.respond(HttpStatusCode.OK)
-                        emit(Slack.LoginStatus.Success(token))
-                    } ?: emit(Slack.LoginStatus.Failure(IllegalStateException("Called without a token")))
+                get("/code-ack") {
+                    try {
+                        call.parameters["token"]
+                            ?.let { token ->
+                                emit(Slack.LoginStatus.Success(token))
+                                call.respondText(status = HttpStatusCode.OK, text = "Got token: $token")
+                            } ?: emit(Slack.LoginStatus.Failure(IllegalStateException("Called without a token")))
+                    } catch (throwable: Throwable) {
+                        val logString = call.request.toLogString()
+                        val exception = IllegalStateException("Error processing request: $logString", throwable)
+                        val failure = Slack.LoginStatus.Failure(exception)
+                        emit(failure)
+                    }
                 }
             }
         }.start()
