@@ -37,11 +37,15 @@ object DefaultSlack : Slack {
     override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = flow<Slack.LoginStatus> {
         embeddedServer(factory = Netty, port = 8080) {
             routing {
+                trace {
+                    logi { "Got routing trace: ${it}" }
+                }
                 get("/code-ack") {
-                    emit(Slack.LoginStatus.Route.Started)
+                    TODO()
                 }
             }
         }.start()
+        emit(Slack.LoginStatus.Route.Started)
     }.catch { throwable ->
         emit(Slack.LoginStatus.Failure(IllegalStateException(throwable)))
     }
