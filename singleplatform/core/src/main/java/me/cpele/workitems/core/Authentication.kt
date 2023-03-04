@@ -18,13 +18,21 @@ object Authentication {
             is Message.InspectProvider ->
                 model.copy(
                     step = Model.Step.ProviderInspection(provider = message.provider)
-                ) to none()
+                ) to effect { dispatch ->
+                    slack.setUpLogIn().collect { status ->
+                        dispatch(Message.GotLoginStatus(status))
+                    }
+                }
+
+            is Message.GotLoginStatus -> model to effect {
+                Logger.getAnonymousLogger().log(Level.INFO, "Got login status: $message")
+            }
 
             Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
 
             is Message.InitiateLogin -> model to when (message.provider) {
                 Model.Provider.Slack -> effect<Message> { dispatch ->
-                    dispatch(Message.GotLoginResult(slack.logIn()))
+                    TODO()
                 }
 
                 Model.Provider.Jira -> TODO()
@@ -34,6 +42,7 @@ object Authentication {
             is Message.GotLoginResult -> model to effect {
                 Logger.getAnonymousLogger().log(Level.INFO, "Got login result: ${message.tokenResult}")
             }
+
         }
     }
 
@@ -47,9 +56,7 @@ object Authentication {
                             dispatch(Message.InitiateLogin(inspectionStep.provider))
                         },
                         onClose = { dispatch(Message.DismissProvider) },
-                        inspectionStep.provider.description,
-                        "Expecting temporary authorization code on http:localhost/TODO:1234...",
-                        "Tunnelling through https://TODO:5678...",
+                        inspectionStep.provider.description
                     )
                 },
             buttons = listOf(
@@ -63,6 +70,8 @@ object Authentication {
         data class InspectProvider(val provider: Model.Provider) : Message
         data class InitiateLogin(val provider: Model.Provider) : Message
         data class GotLoginResult(val tokenResult: Result<String>) : Message
+        data class GotLoginStatus(val status: Slack.LoginPrepStatus) : Message
+
         object DismissProvider : Message
     }
 

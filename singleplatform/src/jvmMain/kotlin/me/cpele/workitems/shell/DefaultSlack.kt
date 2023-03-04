@@ -4,6 +4,7 @@ import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
 import com.slack.api.methods.response.search.SearchMessagesResponse
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.Slack
 import java.util.logging.Level
@@ -28,11 +29,7 @@ object DefaultSlack : Slack {
         }
     }
 
-    override suspend fun logIn(): Result<String> = Result.runCatching {
-        withContext(Dispatchers.IO) {
-            TODO()
-        }
-    }
+    override suspend fun setUpLogIn(): Flow<Slack.LoginPrepStatus> = TODO()
 
     private inline fun logi(msg: () -> String) = Logger.getAnonymousLogger().log(Level.INFO, msg())
 
