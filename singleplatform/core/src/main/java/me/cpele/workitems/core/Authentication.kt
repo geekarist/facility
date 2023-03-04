@@ -70,7 +70,7 @@ object Authentication {
         data class InspectProvider(val provider: Model.Provider) : Message
         data class InitiateLogin(val provider: Model.Provider) : Message
         data class GotLoginResult(val tokenResult: Result<String>) : Message
-        data class GotLoginStatus(val status: Slack.LoginPrepStatus) : Message
+        data class GotLoginStatus(val status: Slack.LoginStatus) : Message
 
         object DismissProvider : Message
     }

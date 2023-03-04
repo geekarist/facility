@@ -29,7 +29,7 @@ object DefaultSlack : Slack {
         }
     }
 
-    override suspend fun setUpLogIn(): Flow<Slack.LoginPrepStatus> = TODO()
+    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = TODO()
 
     private inline fun logi(msg: () -> String) = Logger.getAnonymousLogger().log(Level.INFO, msg())
 
