@@ -3,8 +3,13 @@ package me.cpele.workitems.shell
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
 import com.slack.api.methods.response.search.SearchMessagesResponse
+import io.ktor.server.engine.*
+import io.ktor.server.netty.*
+import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.Slack
 import java.util.logging.Level
@@ -29,7 +34,17 @@ object DefaultSlack : Slack {
         }
     }
 
-    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = TODO()
+    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = flow<Slack.LoginStatus> {
+        embeddedServer(factory = Netty, port = 8080) {
+            routing {
+                get("/code-ack") {
+                    emit(Slack.LoginStatus.Route.Started)
+                }
+            }
+        }.start()
+    }.catch { throwable ->
+        emit(Slack.LoginStatus.Failure(IllegalStateException(throwable)))
+    }
 
     private inline fun logi(msg: () -> String) = Logger.getAnonymousLogger().log(Level.INFO, msg())
 
