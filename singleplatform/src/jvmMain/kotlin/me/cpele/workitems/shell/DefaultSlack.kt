@@ -38,7 +38,12 @@ object DefaultSlack : Slack {
         }
     }
 
-    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = flow<Slack.LoginStatus> {
+    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = flow {
+        val emit: suspend (Slack.LoginStatus) -> Unit = { status ->
+            withContext(Dispatchers.Default) {
+                emit(status)
+            }
+        }
         embeddedServer(factory = Netty, port = 8080) {
             routing {
                 trace {
@@ -48,8 +53,8 @@ object DefaultSlack : Slack {
                     try {
                         call.parameters["token"]
                             ?.let { token ->
-                                emit(Slack.LoginStatus.Success(token))
                                 call.respondText(status = HttpStatusCode.OK, text = "Got token: $token")
+                                emit(Slack.LoginStatus.Success(token))
                             } ?: emit(Slack.LoginStatus.Failure(IllegalStateException("Called without a token")))
                     } catch (throwable: Throwable) {
                         val logString = call.request.toLogString()
