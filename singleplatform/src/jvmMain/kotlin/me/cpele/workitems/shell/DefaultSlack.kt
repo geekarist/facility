@@ -11,9 +11,10 @@ import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.Slack
 import java.util.logging.Level
@@ -38,13 +39,8 @@ object DefaultSlack : Slack {
         }
     }
 
-    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = flow {
-        val emit: suspend (Slack.LoginStatus) -> Unit = { status ->
-            withContext(Dispatchers.Default) {
-                emit(status)
-            }
-        }
-        embeddedServer(factory = Netty, port = 8080) {
+    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = callbackFlow {
+        val server = embeddedServer(factory = Netty, port = 8080) {
             routing {
                 trace {
                     logi { "Got routing trace: $it, call request: ${it.call.request.toLogString()}" }
@@ -54,18 +50,20 @@ object DefaultSlack : Slack {
                         call.parameters["token"]
                             ?.let { token ->
                                 call.respondText(status = HttpStatusCode.OK, text = "Got token: $token")
-                                emit(Slack.LoginStatus.Success(token))
-                            } ?: emit(Slack.LoginStatus.Failure(IllegalStateException("Called without a token")))
+                                send(Slack.LoginStatus.Success(token))
+                            } ?: send(Slack.LoginStatus.Failure(IllegalStateException("Called without a token")))
                     } catch (throwable: Throwable) {
                         val logString = call.request.toLogString()
                         val exception = IllegalStateException("Error processing request: $logString", throwable)
                         val failure = Slack.LoginStatus.Failure(exception)
-                        emit(failure)
+                        send(failure)
                     }
                 }
             }
-        }.start()
-        emit(Slack.LoginStatus.Route.Started)
+        }
+        server.start()
+        send(Slack.LoginStatus.Route.Started)
+        awaitClose { server.stop() }
     }.catch { throwable ->
         emit(Slack.LoginStatus.Failure(IllegalStateException(throwable)))
     }
