@@ -28,7 +28,12 @@ object Authentication {
                 Logger.getAnonymousLogger().log(Level.INFO, "Got login status: $message")
             }
 
-            Message.DismissProvider -> model.copy(step = Model.Step.ProviderSelection) to none()
+            Message.DismissProvider ->
+                model.copy(
+                    step = Model.Step.ProviderSelection
+                ) to effect {
+                    slack.tearDownLogin()
+                }
 
             is Message.InitiateLogin -> model to when (message.provider) {
                 Model.Provider.Slack -> effect<Message> { dispatch ->

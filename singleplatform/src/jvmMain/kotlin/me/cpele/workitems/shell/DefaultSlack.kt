@@ -22,6 +22,8 @@ import java.util.logging.Logger
 import com.slack.api.Slack as RemoteSlack
 
 object DefaultSlack : Slack {
+    private var server: ApplicationEngine? = null
+
     override suspend fun fetchMessages() = Result.runCatching {
         withContext(Dispatchers.IO) {
             val slack: RemoteSlack = RemoteSlack.getInstance()
@@ -40,10 +42,13 @@ object DefaultSlack : Slack {
     }
 
     override suspend fun setUpLogin(): Flow<Slack.LoginStatus> = callbackFlow {
-        val server = embeddedServer(factory = Netty, port = 8080) {
+        server?.stop()
+        server = embeddedServer(factory = Netty, port = 8080) {
             routing {
-                trace {
-                    logi { "Got routing trace: $it, call request: ${it.call.request.toLogString()}" }
+                trace { routingTrace ->
+                    val requestLogStr = routingTrace.call.request.toLogString()
+                    val msg = "Got routing trace: $routingTrace, call request: $requestLogStr"
+                    Logger.getAnonymousLogger().log(Level.INFO, msg)
                 }
                 get("/code-ack") {
                     try {
@@ -61,14 +66,17 @@ object DefaultSlack : Slack {
                 }
             }
         }
-        server.start()
+        server?.start()
         send(Slack.LoginStatus.Route.Started)
-        awaitClose { server.stop() }
+        awaitClose { server?.stop() }
     }.catch { throwable ->
         emit(Slack.LoginStatus.Failure(IllegalStateException(throwable)))
     }
 
-    private inline fun logi(msg: () -> String) = Logger.getAnonymousLogger().log(Level.INFO, msg())
+    override suspend fun tearDownLogin() {
+        server?.stop()
+        server = null
+    }
 
     data class Message(override val text: String) : Slack.Message
 }
