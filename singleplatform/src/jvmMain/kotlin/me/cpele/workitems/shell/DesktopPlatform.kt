@@ -7,14 +7,23 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 object DesktopPlatform : Platform {
-    override fun logw(thrown: Throwable, makeMessage: () -> String) {
+    override fun logw(thrown: Throwable?, makeMessage: () -> String) {
         val level = Level.WARNING
+        log(makeMessage, level, thrown)
+    }
+
+    override fun logi(thrown: Throwable?, makeMessage: () -> String) {
+        val level = Level.INFO
+        log(makeMessage, level, thrown)
+    }
+
+    private inline fun log(makeMessage: () -> String, level: Level?, thrown: Throwable?) {
         val msg = makeMessage()
         Logger.getAnonymousLogger().log(level, msg, thrown)
     }
 
     override fun openUri(url: String) {
-        println("Opening URI: ${url}...")
+        logi { "Opening URI: ${url}..." }
         Desktop.getDesktop().browse(URI.create(url))
     }
 }

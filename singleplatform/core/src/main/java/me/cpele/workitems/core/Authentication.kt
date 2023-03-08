@@ -3,8 +3,6 @@ package me.cpele.workitems.core
 import oolong.Effect
 import oolong.effect
 import oolong.effect.none
-import java.util.logging.Level
-import java.util.logging.Logger
 
 /**
  * This program implements the authentication process.
@@ -12,7 +10,7 @@ import java.util.logging.Logger
 object Authentication {
     fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ProviderSelection) to none()
 
-    fun makeUpdate(slack: Slack) = { message: Message, model: Model ->
+    fun makeUpdate(slack: Slack, platform: Platform) = { message: Message, model: Model ->
         when (message) {
 
             is Message.InspectProvider ->
@@ -25,7 +23,7 @@ object Authentication {
                 }
 
             is Message.GotLoginStatus -> model to effect {
-                Logger.getAnonymousLogger().log(Level.INFO, "Got login status: $message")
+                platform.logi { "Got login status: $message" }
             }
 
             Message.DismissProvider ->
@@ -45,7 +43,7 @@ object Authentication {
             }
 
             is Message.GotLoginResult -> model to effect {
-                Logger.getAnonymousLogger().log(Level.INFO, "Got login result: ${message.tokenResult}")
+                platform.logi { "Got login result: ${message.tokenResult}" }
             }
 
         }

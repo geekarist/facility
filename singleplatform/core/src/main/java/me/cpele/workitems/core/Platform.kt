@@ -1,6 +1,7 @@
 package me.cpele.workitems.core
 
 interface Platform {
-    fun logw(thrown: Throwable, makeMessage: () -> String)
+    fun logw(thrown: Throwable? = null, makeMessage: () -> String)
+    fun logi(thrown: Throwable? = null, makeMessage: () -> String)
     fun openUri(url: String)
 }
