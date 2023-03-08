@@ -19,7 +19,7 @@ object Authentication {
                 model.copy(
                     step = Model.Step.ProviderInspection(provider = message.provider)
                 ) to effect { dispatch ->
-                    slack.setUpLogIn().collect { status ->
+                    slack.setUpLogin().collect { status ->
                         dispatch(Message.GotLoginStatus(status))
                     }
                 }

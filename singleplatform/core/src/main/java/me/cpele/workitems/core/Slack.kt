@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface Slack {
     suspend fun fetchMessages(): Result<List<Message>>
-    suspend fun setUpLogIn(): Flow<LoginStatus>
+    suspend fun setUpLogin(): Flow<LoginStatus>
 
     interface Message {
         val text: String

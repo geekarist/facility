@@ -39,7 +39,7 @@ object DefaultSlack : Slack {
         }
     }
 
-    override suspend fun setUpLogIn(): Flow<Slack.LoginStatus> = callbackFlow {
+    override suspend fun setUpLogin(): Flow<Slack.LoginStatus> = callbackFlow {
         val server = embeddedServer(factory = Netty, port = 8080) {
             routing {
                 trace {
