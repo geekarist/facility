@@ -16,12 +16,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.withContext
+import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
-import java.util.logging.Level
-import java.util.logging.Logger
 import com.slack.api.Slack as RemoteSlack
 
-object DefaultSlack : Slack {
+class DefaultSlack(private val platform: Platform) : Slack {
     private var server: ApplicationEngine? = null
 
     override suspend fun fetchMessages() = Result.runCatching {
@@ -48,7 +47,7 @@ object DefaultSlack : Slack {
                 trace { routingTrace ->
                     val requestLogStr = routingTrace.call.request.toLogString()
                     val msg = "Got routing trace: $routingTrace, call request: $requestLogStr"
-                    Logger.getAnonymousLogger().log(Level.INFO, msg)
+                    platform.logi { msg }
                 }
                 get("/code-ack") {
                     try {

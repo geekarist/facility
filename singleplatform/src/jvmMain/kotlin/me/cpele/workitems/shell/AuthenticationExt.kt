@@ -10,8 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import me.cpele.workitems.core.Authentication
-import java.util.logging.Level
-import java.util.logging.Logger
 
 @Composable
 fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props) {
@@ -33,17 +31,12 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
                     Text(dialog.button.text)
                 }
             }
-            DisposableEffect(Unit) {
-                onDispose {
-                    Logger.getAnonymousLogger().log(Level.INFO, "Closing dialog")
-                }
-            }
         }
     }
 }
 
 fun Authentication.app() = app(
     init = ::init,
-    update = makeUpdate(DefaultSlack, DesktopPlatform),
+    update = makeUpdate(DefaultSlack(DesktopPlatform), DesktopPlatform),
     view = ::view
 ) { Ui(props = it) }

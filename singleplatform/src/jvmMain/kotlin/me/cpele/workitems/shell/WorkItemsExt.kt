@@ -57,7 +57,7 @@ fun WorkItems.Ui(props: WorkItems.Props) {
 }
 
 fun WorkItems.app() = app(
-    init = makeInit(DefaultSlack),
+    init = makeInit(DefaultSlack(DesktopPlatform)),
     update = makeUpdate(DesktopPlatform),
     view = WorkItems::view
 ) { WorkItems.Ui(it) }
