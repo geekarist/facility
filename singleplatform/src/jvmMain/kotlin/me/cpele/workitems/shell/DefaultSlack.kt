@@ -20,8 +20,10 @@ import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
 import com.slack.api.Slack as RemoteSlack
 
-class DefaultSlack(private val platform: Platform) : Slack {
+class DefaultSlack(private val platform: Platform, private val ingress: Ingress) : Slack {
+
     private var server: ApplicationEngine? = null
+    private var tunnel: Ingress.Tunnel? = null
 
     override suspend fun fetchMessages() = Result.runCatching {
         withContext(Dispatchers.IO) {
@@ -67,7 +69,13 @@ class DefaultSlack(private val platform: Platform) : Slack {
         }
         server?.start()
         send(Slack.LoginStatus.Route.Started)
-        awaitClose { server?.stop() }
+        val serverTunnel = checkNotNull(ingress.open("http", "8080"))
+        send(Slack.LoginStatus.Route.Exposed(serverTunnel.url))
+        tunnel = serverTunnel
+        awaitClose {
+            server?.stop()
+            ingress.close(serverTunnel)
+        }
     }.catch { throwable ->
         emit(Slack.LoginStatus.Failure(IllegalStateException(throwable)))
     }
@@ -75,6 +83,10 @@ class DefaultSlack(private val platform: Platform) : Slack {
     override suspend fun tearDownLogin() {
         server?.stop()
         server = null
+        tunnel?.let {
+            ingress.close(it)
+        }
+        tunnel = null
     }
 
     data class Message(override val text: String) : Slack.Message

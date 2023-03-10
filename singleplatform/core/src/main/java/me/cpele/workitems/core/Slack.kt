@@ -1,6 +1,7 @@
 package me.cpele.workitems.core
 
 import kotlinx.coroutines.flow.Flow
+import java.net.URL
 
 interface Slack {
     suspend fun fetchMessages(): Result<List<Message>>
@@ -14,7 +15,7 @@ interface Slack {
     sealed interface LoginStatus {
         sealed interface Route : LoginStatus {
             object Started : Route
-            object Exposed : Route
+            data class Exposed(val url: URL) : Route
         }
 
         data class Success(val token: String) : LoginStatus
