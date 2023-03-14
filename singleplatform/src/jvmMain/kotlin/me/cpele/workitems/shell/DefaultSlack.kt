@@ -69,12 +69,13 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         }
         server?.start()
         send(Slack.LoginStatus.Route.Started)
-        val serverTunnel = checkNotNull(ingress.open("http", "8080"))
-        send(Slack.LoginStatus.Route.Exposed(serverTunnel.url))
-        tunnel = serverTunnel
+        ingress.open("http", "8080") { serverTunnel ->
+            send(Slack.LoginStatus.Route.Exposed(serverTunnel.url))
+            tunnel = serverTunnel
+        }
         awaitClose {
             server?.stop()
-            ingress.close(serverTunnel)
+            ingress.close(tunnel)
         }
     }.catch { throwable ->
         emit(Slack.LoginStatus.Failure(IllegalStateException(throwable)))
