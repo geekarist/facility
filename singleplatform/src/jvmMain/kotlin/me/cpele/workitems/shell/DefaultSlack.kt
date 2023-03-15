@@ -15,6 +15,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
@@ -70,8 +71,10 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         server?.start()
         send(Slack.LoginStatus.Route.Started)
         ingress.open("http", "8080") { serverTunnel ->
-            send(Slack.LoginStatus.Route.Exposed(serverTunnel.url))
-            tunnel = serverTunnel
+            launch {
+                send(Slack.LoginStatus.Route.Exposed(serverTunnel.url))
+                tunnel = serverTunnel
+            }
         }
         awaitClose {
             server?.stop()

@@ -1,22 +1,23 @@
 package me.cpele.workitems.shell
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.net.URL
+import kotlin.time.Duration.Companion.seconds
 
 object NgrokIngress : Ingress {
 
     private var processByTunnel = mapOf<Ingress.Tunnel, Process>()
+    private val coroutineScope = CoroutineScope(Dispatchers.Default)
 
-    override suspend fun open(protocol: String, port: String, block: suspend (Ingress.Tunnel) -> Unit) {
-        val process = withContext(Dispatchers.IO) {
-            ProcessBuilder("ngrok", protocol, port).start()
-        }
-        process.inputStream.bufferedReader().useLines { lineSeq ->
-            lineSeq.forEach { line ->
-                val jsonObj: Map<String, String> = deserializeJson(line)
-                if (jsonObj["obj"] == "tunnels") {
-                    block(Ingress.Tunnel(URL(jsonObj["url"])))
+    override fun open(protocol: String, port: String, onTunnelOpened: (Ingress.Tunnel) -> Unit) {
+        coroutineScope.launch(Dispatchers.IO) {
+            val process = ProcessBuilder("ngrok", protocol, port).start()
+            process.inputStream.bufferedReader().useLines { lineSeq ->
+                lineSeq.forEach { line ->
+                    val jsonObj: Map<String, String> = deserializeJson(line)
+                    if (jsonObj["obj"] == "tunnels") {
+                        onTunnelOpened(Ingress.Tunnel(URL(jsonObj["url"])))
+                    }
                 }
             }
         }
@@ -28,7 +29,11 @@ object NgrokIngress : Ingress {
 
     override fun close(tunnel: Ingress.Tunnel?) {
         val process = processByTunnel.getOrDefault(tunnel, null)
-        process?.destroy()
+        coroutineScope.launch {
+            process?.destroy()
+            delay(30.seconds)
+            process?.destroyForcibly()
+        }
         tunnel?.let {
             processByTunnel = processByTunnel.minus(tunnel)
         }
