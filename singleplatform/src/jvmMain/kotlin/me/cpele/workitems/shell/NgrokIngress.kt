@@ -1,6 +1,8 @@
 package me.cpele.workitems.shell
 
 import kotlinx.coroutines.*
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 import java.net.URL
 import kotlin.time.Duration.Companion.seconds
 
@@ -23,9 +25,7 @@ object NgrokIngress : Ingress {
         }
     }
 
-    private fun deserializeJson(line: String): Map<String, String> {
-        TODO("Not yet implemented")
-    }
+    private fun deserializeJson(line: String): Map<String, String> = Json.decodeFromString(line)
 
     override fun close(tunnel: Ingress.Tunnel?) {
         val process = processByTunnel.getOrDefault(tunnel, null)
