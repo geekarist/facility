@@ -13,7 +13,9 @@ object NgrokIngress : Ingress {
 
     override fun open(protocol: String, port: String, onTunnelOpened: (Ingress.Tunnel) -> Unit) {
         coroutineScope.launch(Dispatchers.IO) {
+            DesktopPlatform.logi { "Launching tunnel command" }
             val process = ProcessBuilder("ngrok", protocol, port).start()
+            DesktopPlatform.logi { "Reading command output" }
             process.inputStream.bufferedReader().useLines { lineSeq ->
                 lineSeq.forEach { line ->
                     val jsonObj: Map<String, String> = deserializeJson(line)
@@ -38,4 +40,11 @@ object NgrokIngress : Ingress {
             processByTunnel = processByTunnel.minus(tunnel)
         }
     }
+}
+
+fun main() {
+    NgrokIngress.open(protocol = "http", port = "8080") {
+        DesktopPlatform.logi { "Opened tunnel: $it" }
+    }
+    Thread.sleep(10000)
 }
