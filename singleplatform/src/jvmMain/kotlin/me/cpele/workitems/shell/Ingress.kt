@@ -6,5 +6,5 @@ interface Ingress {
     fun open(protocol: String, port: String, onTunnelOpened: (Tunnel) -> Unit)
     fun close(tunnel: Tunnel?)
 
-    data class Tunnel(val url: URL)
+    data class Tunnel(val url: URL, val tag: Any? = null)
 }
