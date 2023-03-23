@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
+import java.net.URL
 import com.slack.api.Slack as RemoteSlack
 
 class DefaultSlack(private val platform: Platform, private val ingress: Ingress) : Slack {
@@ -58,11 +59,17 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                             ?.let { token ->
                                 call.respondText(status = HttpStatusCode.OK, text = "Got token: $token")
                                 send(Slack.LoginStatus.Success(token))
-                            } ?: send(Slack.LoginStatus.Failure(IllegalStateException("Called without a token")))
+                            }
+                            ?: run {
+                                val throwable = IllegalStateException("Called without a token")
+                                call.respondText(status = HttpStatusCode.BadRequest, text = throwable.toString())
+                                send(Slack.LoginStatus.Failure(throwable))
+                            }
                     } catch (throwable: Throwable) {
                         val logString = call.request.toLogString()
                         val exception = IllegalStateException("Error processing request: $logString", throwable)
                         val failure = Slack.LoginStatus.Failure(exception)
+                        call.respondText(status = HttpStatusCode.InternalServerError, text = exception.toString())
                         send(failure)
                     }
                 }
@@ -72,7 +79,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         send(Slack.LoginStatus.Route.Started)
         ingress.open("http", "8080") { serverTunnel ->
             launch {
-                send(Slack.LoginStatus.Route.Exposed(serverTunnel.url))
+                send(Slack.LoginStatus.Route.Exposed(URL(serverTunnel.url, "/code-ack")))
                 tunnel = serverTunnel
             }
         }
@@ -95,4 +102,3 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
 
     data class Message(override val text: String) : Slack.Message
 }
-
