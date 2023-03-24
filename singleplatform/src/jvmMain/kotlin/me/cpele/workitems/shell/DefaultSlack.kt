@@ -55,13 +55,13 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                 }
                 get("/code-ack") {
                     try {
-                        call.parameters["token"]
-                            ?.let { token ->
-                                call.respondText(status = HttpStatusCode.OK, text = "Got token: $token")
-                                send(Slack.LoginStatus.Success(token))
+                        call.parameters["code"]
+                            ?.let { code ->
+                                call.respondText(status = HttpStatusCode.OK, text = "Got code: $code")
+                                send(Slack.LoginStatus.Success(code))
                             }
                             ?: run {
-                                val throwable = IllegalStateException("Called without a token")
+                                val throwable = IllegalStateException("Called without a code")
                                 call.respondText(status = HttpStatusCode.BadRequest, text = throwable.toString())
                                 send(Slack.LoginStatus.Failure(throwable))
                             }
