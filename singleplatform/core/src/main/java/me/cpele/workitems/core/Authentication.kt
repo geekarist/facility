@@ -1,8 +1,12 @@
 package me.cpele.workitems.core
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import oolong.Effect
 import oolong.effect
 import oolong.effect.none
+import java.net.URLEncoder
+import java.nio.charset.Charset
 
 /**
  * This program implements the authentication process.
@@ -22,7 +26,14 @@ object Authentication {
                     }
                 }
 
-            is Message.GotLoginStatus -> model to effect {
+            is Message.GotLoginStatus -> let {
+                when (message.status) {
+                    Slack.LoginStatus.Route.Started -> model
+                    is Slack.LoginStatus.Route.Exposed -> model
+                    is Slack.LoginStatus.Success -> model
+                    is Slack.LoginStatus.Failure -> model
+                }
+            } to effect {
                 platform.logi { "Got login status: $message" }
             }
 
@@ -34,9 +45,13 @@ object Authentication {
                 }
 
             is Message.InitiateLogin -> model to when (message.provider) {
-                Model.Provider.Slack -> effect<Message> { dispatch ->
+                Model.Provider.Slack -> effect<Message> { _ ->
                     val clientId = "961165435895.4723465885330"
-                    val redirectUri = "TODO"
+                    val decodedRedirectUri = "TODO"
+                    val redirectUri = withContext(Dispatchers.IO) {
+                        val charset = Charset.defaultCharset().name()
+                        URLEncoder.encode(decodedRedirectUri, charset)
+                    }
                     val authUrl = "https://slack.com/oauth/v2/authorize"
                     val scope = "incoming-webhook,commands"
                     val url = "$authUrl?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri"
