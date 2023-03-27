@@ -14,6 +14,7 @@ interface Slack {
 
     sealed interface LoginStatus {
         sealed interface Route : LoginStatus {
+            object Init : Route
             object Started : Route
             data class Exposed(val url: URL) : Route
         }

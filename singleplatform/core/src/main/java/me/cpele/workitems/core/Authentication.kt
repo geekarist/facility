@@ -28,8 +28,16 @@ object Authentication {
 
             is Message.GotLoginStatus -> let {
                 when (message.status) {
-                    Slack.LoginStatus.Route.Started -> model
-                    is Slack.LoginStatus.Route.Exposed -> model
+                    is Slack.LoginStatus.Route.Init -> model
+
+                    is Slack.LoginStatus.Route.Started,
+                    is Slack.LoginStatus.Route.Exposed
+                    -> model.copy(step = model.step.let { step ->
+                        check(step is Model.Step.ProviderInspection)
+                        check(step.provider is Model.Provider.Slack)
+                        step.copy(step.provider.copy(message.status))
+                    })
+
                     is Slack.LoginStatus.Success -> model
                     is Slack.LoginStatus.Failure -> model
                 }
@@ -45,9 +53,10 @@ object Authentication {
                 }
 
             is Message.InitiateLogin -> model to when (message.provider) {
-                Model.Provider.Slack -> effect<Message> { _ ->
+                is Model.Provider.Slack -> effect<Message> { _ ->
                     val clientId = "961165435895.4723465885330"
-                    val decodedRedirectUri = "TODO"
+                    check(message.provider.status is Slack.LoginStatus.Route.Exposed)
+                    val decodedRedirectUri = message.provider.status.url.toExternalForm()
                     val redirectUri = withContext(Dispatchers.IO) {
                         val charset = Charset.defaultCharset().name()
                         URLEncoder.encode(decodedRedirectUri, charset)
@@ -83,7 +92,7 @@ object Authentication {
                     )
                 },
             buttons = listOf(
-                Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack)) },
+                Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack(Slack.LoginStatus.Route.Init))) },
                 Props.Button("Jira") { dispatch(Message.InspectProvider(Model.Provider.Jira)) },
                 Props.Button("GitHub") { dispatch(Message.InspectProvider(Model.Provider.GitHub)) },
             )
@@ -104,12 +113,15 @@ object Authentication {
             data class ProviderInspection(val provider: Provider) : Step
         }
 
-        enum class Provider(
+        sealed class Provider(
             val description: String
         ) {
-            Slack(description = "Slack lets you use reactions to tag certain messages, turning them into work items"),
-            Jira(description = "Jira tickets assigned to you appear as work items"),
-            GitHub(description = "GitHub issues or PRs assigned to you appear as work items");
+            data class Slack(val status: me.cpele.workitems.core.Slack.LoginStatus) : Provider(
+                description = "Slack lets you use reactions to tag certain messages, turning them into work items",
+            )
+
+            object Jira : Provider(description = "Jira tickets assigned to you appear as work items")
+            object GitHub : Provider(description = "GitHub issues or PRs assigned to you appear as work items")
         }
     }
 
