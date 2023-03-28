@@ -54,7 +54,7 @@ object Authentication {
 
             is Message.InitiateLogin -> model to when (message.provider) {
                 is Model.Provider.Slack -> effect<Message> { _ ->
-                    val clientId = "961165435895.4723465885330"
+                    val clientId = "961165435895.5012210604118"
                     check(message.provider.status is Slack.LoginStatus.Route.Exposed)
                     val decodedRedirectUri = message.provider.status.url.toExternalForm()
                     val redirectUri = withContext(Dispatchers.IO) {
