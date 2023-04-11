@@ -26,32 +26,6 @@ object Authentication {
                     }
                 }
 
-            is Message.GotLoginStatus -> let {
-                when (message.status) {
-                    is Slack.LoginStatus.Route.Init -> model
-
-                    is Slack.LoginStatus.Route.Started,
-                    is Slack.LoginStatus.Route.Exposed
-                    -> model.copy(step = model.step.let { step ->
-                        check(step is Model.Step.ProviderInspection)
-                        check(step.provider is Model.Provider.Slack)
-                        step.copy(step.provider.copy(message.status))
-                    })
-
-                    is Slack.LoginStatus.Success -> model
-                    is Slack.LoginStatus.Failure -> model
-                }
-            } to effect {
-                platform.logi { "Got login status: $message" }
-            }
-
-            Message.DismissProvider ->
-                model.copy(
-                    step = Model.Step.ProviderSelection
-                ) to effect {
-                    slack.tearDownLogin()
-                }
-
             is Message.InitiateLogin -> model to when (message.provider) {
                 is Model.Provider.Slack -> effect<Message> { _ ->
                     val clientId = "961165435895.5012210604118"
@@ -71,10 +45,35 @@ object Authentication {
                 Model.Provider.GitHub -> TODO()
             }
 
+            is Message.GotLoginStatus -> let {
+                when (message.status) {
+                    is Slack.LoginStatus.Route.Init -> model
+
+                    is Slack.LoginStatus.Route.Started,
+                    is Slack.LoginStatus.Route.Exposed
+                    -> model.copy(step = model.step.let { step ->
+                        check(step is Model.Step.ProviderInspection)
+                        check(step.provider is Model.Provider.Slack)
+                        step.copy(step.provider.copy(message.status))
+                    })
+
+                    is Slack.LoginStatus.Success -> model
+                    is Slack.LoginStatus.Failure -> model
+                }
+            } to effect {
+                platform.logi { "Got login status: $message" }
+            }
+
             is Message.GotLoginResult -> model to effect {
                 platform.logi { "Got login result: ${message.tokenResult}" }
             }
 
+            Message.DismissProvider ->
+                model.copy(
+                    step = Model.Step.ProviderSelection
+                ) to effect {
+                    slack.tearDownLogin()
+                }
         }
     }
 
@@ -101,9 +100,8 @@ object Authentication {
     sealed interface Message {
         data class InspectProvider(val provider: Model.Provider) : Message
         data class InitiateLogin(val provider: Model.Provider) : Message
-        data class GotLoginResult(val tokenResult: Result<String>) : Message
         data class GotLoginStatus(val status: Slack.LoginStatus) : Message
-
+        data class GotLoginResult(val tokenResult: Result<String>) : Message
         object DismissProvider : Message
     }
 
