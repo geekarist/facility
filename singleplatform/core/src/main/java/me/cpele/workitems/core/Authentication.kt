@@ -1,7 +1,9 @@
 package me.cpele.workitems.core
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import oolong.Dispatch
 import oolong.Effect
 import oolong.effect
 import oolong.effect.none
@@ -16,66 +18,87 @@ object Authentication {
 
     fun makeUpdate(slack: Slack, platform: Platform) = { message: Message, model: Model ->
         when (message) {
-
-            is Message.InspectProvider ->
-                model.copy(
-                    step = Model.Step.ProviderInspection(provider = message.provider)
-                ) to effect { dispatch ->
-                    slack.setUpLogin().collect { status ->
-                        dispatch(Message.GotLoginStatus(status))
-                    }
-                }
-
-            is Message.InitiateLogin -> model to when (message.provider) {
-                is Model.Provider.Slack -> effect<Message> { _ ->
-                    val clientId = "961165435895.5012210604118"
-                    check(message.provider.status is Slack.LoginStatus.Route.Exposed)
-                    val decodedRedirectUri = message.provider.status.url.toExternalForm()
-                    val redirectUri = withContext(Dispatchers.IO) {
-                        val charset = Charset.defaultCharset().name()
-                        URLEncoder.encode(decodedRedirectUri, charset)
-                    }
-                    val authUrl = "https://slack.com/oauth/v2/authorize"
-                    val scope = "incoming-webhook,commands"
-                    val url = "$authUrl?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri"
-                    platform.openUri(url = url)
-                }
-
-                Model.Provider.Jira -> TODO()
-                Model.Provider.GitHub -> TODO()
-            }
-
-            is Message.GotLoginStatus -> let {
-                when (message.status) {
-                    is Slack.LoginStatus.Route.Init -> model
-
-                    is Slack.LoginStatus.Route.Started,
-                    is Slack.LoginStatus.Route.Exposed
-                    -> model.copy(step = model.step.let { step ->
-                        check(step is Model.Step.ProviderInspection)
-                        check(step.provider is Model.Provider.Slack)
-                        step.copy(step.provider.copy(message.status))
-                    })
-
-                    is Slack.LoginStatus.Success -> model
-                    is Slack.LoginStatus.Failure -> model
-                }
-            } to effect {
-                platform.logi { "Got login status: $message" }
-            }
-
-            is Message.GotLoginResult -> model to effect {
-                platform.logi { "Got login result: ${message.tokenResult}" }
-            }
-
-            Message.DismissProvider ->
-                model.copy(
-                    step = Model.Step.ProviderSelection
-                ) to effect {
-                    slack.tearDownLogin()
-                }
+            is Message.InspectProvider -> handle(model, message, slack)
+            is Message.InitiateLogin -> handle(platform, model, message)
+            is Message.GotLoginStatus -> handle(platform, model, message)
+            is Message.GotLoginResult -> handle(platform, model, message)
+            Message.DismissProvider -> handle(slack, model)
         }
     }
+
+    private fun handle(
+        slack: Slack,
+        model: Model
+    ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> =
+        model.copy(
+            step = Model.Step.ProviderSelection
+        ) to effect {
+            slack.tearDownLogin()
+        }
+
+    private fun handle(
+        platform: Platform,
+        model: Model,
+        message: Message.GotLoginResult
+    ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> =
+        model to effect {
+            platform.logi { "Got login result: ${message.tokenResult}" }
+        }
+
+    private fun handle(
+        model: Model,
+        message: Message.InspectProvider,
+        slack: Slack
+    ) = model.copy(
+        step = Model.Step.ProviderInspection(provider = message.provider)
+    ) to effect { dispatch ->
+        slack.setUpLogin().collect { status ->
+            dispatch(Message.GotLoginStatus(status))
+        }
+    }
+
+    private fun handle(
+        platform: Platform,
+        model: Model,
+        message: Message.InitiateLogin
+    ) = model to when (message.provider) {
+        is Model.Provider.Slack -> effect<Message> { _ ->
+            val clientId = "961165435895.5012210604118"
+            check(message.provider.status is Slack.LoginStatus.Route.Exposed)
+            val decodedRedirectUri = message.provider.status.url.toExternalForm()
+            val redirectUri = withContext(Dispatchers.IO) {
+                val charset = Charset.defaultCharset().name()
+                URLEncoder.encode(decodedRedirectUri, charset)
+            }
+            val authUrl = "https://slack.com/oauth/v2/authorize"
+            val scope = "incoming-webhook,commands"
+            val url = "$authUrl?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri"
+            platform.openUri(url = url)
+        }
+
+        Model.Provider.Jira -> TODO()
+        Model.Provider.GitHub -> TODO()
+    }
+
+    private fun handle(platform: Platform, model: Model, message: Message.GotLoginStatus) = let {
+        when (message.status) {
+            is Slack.LoginStatus.Route.Init -> model
+
+            is Slack.LoginStatus.Route.Started,
+            is Slack.LoginStatus.Route.Exposed
+            -> model.copy(step = model.step.let { step ->
+                check(step is Model.Step.ProviderInspection)
+                check(step.provider is Model.Provider.Slack)
+                step.copy(step.provider.copy(message.status))
+            })
+
+            is Slack.LoginStatus.Success -> model
+            is Slack.LoginStatus.Failure -> model
+        }
+    } to effect<Message> {
+        platform.logi { "Got login status: $message" }
+    }
+
 
     fun view(model: Model, dispatch: (Message) -> Unit) =
         Props(
