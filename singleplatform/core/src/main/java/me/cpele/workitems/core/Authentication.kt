@@ -18,17 +18,17 @@ object Authentication {
 
     fun makeUpdate(slack: Slack, platform: Platform) = { message: Message, model: Model ->
         when (message) {
-            is Message.InspectProvider -> handle(model, message, slack)
-            is Message.InitiateLogin -> handle(platform, model, message)
-            is Message.GotLoginStatus -> handle(platform, model, message)
-            is Message.GotLoginResult -> handle(platform, model, message)
-            Message.DismissProvider -> handle(slack, model)
+            is Message.InspectProvider -> handle(message, model, slack)
+            is Message.InitiateLogin -> handle(message, model, platform)
+            is Message.GotLoginStatus -> handle(message, model, platform)
+            is Message.GotLoginResult -> handle(message, model, platform)
+            Message.DismissProvider -> handle(model, slack)
         }
     }
 
     private fun handle(
-        slack: Slack,
-        model: Model
+        model: Model,
+        slack: Slack
     ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> =
         model.copy(
             step = Model.Step.ProviderSelection
@@ -37,17 +37,17 @@ object Authentication {
         }
 
     private fun handle(
-        platform: Platform,
+        message: Message.GotLoginResult,
         model: Model,
-        message: Message.GotLoginResult
+        platform: Platform
     ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> =
         model to effect {
             platform.logi { "Got login result: ${message.tokenResult}" }
         }
 
     private fun handle(
-        model: Model,
         message: Message.InspectProvider,
+        model: Model,
         slack: Slack
     ) = model.copy(
         step = Model.Step.ProviderInspection(provider = message.provider)
@@ -58,9 +58,9 @@ object Authentication {
     }
 
     private fun handle(
-        platform: Platform,
+        message: Message.InitiateLogin,
         model: Model,
-        message: Message.InitiateLogin
+        platform: Platform
     ) = model to when (message.provider) {
         is Model.Provider.Slack -> effect<Message> { _ ->
             val clientId = "961165435895.5012210604118"
@@ -80,7 +80,7 @@ object Authentication {
         Model.Provider.GitHub -> TODO()
     }
 
-    private fun handle(platform: Platform, model: Model, message: Message.GotLoginStatus) = let {
+    private fun handle(message: Message.GotLoginStatus, model: Model, platform: Platform) = let {
         when (message.status) {
             is Slack.LoginStatus.Route.Init -> model
 
