@@ -79,7 +79,9 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         send(Slack.LoginStatus.Route.Started)
         ingress.open("http", "8080") { serverTunnel ->
             launch {
-                send(Slack.LoginStatus.Route.Exposed(URL(serverTunnel.url, "/code-ack")))
+                val url = URL(serverTunnel.url, "/code-ack")
+                val staticUrl = wrap(url)
+                send(Slack.LoginStatus.Route.Exposed(staticUrl))
                 tunnel = serverTunnel
             }
         }
@@ -89,6 +91,14 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         }
     }.catch { throwable ->
         emit(Slack.LoginStatus.Failure(IllegalStateException(throwable)))
+    }
+
+    private fun wrap(url: URL): URL {
+        val authority = "vps-134bd385.vps.ovh.net"
+        val port = 3000
+        val file = "code-ack"
+        val query = url.query
+        return URL(url, "https://$authority:$port/$file?$query")
     }
 
     override suspend fun tearDownLogin() {
