@@ -6,7 +6,7 @@ app.get('/code-ack', (req, res) => {
     const tunnel = req.query.tunnel;
 
     // Construct the URL of the actual endpoint dynamically using the values of 'code' and 'tunnel'
-    const actualEndpointUrl = `https://${tunnel}.ngrok.io/code-ack?code=${code}`;
+    const actualEndpointUrl = `https://${tunnel}/code-ack?code=${code}`;
     console.log(`Actual endpoint URL: ${actualEndpointUrl}`);
 
     // Make an HTTP GET request to the actual endpoint using the 'axios' library
