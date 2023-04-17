@@ -3,10 +3,12 @@ const https = require('https');
 const fs = require('fs');
 const app = express();
 
+/*
 const options = {
     key: fs.readFileSync('private.key'),
-    cert: fs.readFileSync('certificate.crt');
+    cert: fs.readFileSync('certificate.crt')
 };
+*/
 
 app.get('/code-ack', (req, res) => {
     const code = req.query.code;
@@ -27,9 +29,9 @@ app.get('/code-ack', (req, res) => {
         });
 });
 
-const httpsServer = https.createServer(options, app);
+// const httpsServer = https.createServer(options, app);
 
 const port = process.env.PORT || 80;
-httpsServer.listen(port, () => {
+app.listen(port, () => {
     console.log(`Wrapper endpoint listening on port ${port}`);
 });
