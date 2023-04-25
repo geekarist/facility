@@ -17,10 +17,15 @@ object NgrokIngress : Ingress {
 
     override fun open(protocol: String, port: String, onTunnelOpened: (Ingress.Tunnel) -> Unit) {
         coroutineScope.launch(Dispatchers.IO) {
-            DesktopPlatform.logi { "Launching tunnel command" }
-            val process = ProcessBuilder("ngrok", "--log=stdout", "--log-format=json", protocol, port)
+            DesktopPlatform.logi { "Launching tunnel command..." }
+            val command = listOf("ngrok", "--log=stdout", "--log-format=json", protocol, port)
+            val process = ProcessBuilder(command)
                 .redirectErrorStream(true)
                 .start()
+            DesktopPlatform.logi {
+                val commandStr = command.joinToString(" ")
+                "Command is: $commandStr"
+            }
             DesktopPlatform.logi { "Reading command output" }
             process.inputStream.bufferedReader().useLines { lineSeq ->
                 lineSeq.mapNotNull { line ->
