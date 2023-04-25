@@ -22,11 +22,11 @@ object Authentication {
             is Message.InitiateLogin -> handle(message, model, platform)
             is Message.GotLoginStatus -> handle(message, model, platform)
             is Message.GotLoginResult -> handle(message, model, platform)
-            Message.DismissProvider -> handle(model, slack)
+            Message.DismissProvider -> handleDismissProvider(model, slack)
         }
     }
 
-    private fun handle(
+    private fun handleDismissProvider(
         model: Model,
         slack: Slack
     ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> =
