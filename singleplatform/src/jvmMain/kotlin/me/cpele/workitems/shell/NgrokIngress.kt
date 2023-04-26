@@ -14,6 +14,9 @@ object NgrokIngress : Ingress {
 
     private var processByTunnel = mapOf<Ingress.Tunnel, Process>()
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val json = Json {
+        coerceInputValues = true
+    }
 
     override fun open(protocol: String, port: String, onTunnelOpened: (Ingress.Tunnel) -> Unit) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -40,13 +43,13 @@ object NgrokIngress : Ingress {
         }
     }
 
-    private fun deserializeJson(line: String): Map<String, String> = Json.decodeFromString(line)
+    private fun deserializeJson(line: String): Map<String, String> = json.decodeFromString(line)
 
     override fun close(tunnel: Ingress.Tunnel?) {
         val process = processByTunnel.getOrDefault(tunnel, null)
         coroutineScope.launch {
-            process?.destroy()
-            delay(30.seconds)
+            process?.destroy() S
+                    delay(30.seconds)
             process?.destroyForcibly()
         }
         tunnel?.let {
