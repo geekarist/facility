@@ -48,8 +48,8 @@ object NgrokIngress : Ingress {
     override fun close(tunnel: Ingress.Tunnel?) {
         val process = processByTunnel.getOrDefault(tunnel, null)
         coroutineScope.launch {
-            process?.destroy() S
-                    delay(30.seconds)
+            process?.destroy()
+            delay(30.seconds)
             process?.destroyForcibly()
         }
         tunnel?.let {
