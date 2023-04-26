@@ -16,6 +16,7 @@ object NgrokIngress : Ingress {
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
     private val json = Json {
         coerceInputValues = true
+        isLenient = true
     }
 
     override fun open(protocol: String, port: String, onTunnelOpened: (Ingress.Tunnel) -> Unit) {
@@ -32,7 +33,7 @@ object NgrokIngress : Ingress {
             DesktopPlatform.logi { "Reading command output" }
             process.inputStream.bufferedReader().useLines { lineSeq ->
                 lineSeq.mapNotNull { line ->
-                    val jsonObj: Map<String, String> = deserializeJson(line)
+                    val jsonObj: Map<String, String?> = deserializeJson(line)
                     if (jsonObj["obj"] == "tunnels") {
                         Ingress.Tunnel(URL(jsonObj["url"]), jsonObj)
                     } else {
@@ -43,7 +44,7 @@ object NgrokIngress : Ingress {
         }
     }
 
-    private fun deserializeJson(line: String): Map<String, String> = json.decodeFromString(line)
+    private fun deserializeJson(line: String): Map<String, String?> = json.decodeFromString(line)
 
     override fun close(tunnel: Ingress.Tunnel?) {
         val process = processByTunnel.getOrDefault(tunnel, null)
