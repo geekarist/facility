@@ -79,7 +79,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         send(Slack.LoginStatus.Route.Started)
         ingress.open("http", "8080") { serverTunnel ->
             launch {
-                val url = URL(serverTunnel.url, "/code-ack")
+                val url = URL(serverTunnel.url, "/code-ack?tunnel=${serverTunnel.url.host}")
                 platform.logi { "Server tunnel opened at URL: $url" }
                 val staticUrl = wrap(url)
                 send(Slack.LoginStatus.Route.Exposed(staticUrl))
@@ -95,10 +95,9 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
     }
 
     private fun wrap(url: URL): URL {
-        val authority = "vps-134bd385.vps.ovh.net"
-        val port = 3000
+        val authority = "aloe-vera.cpele.me"
         val file = "code-ack"
-        return URL(url, "https://$authority:$port/$file")
+        return URL("https://$authority/$file?tunnel=${url.host}")
     }
 
     override suspend fun tearDownLogin() {
