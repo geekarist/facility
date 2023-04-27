@@ -106,7 +106,7 @@ object Authentication {
                 .let { it as? Model.Step.ProviderInspection }
                 ?.let { inspectionStep ->
                     Props.Dialog.of(
-                        button = Props.Button("Log in") {
+                        button = Props.Button("Log in...") {
                             dispatch(Message.InitiateLogin(inspectionStep.provider))
                         },
                         onClose = { dispatch(Message.DismissProvider) },

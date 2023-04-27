@@ -2,10 +2,13 @@
 
 package me.cpele.workitems.shell
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.Button
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -13,9 +16,8 @@ import me.cpele.workitems.core.Authentication
 
 @Composable
 fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props) {
-    Row(
-        modifier = modifier.padding(horizontal = 8.dp).wrapContentSize(unbounded = true),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    Column(
+        modifier = modifier.padding(16.dp).wrapContentSize(unbounded = true)
     ) {
         props.buttons.forEach { button ->
             Button(onClick = button.onClick) {
