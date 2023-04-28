@@ -19,11 +19,11 @@ import me.cpele.workitems.core.Authentication
 
 @Composable
 fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props) {
-    val buttonTextWidthDpList by remember(props.buttons) {
+    val buttonTextList by remember(props.buttons) {
         derivedStateOf { props.buttons.map { it.text } }
     }
     WithLargestTextWidth(
-        buttonTextWidthDpList,
+        buttonTextList,
         dependeeContent = { Button({}) { Text(it) } }
     ) { textWidthDp: Dp ->
         Column(
