@@ -2,14 +2,14 @@
 
 package me.cpele.workitems.shell
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import me.cpele.workitems.core.Authentication
@@ -19,9 +19,12 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
     Column(
         modifier = modifier.padding(16.dp).wrapContentSize(unbounded = true)
     ) {
-        props.buttons.forEach { button ->
-            Button(onClick = button.onClick) {
-                Text(button.text)
+        val buttonTextWidthDpList = props.buttons.map { it.text }
+        WithLargestTextWidth(buttonTextWidthDpList) { textWidthDp: Dp ->
+            props.buttons.forEach { button ->
+                Button(onClick = button.onClick) {
+                    Text(text = button.text, modifier = Modifier.width(textWidthDp))
+                }
             }
         }
     }
@@ -33,6 +36,34 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
                     Text(dialog.button.text)
                 }
             }
+        }
+    }
+}
+
+private enum class Slot {
+    Dependent, Dependencies
+}
+
+/**
+ * This composable determines the largest width of provided texts
+ * and calls [dependentContent], giving it that width.
+ */
+@Composable
+fun WithLargestTextWidth(texts: List<String>, dependentContent: @Composable (Dp) -> Unit) {
+    SubcomposeLayout { constraints ->
+        val textWidthDpList = subcompose(Slot.Dependencies) {
+            texts.forEach {
+                Text(it)
+            }
+        }.map { it.measure(Constraints()).width.toDp() }
+        val largestTextWidthDp = textWidthDpList.max()
+
+        val dependentPlaceable = subcompose(Slot.Dependent) {
+            dependentContent(largestTextWidthDp)
+        }.first().measure(constraints)
+
+        layout(dependentPlaceable.width, dependentPlaceable.height) {
+            dependentPlaceable.place(0, 0)
         }
     }
 }
