@@ -41,7 +41,7 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
         Dialog(onCloseRequest = { dialog.onClose() }) {
             Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 dialog.texts.forEach { Text(it) }
-                Button(onClick = dialog.button.onClick) {
+                Button(onClick = dialog.button.onClick, enabled = dialog.isButtonEnabled) {
                     Text(dialog.button.text)
                 }
             }
