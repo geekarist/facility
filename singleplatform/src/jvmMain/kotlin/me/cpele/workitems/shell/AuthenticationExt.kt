@@ -55,10 +55,8 @@ private enum class Slot {
 
 /**
  * This composable determines the largest width of provided [texts]
- * and calls [dependentContent], giving it that width.
- *
- * Width is computed by rendering items of [texts] into [dependeeContent]
- * (simple [Text] by default)].
+ * as rendered in [dependeeContent] (just a [Text] by default)
+ * and calls [dependentContent], giving that width to it.
  */
 @Composable
 fun WithLargestTextWidth(
