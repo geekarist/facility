@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.Constraints
@@ -16,11 +19,13 @@ import me.cpele.workitems.core.Authentication
 
 @Composable
 fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props) {
-    Column(
-        modifier = modifier.padding(16.dp).wrapContentSize(unbounded = true)
-    ) {
-        val buttonTextWidthDpList = props.buttons.map { it.text }
-        WithLargestTextWidth(buttonTextWidthDpList) { textWidthDp: Dp ->
+    val buttonTextWidthDpList by remember(props.buttons) {
+        derivedStateOf { props.buttons.map { it.text } }
+    }
+    WithLargestTextWidth(buttonTextWidthDpList) { textWidthDp: Dp ->
+        Column(
+            modifier = modifier.padding(16.dp).wrapContentSize(unbounded = true)
+        ) {
             props.buttons.forEach { button ->
                 Button(onClick = button.onClick) {
                     Text(text = button.text, modifier = Modifier.width(textWidthDp))
