@@ -27,8 +27,8 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
             modifier = modifier.padding(16.dp).wrapContentSize(unbounded = true)
         ) {
             props.buttons.forEach { button ->
-                Button(onClick = button.onClick) {
-                    Text(text = button.text, modifier = Modifier.width(textWidthDp))
+                Button(onClick = button.onClick) { // TODO: Determine text padding automatically
+                    Text(text = button.text, modifier = Modifier.width(textWidthDp + 16.dp))
                 }
             }
         }
