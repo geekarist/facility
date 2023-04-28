@@ -33,6 +33,7 @@ object NgrokIngress : Ingress {
             DesktopPlatform.logi { "Reading command output" }
             process.inputStream.bufferedReader().useLines { lineSeq ->
                 lineSeq.mapNotNull { line ->
+                    DesktopPlatform.logi { "Got line: $line" }
                     val jsonObj: Map<String, String?> = deserializeJson(line)
                     if (jsonObj["obj"] == "tunnels") {
                         Ingress.Tunnel(URL(jsonObj["url"]), jsonObj)
