@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -31,7 +32,7 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
         ) {
             props.buttons.forEach { button ->
                 Button(onClick = button.onClick) {
-                    Text(text = button.text, modifier = Modifier.width(textWidthDp))
+                    Text(text = button.text, modifier = Modifier.width(textWidthDp), textAlign = TextAlign.Center)
                 }
             }
         }
