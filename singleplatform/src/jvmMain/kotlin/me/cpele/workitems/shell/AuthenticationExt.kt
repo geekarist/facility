@@ -22,13 +22,16 @@ fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props
     val buttonTextWidthDpList by remember(props.buttons) {
         derivedStateOf { props.buttons.map { it.text } }
     }
-    WithLargestTextWidth(buttonTextWidthDpList) { textWidthDp: Dp ->
+    WithLargestTextWidth(
+        buttonTextWidthDpList,
+        dependeeContent = { Button({}) { Text(it) } }
+    ) { textWidthDp: Dp ->
         Column(
             modifier = modifier.padding(16.dp).wrapContentSize(unbounded = true)
         ) {
             props.buttons.forEach { button ->
                 Button(onClick = button.onClick) { // TODO: Determine text padding automatically
-                    Text(text = button.text, modifier = Modifier.width(textWidthDp + 16.dp))
+                    Text(text = button.text, modifier = Modifier.width(textWidthDp))
                 }
             }
         }
@@ -50,15 +53,22 @@ private enum class Slot {
 }
 
 /**
- * This composable determines the largest width of provided texts
+ * This composable determines the largest width of provided [texts]
  * and calls [dependentContent], giving it that width.
+ *
+ * Width is computed by rendering items of [texts] into [dependeeContent]
+ * (simple [Text] by default)].
  */
 @Composable
-fun WithLargestTextWidth(texts: List<String>, dependentContent: @Composable (Dp) -> Unit) {
+fun WithLargestTextWidth(
+    texts: List<String>,
+    dependeeContent: @Composable (String) -> Unit = { Text(it) },
+    dependentContent: @Composable (Dp) -> Unit
+) {
     SubcomposeLayout { constraints ->
         val textWidthDpList = subcompose(Slot.Dependencies) {
             texts.forEach {
-                Text(it)
+                dependeeContent(it)
             }
         }.map { it.measure(Constraints()).width.toDp() }
         val largestTextWidthDp = textWidthDpList.max()
