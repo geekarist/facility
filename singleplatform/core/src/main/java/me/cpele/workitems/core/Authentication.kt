@@ -52,9 +52,15 @@ object Authentication {
         slack: Slack
     ) = model.copy(
         step = Model.Step.ProviderInspection(provider = message.provider)
-    ) to effect { dispatch ->
-        slack.setUpLogin().collect { status ->
-            dispatch(Message.GotLoginStatus(status))
+    ) to if (message.provider is Model.Provider.Slack) {
+        effect { dispatch ->
+            slack.setUpLogin().collect { status ->
+                dispatch(Message.GotLoginStatus(status))
+            }
+        }
+    } else {
+        {
+            TODO("Sign in to other providers")
         }
     }
 
