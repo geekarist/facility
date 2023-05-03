@@ -91,9 +91,22 @@ object Authentication {
         Model.Provider.GitHub -> TODO()
     }
 
-    private fun handle(message: Message.GotAuthScopeStatus, model: Model, platform: Platform) = let {
-        when (message.status) {
-            is AuthStatus.Route.Init -> model
+    private fun handle(
+        message: Message.GotAuthScopeStatus,
+        model: Model,
+        platform: Platform
+    ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> {
+
+        val logEffect = effect<Message> {
+            platform.logi { "Got login status: $message" }
+        }
+        val exchangeEffect = { code: String ->
+            effect<Message> {
+                TODO("Exchange authorization code $code for access token")
+            }
+        }
+
+        return when (message.status) {
 
             is AuthStatus.Route.Started,
             is AuthStatus.Route.Exposed
@@ -101,15 +114,14 @@ object Authentication {
                 check(step is Model.Step.ProviderInspection)
                 check(step.provider is Model.Provider.Slack)
                 step.copy(step.provider.copy(message.status))
-            })
+            }) to logEffect
 
-            is AuthStatus.Success -> model
-            is AuthStatus.Failure -> model
+            is AuthStatus.Route.Init,
+            is AuthStatus.Failure -> model to logEffect
+
+            is AuthStatus.Success -> model to exchangeEffect(message.status.code)
         }
-    } to effect<Message> {
-        platform.logi { "Got login status: $message" }
     }
-
 
     fun view(model: Model, dispatch: (Message) -> Unit) =
         Props(
