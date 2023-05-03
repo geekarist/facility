@@ -3,7 +3,7 @@ package me.cpele.workitems.core
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.cpele.workitems.core.Slack.LoginStatus
+import me.cpele.workitems.core.Slack.AuthStatus
 import oolong.Dispatch
 import oolong.Effect
 import oolong.effect
@@ -21,7 +21,7 @@ object Authentication {
         when (message) {
             is Message.InspectProvider -> handle(message, model, slack)
             is Message.InitiateLogin -> handle(message, model, platform)
-            is Message.GotLoginStatus -> handle(message, model, platform)
+            is Message.GotAuthScopeStatus -> handle(message, model, platform)
             is Message.GotLoginResult -> handle(message, model, platform)
             Message.DismissProvider -> handleDismissProvider(model, slack)
         }
@@ -54,8 +54,8 @@ object Authentication {
         step = Model.Step.ProviderInspection(provider = message.provider)
     ) to if (message.provider is Model.Provider.Slack) {
         effect { dispatch ->
-            slack.setUpLogin().collect { status ->
-                dispatch(Message.GotLoginStatus(status))
+            slack.requestAuthScopes().collect { status ->
+                dispatch(Message.GotAuthScopeStatus(status))
             }
         }
     } else {
@@ -72,8 +72,8 @@ object Authentication {
         is Model.Provider.Slack -> effect<Message> { _ ->
             val clientId = "961165435895.5012210604118"
             val status = message.provider.status
-            check(status is LoginStatus.Route.Exposed) {
-                val simpleName = LoginStatus.Route.Exposed::class.simpleName
+            check(status is AuthStatus.Route.Exposed) {
+                val simpleName = AuthStatus.Route.Exposed::class.simpleName
                 "Status should be $simpleName but is $status"
             }
             val decodedRedirectUri = status.url.toExternalForm()
@@ -91,20 +91,20 @@ object Authentication {
         Model.Provider.GitHub -> TODO()
     }
 
-    private fun handle(message: Message.GotLoginStatus, model: Model, platform: Platform) = let {
+    private fun handle(message: Message.GotAuthScopeStatus, model: Model, platform: Platform) = let {
         when (message.status) {
-            is LoginStatus.Route.Init -> model
+            is AuthStatus.Route.Init -> model
 
-            is LoginStatus.Route.Started,
-            is LoginStatus.Route.Exposed
+            is AuthStatus.Route.Started,
+            is AuthStatus.Route.Exposed
             -> model.copy(step = model.step.let { step ->
                 check(step is Model.Step.ProviderInspection)
                 check(step.provider is Model.Provider.Slack)
                 step.copy(step.provider.copy(message.status))
             })
 
-            is LoginStatus.Success -> model
-            is LoginStatus.Failure -> model
+            is AuthStatus.Success -> model
+            is AuthStatus.Failure -> model
         }
     } to effect<Message> {
         platform.logi { "Got login status: $message" }
@@ -119,7 +119,7 @@ object Authentication {
                     val provider = inspectionStep.provider
                     val isButtonEnabled =
                         provider is Model.Provider.Slack &&
-                                provider.status is LoginStatus.Route.Exposed
+                                provider.status is AuthStatus.Route.Exposed
                     Props.Dialog.of(
                         button = Props.Button("Log in...") {
                             dispatch(Message.InitiateLogin(provider))
@@ -130,7 +130,7 @@ object Authentication {
                     )
                 },
             buttons = listOf(
-                Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack(LoginStatus.Route.Init))) },
+                Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack(AuthStatus.Route.Init))) },
                 Props.Button("Jira") { dispatch(Message.InspectProvider(Model.Provider.Jira)) },
                 Props.Button("GitHub") { dispatch(Message.InspectProvider(Model.Provider.GitHub)) },
             )
@@ -139,7 +139,7 @@ object Authentication {
     sealed interface Message {
         data class InspectProvider(val provider: Model.Provider) : Message
         data class InitiateLogin(val provider: Model.Provider) : Message
-        data class GotLoginStatus(val status: LoginStatus) : Message
+        data class GotAuthScopeStatus(val status: AuthStatus) : Message
         data class GotLoginResult(val tokenResult: Result<String>) : Message
         object DismissProvider : Message
     }
@@ -153,7 +153,7 @@ object Authentication {
         sealed class Provider(
             val description: String
         ) {
-            data class Slack(val status: LoginStatus) : Provider(
+            data class Slack(val status: AuthStatus) : Provider(
                 description = "Slack lets you use reactions to tag certain messages, turning them into work items",
             )
 

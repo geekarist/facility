@@ -5,21 +5,21 @@ import java.net.URL
 
 interface Slack {
     suspend fun fetchMessages(): Result<List<Message>>
-    suspend fun setUpLogin(): Flow<LoginStatus>
+    suspend fun requestAuthScopes(): Flow<AuthStatus>
     suspend fun tearDownLogin()
 
     interface Message {
         val text: String
     }
 
-    sealed interface LoginStatus {
-        sealed interface Route : LoginStatus {
+    sealed interface AuthStatus {
+        sealed interface Route : AuthStatus {
             object Init : Route
             object Started : Route
             data class Exposed(val url: URL) : Route
         }
 
-        data class Success(val token: String) : LoginStatus
-        data class Failure(val throwable: Throwable) : LoginStatus
+        data class Success(val code: String) : AuthStatus
+        data class Failure(val throwable: Throwable) : AuthStatus
     }
 }
