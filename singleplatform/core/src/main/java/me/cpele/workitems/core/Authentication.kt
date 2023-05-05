@@ -19,7 +19,7 @@ object Authentication {
 
     fun makeUpdate(slack: Slack, platform: Platform) = { message: Message, model: Model ->
         when (message) {
-            is Message.InspectProvider -> handle(message, model, slack)
+            is Message.InspectProvider -> handle(message, model, slack, platform)
             is Message.InitiateLogin -> handle(message, model, platform)
             is Message.GotAuthScopeStatus -> handle(message, model, platform)
             is Message.GotLoginResult -> handle(message, model, platform)
@@ -49,11 +49,13 @@ object Authentication {
     private fun handle(
         message: Message.InspectProvider,
         model: Model,
-        slack: Slack
+        slack: Slack,
+        platform: Platform
     ) = model.copy(
         step = Model.Step.ProviderInspection(provider = message.provider)
     ) to if (message.provider is Model.Provider.Slack) {
         effect { dispatch ->
+            platform.logi { "Got message: $message" }
             slack.requestAuthScopes().collect { status ->
                 dispatch(Message.GotAuthScopeStatus(status))
             }
