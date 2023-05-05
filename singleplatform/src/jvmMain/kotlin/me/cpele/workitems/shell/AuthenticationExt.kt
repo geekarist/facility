@@ -17,6 +17,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import me.cpele.workitems.core.Authentication
+import me.cpele.workitems.core.Platform
+import me.cpele.workitems.core.Slack
 
 @Composable
 fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props) {
@@ -82,8 +84,8 @@ fun WithLargestTextWidth(
     }
 }
 
-fun Authentication.app() = app(
+fun Authentication.makeApp(platform: Platform, slack: Slack) = app(
     init = ::init,
-    update = makeUpdate(DefaultSlack(DesktopPlatform, NgrokIngress), DesktopPlatform),
+    update = makeUpdate(slack, platform),
     view = ::view
 ) { Ui(props = it) }
