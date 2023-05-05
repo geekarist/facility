@@ -8,6 +8,9 @@ import me.cpele.workitems.core.Slack
 import java.net.URL
 
 class MockSlack(platform: Platform, ingress: Ingress) : Slack {
+
+    override val authUrlStr: String = "https://google.fr"
+
     override suspend fun fetchMessages(): Result<List<Slack.Message>> {
         TODO("Not yet implemented")
     }

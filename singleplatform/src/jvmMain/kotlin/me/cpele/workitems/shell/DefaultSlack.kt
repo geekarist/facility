@@ -24,6 +24,8 @@ import com.slack.api.Slack as RemoteSlack
 
 class DefaultSlack(private val platform: Platform, private val ingress: Ingress) : Slack {
 
+    override val authUrlStr: String = "https://slack.com/oauth/v2/authorize"
+
     private var server: ApplicationEngine? = null
     private var tunnel: Ingress.Tunnel? = null
 

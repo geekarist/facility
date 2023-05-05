@@ -4,6 +4,9 @@ import kotlinx.coroutines.flow.Flow
 import java.net.URL
 
 interface Slack {
+
+    val authUrlStr: String
+
     suspend fun fetchMessages(): Result<List<Message>>
     suspend fun requestAuthScopes(): Flow<AuthStatus>
     suspend fun tearDownLogin()

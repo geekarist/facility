@@ -20,7 +20,7 @@ object Authentication {
     fun makeUpdate(slack: Slack, platform: Platform) = { message: Message, model: Model ->
         when (message) {
             is Message.InspectProvider -> handle(message, model, slack, platform)
-            is Message.InitiateLogin -> handle(message, model, platform)
+            is Message.InitiateLogin -> handle(message, model, platform, slack)
             is Message.GotAuthScopeStatus -> handle(message, model, platform)
             is Message.GotLoginResult -> handle(message, model, platform)
             Message.DismissProvider -> handleDismissProvider(model, slack)
@@ -69,7 +69,8 @@ object Authentication {
     private fun handle(
         message: Message.InitiateLogin,
         model: Model,
-        platform: Platform
+        platform: Platform,
+        slack: Slack
     ) = model to when (message.provider) {
         is Model.Provider.Slack -> effect<Message> { _ ->
             val clientId = "961165435895.5012210604118"
@@ -83,7 +84,7 @@ object Authentication {
                 val charset = Charset.defaultCharset().name()
                 URLEncoder.encode(decodedRedirectUri, charset)
             }
-            val authUrl = "https://slack.com/oauth/v2/authorize"
+            val authUrl = slack.authUrlStr
             val scope = "incoming-webhook,commands"
             val url = "$authUrl?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri"
             platform.openUri(url = url)
