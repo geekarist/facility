@@ -5,18 +5,15 @@ import io.ktor.server.application.*
 import io.ktor.server.engine.*
 import io.ktor.server.logging.*
 import io.ktor.server.netty.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
-import io.ktor.util.pipeline.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
-import kotlinx.html.body
-import kotlinx.html.html
-import kotlinx.html.p
-import kotlinx.html.pre
+import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import me.cpele.workitems.core.Slack
 import java.net.URL
@@ -56,7 +53,7 @@ object MockSlack : Slack {
                 ContentType.Text.Html,
                 HttpStatusCode.OK
             ) {
-                provideSuccessfulAuthResponseText()
+                provideSuccessfulAuthResponseText(call.request)
             }
         }
     }
@@ -76,48 +73,58 @@ object MockSlack : Slack {
         }
     }
 
-    private fun PipelineContext<Unit, ApplicationCall>.provideSuccessfulAuthResponseText() =
-        buildString {
-            appendHTML().html {
-                body {
-                    p {
-                        +"Got this request:"
-                        pre {
-                            +call.request.toLogString()
-                        }
-                    }
-                    p {
-                        +"With headers:"
-                        pre {
-                            +"${call.request.headers.toMap()}"
-                        }
-                    }
-                    p {
-                        +"With parameters:"
-                        pre {
-                            +"${call.request.queryParameters.toMap()}"
-                        }
-                    }
-                }
-            }
-        }
-
-    private fun provideSuccessfulCodeResponseText(code: String) =
-        buildString {
-            appendHTML().html {
-                body {
-                    p {
-                        +"Got code:"
-                    }
-                    pre {
-                        +code
-                    }
-                }
-            }
-        }
 
     override suspend fun tearDownLogin() {
         server?.stop()
         server = null
     }
 }
+
+private fun provideSuccessfulCodeResponseText(code: String) =
+    buildString {
+        appendHTML().html {
+            body {
+                p {
+                    +"Got code:"
+                }
+                pre {
+                    +code
+                }
+            }
+        }
+    }
+
+private fun provideSuccessfulAuthResponseText(request: ApplicationRequest) =
+    buildString {
+        appendHTML().html {
+            body {
+                style = "margin: 16px"
+                p {
+                    +"Got this request:"
+                    pre {
+                        +request.toLogString()
+                    }
+                }
+                p {
+                    +"With headers:"
+                }
+                ul {
+                    request.headers.toMap().forEach { header ->
+                        li {
+                            +"${header.key}: ${header.value.firstOrNull()}"
+                        }
+                    }
+                }
+                p {
+                    +"With parameters:"
+                    ul {
+                        request.queryParameters.toMap().forEach { param ->
+                            li {
+                                +"${param.key}: ${param.value.firstOrNull()}"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
