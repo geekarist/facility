@@ -3,9 +3,11 @@ package me.cpele.workitems.shell
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
+import io.ktor.server.logging.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.*
 import io.ktor.util.pipeline.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -81,7 +83,19 @@ object MockSlack : Slack {
                     p {
                         +"Got this request:"
                         pre {
-                            +"${call.request}"
+                            +call.request.toLogString()
+                        }
+                    }
+                    p {
+                        +"With headers:"
+                        pre {
+                            +"${call.request.headers.toMap()}"
+                        }
+                    }
+                    p {
+                        +"With parameters:"
+                        pre {
+                            +"${call.request.queryParameters.toMap()}"
                         }
                     }
                 }
