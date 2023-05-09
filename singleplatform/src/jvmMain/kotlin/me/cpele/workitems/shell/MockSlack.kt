@@ -6,6 +6,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.util.pipeline.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -15,13 +16,12 @@ import kotlinx.html.html
 import kotlinx.html.p
 import kotlinx.html.pre
 import kotlinx.html.stream.appendHTML
-import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
 import java.net.URL
 
-class MockSlack(platform: Platform, ingress: Ingress) : Slack {
+object MockSlack : Slack {
 
-    override val authUrlStr: String = "https://google.fr"
+    override val authUrlStr: String = "http://localhost:8080/fake-auth-url"
 
     var server: ApplicationEngine? = null
 
@@ -31,28 +31,16 @@ class MockSlack(platform: Platform, ingress: Ingress) : Slack {
 
     override suspend fun requestAuthScopes(): Flow<Slack.AuthStatus> = callbackFlow {
         send(Slack.AuthStatus.Route.Init)
-        val callbackRoutePath = "/fake-code-ack"
-        val serverHost = "localhost"
-        server = embeddedServer(Netty, host = serverHost, port = 8080) {
+        server = embeddedServer(Netty, host = "localhost", port = 8080) {
             routing {
-                get(callbackRoutePath) {
-                    call.parameters["code"]?.let { code ->
-                        call.respondText(ContentType.Text.Html, HttpStatusCode.OK) {
-                            provideSuccessHtml(code)
-                        }
-                    } ?: run {
-                        call.respondText(
-                            status = HttpStatusCode.BadRequest,
-                            text = "(Fake) Missing `code` parameter in callback request"
-                        )
-                    }
-                }
+                routingCodeAck("/fake-code-ack")
+                routingAuth("/fake-auth-url")
             }
         }
         server?.start()
         send(Slack.AuthStatus.Route.Started)
         server?.environment?.config?.let { serverConfig ->
-            val url = URL("http", serverHost, serverConfig.port, callbackRoutePath)
+            val url = URL("http", "localhost", serverConfig.port, "/fake-code-ack")
             send(Slack.AuthStatus.Route.Exposed(url))
         }
         awaitClose {
@@ -60,8 +48,48 @@ class MockSlack(platform: Platform, ingress: Ingress) : Slack {
         }
     }
 
-    private fun provideSuccessHtml(code: String): String {
-        val html = buildString {
+    private fun Routing.routingAuth(routePath: String) {
+        get(routePath) {
+            call.respondText(
+                ContentType.Text.Html,
+                HttpStatusCode.OK
+            ) {
+                provideSuccessfulAuthResponseText()
+            }
+        }
+    }
+
+    private fun Routing.routingCodeAck(callbackRoutePath: String) {
+        get(callbackRoutePath) {
+            call.parameters["code"]?.let { code ->
+                call.respondText(ContentType.Text.Html, HttpStatusCode.OK) {
+                    provideSuccessfulCodeResponseText(code)
+                }
+            } ?: run {
+                call.respondText(
+                    status = HttpStatusCode.BadRequest,
+                    text = "(Fake) Missing `code` parameter in callback request"
+                )
+            }
+        }
+    }
+
+    private fun PipelineContext<Unit, ApplicationCall>.provideSuccessfulAuthResponseText() =
+        buildString {
+            appendHTML().html {
+                body {
+                    p {
+                        +"Got this request:"
+                        pre {
+                            +"${call.request}"
+                        }
+                    }
+                }
+            }
+        }
+
+    private fun provideSuccessfulCodeResponseText(code: String) =
+        buildString {
             appendHTML().html {
                 body {
                     p {
@@ -73,8 +101,6 @@ class MockSlack(platform: Platform, ingress: Ingress) : Slack {
                 }
             }
         }
-        return html
-    }
 
     override suspend fun tearDownLogin() {
         server?.stop()

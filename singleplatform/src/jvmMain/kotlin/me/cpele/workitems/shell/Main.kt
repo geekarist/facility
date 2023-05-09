@@ -7,10 +7,7 @@ fun main(vararg args: String) =
         DesktopPlatform.logi { "Command launched with `--mock` argument ⇒ mocking Slack, Ingress effects" }
         Authentication.makeApp(
             DesktopPlatform,
-            MockSlack(
-                DesktopPlatform,
-                MockIngress
-            )
+            MockSlack
         )
     } else {
         DesktopPlatform.logi { "Command launched normally ⇒ default Slack, Ingress effects" }
