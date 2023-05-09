@@ -10,6 +10,11 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
+import kotlinx.html.body
+import kotlinx.html.html
+import kotlinx.html.p
+import kotlinx.html.pre
+import kotlinx.html.stream.appendHTML
 import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
 import java.net.URL
@@ -32,7 +37,9 @@ class MockSlack(platform: Platform, ingress: Ingress) : Slack {
             routing {
                 get(callbackRoutePath) {
                     call.parameters["code"]?.let { code ->
-                        call.respondText(status = HttpStatusCode.OK, text = "(Fake) Got code: $code")
+                        call.respondText(ContentType.Text.Html, HttpStatusCode.OK) {
+                            provideSuccessHtml(code)
+                        }
                     } ?: run {
                         call.respondText(
                             status = HttpStatusCode.BadRequest,
@@ -51,6 +58,22 @@ class MockSlack(platform: Platform, ingress: Ingress) : Slack {
         awaitClose {
             launch { tearDownLogin() }
         }
+    }
+
+    private fun provideSuccessHtml(code: String): String {
+        val html = buildString {
+            appendHTML().html {
+                body {
+                    p {
+                        +"Got code:"
+                    }
+                    pre {
+                        +code
+                    }
+                }
+            }
+        }
+        return html
     }
 
     override suspend fun tearDownLogin() {
