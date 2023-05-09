@@ -18,6 +18,7 @@ repositories {
     google()
     mavenCentral()
     maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+    maven("https://maven.pkg.jetbrains.space/public/p/kotlinx-html/maven")
 }
 
 kotlin {
@@ -34,6 +35,7 @@ kotlin {
                 implementation("io.ktor:ktor-server-core:2.2.3")
                 implementation("io.ktor:ktor-server-netty:2.2.3")
                 implementation("com.ngrok:ngrok-api-java:0.6.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-html:0.8.1")
             }
         }
 
@@ -42,6 +44,7 @@ kotlin {
             dependencies {
                 implementation(compose.desktop.currentOs)
                 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-html-jvm:0.8.1")
                 implementation("org.oolong-kt:oolong:2.1.1")
                 implementation("com.slack.api:slack-api-client:1.27.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
