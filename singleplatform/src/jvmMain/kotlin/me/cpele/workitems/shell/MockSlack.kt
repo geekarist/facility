@@ -99,6 +99,22 @@ private fun provideSuccessfulAuthResponseText(request: ApplicationRequest) =
         appendHTML().html {
             body {
                 style = "margin: 16px"
+                p { +"This is a mock of the Slack authentication service." }
+                val redirectUriParamName = "redirect_uri"
+                val redirectUri = request.queryParameters[redirectUriParamName]
+                if (redirectUri != null) {
+                    p {
+                        +"Click following link to get back to app: "
+                        a {
+                            href = "$redirectUri?code=fake-authorization-code"
+                            +href
+                        }
+                    }
+                } else {
+                    p {
+                        +"Wrong request. Please check $redirectUriParamName param."
+                    }
+                }
                 p {
                     +"Got this request:"
                     pre {
