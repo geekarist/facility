@@ -22,7 +22,7 @@ object MockSlack : Slack {
 
     override val authUrlStr: String = "http://localhost:8080/fake-auth-url"
 
-    var server: ApplicationEngine? = null
+    private var server: ApplicationEngine? = null
 
     override suspend fun fetchMessages(): Result<List<Slack.Message>> {
         TODO("Not yet implemented")
@@ -32,7 +32,9 @@ object MockSlack : Slack {
         send(Slack.AuthStatus.Route.Init)
         server = embeddedServer(Netty, host = "localhost", port = 8080) {
             routing {
-                routingCodeAck("/fake-code-ack")
+                routingCodeAck(callbackRoutePath = "/fake-code-ack",
+                    onCode = { send(Slack.AuthStatus.Success(it)) },
+                    onFailure = { send(Slack.AuthStatus.Failure(it)) })
                 routingAuth("/fake-auth-url")
             }
         }
@@ -58,17 +60,22 @@ object MockSlack : Slack {
         }
     }
 
-    private fun Routing.routingCodeAck(callbackRoutePath: String) {
+    private fun Routing.routingCodeAck(
+        onCode: suspend (String) -> Unit,
+        onFailure: suspend (Throwable) -> Unit,
+        callbackRoutePath: String
+    ) {
         get(callbackRoutePath) {
             call.parameters["code"]?.let { code ->
+                onCode(code)
                 call.respondText(ContentType.Text.Html, HttpStatusCode.OK) {
                     provideSuccessfulCodeResponseText(code)
                 }
             } ?: run {
-                call.respondText(
-                    status = HttpStatusCode.BadRequest,
-                    text = "(Fake) Missing `code` parameter in callback request"
-                )
+                val msg = "(Fake) Missing `code` parameter in callback request"
+                val failure = IllegalStateException(msg)
+                onFailure(failure)
+                call.respondText(status = HttpStatusCode.BadRequest, text = msg)
             }
         }
     }
