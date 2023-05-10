@@ -84,6 +84,7 @@ private fun provideSuccessfulCodeResponseText(code: String) =
     buildString {
         appendHTML().html {
             body {
+                style = "margin: 16px"
                 p {
                     +"Got code:"
                 }
