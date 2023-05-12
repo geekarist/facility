@@ -4,12 +4,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import oolong.Effect
+import me.cpele.workitems.core.Change
 import oolong.runtime
 
 fun <PropsT, ModelT, EventT> app(
-    init: () -> Pair<ModelT, Effect<EventT>>,
-    update: (EventT, ModelT) -> Pair<ModelT, Effect<EventT>>,
+    init: () -> Change<ModelT, EventT>,
+    update: (EventT, ModelT) -> Change<ModelT, EventT>,
     view: (ModelT, (EventT) -> Unit) -> PropsT,
     ui: @Composable (PropsT) -> Unit
 ) {

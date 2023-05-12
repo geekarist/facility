@@ -1,11 +1,8 @@
 package me.cpele.workitems.core
 
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.Slack.AuthStatus
-import oolong.Dispatch
-import oolong.Effect
 import oolong.effect
 import oolong.effect.none
 import java.net.URLEncoder
@@ -17,22 +14,25 @@ import java.nio.charset.Charset
  * - Authentication, inspection
  */
 object Account {
-    fun init(): Pair<Model, Effect<Message>> = Model.ProviderSelection to none()
+    fun init(): Change<Model, Message> = Model.ProviderSelection to none()
 
-    fun makeUpdate(slack: Slack, platform: Platform) = { message: Message, model: Model ->
-        when (message) {
-            is Message.InspectProvider -> handle(message, slack, platform)
-            is Message.InitiateLogin -> handle(message, model, platform, slack)
-            is Message.GotAuthScopeStatus -> handle(message, model, platform, slack)
-            is Message.GotLoginResult -> handle(message, model, platform)
-            Message.DismissProvider -> handleDismissProvider(slack)
-            is Message.GotAccessToken -> TODO()
+    fun makeUpdate(
+        slack: Slack, platform: Platform
+    ): (Message, Model) -> Change<Model, Message> =
+        { message: Message, model: Model ->
+            when (message) {
+                is Message.InspectProvider -> handle(message, slack, platform)
+                is Message.InitiateLogin -> handle(message, model, platform, slack)
+                is Message.GotAuthScopeStatus -> handle(message, model, platform, slack)
+                is Message.GotLoginResult -> handle(message, model, platform)
+                Message.DismissProvider -> handleDismissProvider(slack)
+                is Message.GotAccessToken -> TODO()
+            }
         }
-    }
 
     private fun handleDismissProvider(
         slack: Slack
-    ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> =
+    ): Change<Model, Message> =
         Model.ProviderSelection to effect {
             slack.tearDownLogin()
         }
@@ -41,7 +41,7 @@ object Account {
         message: Message.GotLoginResult,
         model: Model,
         platform: Platform
-    ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> =
+    ): Change<Model, Message> =
         model to effect {
             platform.logi { "Got login result: ${message.tokenResult}" }
         }
@@ -97,7 +97,7 @@ object Account {
         model: Model,
         platform: Platform,
         slack: Slack
-    ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> {
+    ): Change<Model, Message> {
 
         val logEffect = effect<Message> {
             platform.logi { "Got login status: $message" }
