@@ -14,48 +14,48 @@ import java.nio.charset.Charset
  * - Authentication, inspection
  */
 object Account {
-    fun init(): Change<Model, Message> = Model.ProviderSelection to none()
+    fun init(): Change<Model, Event> = Model.ProviderSelection to none()
 
     fun makeUpdate(
         slack: Slack, platform: Platform
-    ): (Message, Model) -> Change<Model, Message> =
-        { message: Message, model: Model ->
-            when (message) {
-                is Message.InspectProvider -> handle(message, slack, platform)
-                is Message.InitiateLogin -> handle(message, model, platform, slack)
-                is Message.GotAuthScopeStatus -> handle(message, model, platform, slack)
-                is Message.GotLoginResult -> handle(message, model, platform)
-                Message.DismissProvider -> handleDismissProvider(slack)
-                is Message.GotAccessToken -> TODO()
+    ): (Event, Model) -> Change<Model, Event> =
+        { event: Event, model: Model ->
+            when (event) {
+                is Event.InspectProvider -> handle(event, slack, platform)
+                is Event.InitiateLogin -> handle(event, model, platform, slack)
+                is Event.GotAuthScopeStatus -> handle(event, model, platform, slack)
+                is Event.GotLoginResult -> handle(event, model, platform)
+                Event.DismissProvider -> handleDismissProvider(slack)
+                is Event.GotAccessToken -> TODO()
             }
         }
 
     private fun handleDismissProvider(
         slack: Slack
-    ): Change<Model, Message> =
+    ): Change<Model, Event> =
         Model.ProviderSelection to effect {
             slack.tearDownLogin()
         }
 
     private fun handle(
-        message: Message.GotLoginResult,
+        event: Event.GotLoginResult,
         model: Model,
         platform: Platform
-    ): Change<Model, Message> =
+    ): Change<Model, Event> =
         model to effect {
-            platform.logi { "Got login result: ${message.tokenResult}" }
+            platform.logi { "Got login result: ${event.tokenResult}" }
         }
 
     private fun handle(
-        message: Message.InspectProvider,
+        event: Event.InspectProvider,
         slack: Slack,
         platform: Platform
-    ) = Model.ProviderInspection(provider = message.provider) to
-            if (message.provider is Model.Provider.Slack) {
+    ) = Model.ProviderInspection(provider = event.provider) to
+            if (event.provider is Model.Provider.Slack) {
                 effect { dispatch ->
-                    platform.logi { "Got message: $message" }
+                    platform.logi { "Got message: $event" }
                     slack.requestAuthScopes().collect { status ->
-                        dispatch(Message.GotAuthScopeStatus(status))
+                        dispatch(Event.GotAuthScopeStatus(status))
                     }
                 }
             } else {
@@ -65,14 +65,14 @@ object Account {
             }
 
     private fun handle(
-        message: Message.InitiateLogin,
+        event: Event.InitiateLogin,
         model: Model,
         platform: Platform,
         slack: Slack
-    ) = model to when (message.provider) {
-        is Model.Provider.Slack -> effect<Message> { _ ->
+    ) = model to when (event.provider) {
+        is Model.Provider.Slack -> effect<Event> { _ ->
             val clientId = "961165435895.5012210604118"
-            val status = message.provider.status
+            val status = event.provider.status
             check(status is AuthStatus.Route.Exposed) {
                 val simpleName = AuthStatus.Route.Exposed::class.simpleName
                 "Status should be $simpleName but is $status"
@@ -93,23 +93,23 @@ object Account {
     }
 
     private fun handle(
-        message: Message.GotAuthScopeStatus,
+        event: Event.GotAuthScopeStatus,
         model: Model,
         platform: Platform,
         slack: Slack
-    ): Change<Model, Message> {
+    ): Change<Model, Event> {
 
-        val logEffect = effect<Message> {
-            platform.logi { "Got login status: $message" }
+        val logEffect = effect<Event> {
+            platform.logi { "Got login status: $event" }
         }
         val exchangeEffect = { code: String ->
-            effect<Message> { dispatch ->
+            effect<Event> { dispatch ->
                 val accessToken = slack.exchangeCodeForToken(code)
-                dispatch(Message.GotAccessToken(accessToken))
+                dispatch(Event.GotAccessToken(accessToken))
             }
         }
 
-        return when (message.status) {
+        return when (event.status) {
 
             is AuthStatus.Route.Started,
             is AuthStatus.Route.Exposed
@@ -118,18 +118,18 @@ object Account {
                 it
             }.let { providerInspectionModel ->
                 check(providerInspectionModel.provider is Model.Provider.Slack)
-                val provider = providerInspectionModel.provider.copy(message.status)
+                val provider = providerInspectionModel.provider.copy(event.status)
                 providerInspectionModel.copy(provider = provider)
             } to logEffect
 
             is AuthStatus.Route.Init,
             is AuthStatus.Failure -> model to logEffect
 
-            is AuthStatus.Success -> model to exchangeEffect(message.status.code)
+            is AuthStatus.Success -> model to exchangeEffect(event.status.code)
         }
     }
 
-    fun view(model: Model, dispatch: (Message) -> Unit) =
+    fun view(model: Model, dispatch: (Event) -> Unit) =
         Props(
             dialog = model
                 .let { it as? Model.ProviderInspection }
@@ -140,27 +140,27 @@ object Account {
                                 provider.status is AuthStatus.Route.Exposed
                     Props.Dialog.of(
                         button = Props.Button("Log in...") {
-                            dispatch(Message.InitiateLogin(provider))
+                            dispatch(Event.InitiateLogin(provider))
                         },
                         isButtonEnabled = isButtonEnabled,
-                        onClose = { dispatch(Message.DismissProvider) },
+                        onClose = { dispatch(Event.DismissProvider) },
                         provider.description
                     )
                 },
             buttons = listOf(
-                Props.Button("Slack") { dispatch(Message.InspectProvider(Model.Provider.Slack(AuthStatus.Route.Init))) },
-                Props.Button("Jira") { dispatch(Message.InspectProvider(Model.Provider.Jira)) },
-                Props.Button("GitHub") { dispatch(Message.InspectProvider(Model.Provider.GitHub)) },
+                Props.Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthStatus.Route.Init))) },
+                Props.Button("Jira") { dispatch(Event.InspectProvider(Model.Provider.Jira)) },
+                Props.Button("GitHub") { dispatch(Event.InspectProvider(Model.Provider.GitHub)) },
             )
         )
 
-    sealed interface Message {
-        data class InspectProvider(val provider: Model.Provider) : Message
-        data class InitiateLogin(val provider: Model.Provider) : Message
-        data class GotAuthScopeStatus(val status: AuthStatus) : Message
-        data class GotLoginResult(val tokenResult: Result<String>) : Message
-        data class GotAccessToken(val accessToken: Result<String>) : Message
-        object DismissProvider : Message
+    sealed interface Event {
+        data class InspectProvider(val provider: Model.Provider) : Event
+        data class InitiateLogin(val provider: Model.Provider) : Event
+        data class GotAuthScopeStatus(val status: AuthStatus) : Event
+        data class GotLoginResult(val tokenResult: Result<String>) : Event
+        data class GotAccessToken(val accessToken: Result<String>) : Event
+        object DismissProvider : Event
     }
 
     sealed interface Model {
