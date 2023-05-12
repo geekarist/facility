@@ -97,7 +97,7 @@ object Account {
         model: Model,
         platform: Platform,
         slack: Slack
-    ): Pair<Any, suspend CoroutineScope.(Dispatch<Message>) -> Any?> {
+    ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> {
 
         val logEffect = effect<Message> {
             platform.logi { "Got login status: $message" }
