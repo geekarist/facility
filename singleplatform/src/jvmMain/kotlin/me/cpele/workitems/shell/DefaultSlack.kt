@@ -96,6 +96,11 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         emit(Slack.AuthStatus.Failure(IllegalStateException(throwable)))
     }
 
+    override suspend fun exchangeCodeForToken(code: String): Result<String> {
+        // See https://api.slack.com/authentication/oauth-v2#exchanging
+        TODO("Not implemented")
+    }
+
     private fun wrap(url: URL): URL {
         val authority = "aloe-vera.cpele.me"
         val file = "code-ack"

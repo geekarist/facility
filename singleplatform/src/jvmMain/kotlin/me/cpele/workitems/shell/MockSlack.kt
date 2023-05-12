@@ -80,6 +80,8 @@ object MockSlack : Slack {
         }
     }
 
+    override suspend fun exchangeCodeForToken(code: String) = Result.success("fake-access-token")
+
 
     override suspend fun tearDownLogin() {
         server?.stop()

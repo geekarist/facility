@@ -10,6 +10,7 @@ interface Slack {
     suspend fun fetchMessages(): Result<List<Message>>
     suspend fun requestAuthScopes(): Flow<AuthStatus>
     suspend fun tearDownLogin()
+    suspend fun exchangeCodeForToken(code: String): Result<String>
 
     interface Message {
         val text: String

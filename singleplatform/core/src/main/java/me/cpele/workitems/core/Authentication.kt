@@ -14,6 +14,7 @@ import java.nio.charset.Charset
 /**
  * This program implements the authentication process.
  */
+// TODO: Rename to `Account`
 object Authentication {
     fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ProviderSelection) to none()
 
@@ -21,9 +22,10 @@ object Authentication {
         when (message) {
             is Message.InspectProvider -> handle(message, model, slack, platform)
             is Message.InitiateLogin -> handle(message, model, platform, slack)
-            is Message.GotAuthScopeStatus -> handle(message, model, platform)
+            is Message.GotAuthScopeStatus -> handle(message, model, platform, slack)
             is Message.GotLoginResult -> handle(message, model, platform)
             Message.DismissProvider -> handleDismissProvider(model, slack)
+            is Message.GotAccessToken -> TODO()
         }
     }
 
@@ -97,15 +99,17 @@ object Authentication {
     private fun handle(
         message: Message.GotAuthScopeStatus,
         model: Model,
-        platform: Platform
+        platform: Platform,
+        slack: Slack
     ): Pair<Model, suspend CoroutineScope.(Dispatch<Message>) -> Any?> {
 
         val logEffect = effect<Message> {
             platform.logi { "Got login status: $message" }
         }
         val exchangeEffect = { code: String ->
-            effect<Message> {
-                TODO("Exchange authorization code $code for access token")
+            effect<Message> { dispatch ->
+                val accessToken = slack.exchangeCodeForToken(code)
+                dispatch(Message.GotAccessToken(accessToken))
             }
         }
 
@@ -156,6 +160,7 @@ object Authentication {
         data class InitiateLogin(val provider: Model.Provider) : Message
         data class GotAuthScopeStatus(val status: AuthStatus) : Message
         data class GotLoginResult(val tokenResult: Result<String>) : Message
+        data class GotAccessToken(val accessToken: Result<String>) : Message
         object DismissProvider : Message
     }
 
