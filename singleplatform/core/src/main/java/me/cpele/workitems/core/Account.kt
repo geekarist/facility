@@ -12,10 +12,11 @@ import java.net.URLEncoder
 import java.nio.charset.Charset
 
 /**
- * This program implements the authentication process.
+ * This program implements a user account and related functions, including:
+ * - Credentials, personal info
+ * - Authentication, inspection
  */
-// TODO: Rename to `Account`
-object Authentication {
+object Account {
     fun init(): Pair<Model, Effect<Message>> = Model(step = Model.Step.ProviderSelection) to none()
 
     fun makeUpdate(slack: Slack, platform: Platform) = { message: Message, model: Model ->

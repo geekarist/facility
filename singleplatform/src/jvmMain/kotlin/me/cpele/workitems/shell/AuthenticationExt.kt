@@ -16,12 +16,12 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import me.cpele.workitems.core.Authentication
+import me.cpele.workitems.core.Account
 import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
 
 @Composable
-fun Authentication.Ui(modifier: Modifier = Modifier, props: Authentication.Props) {
+fun Account.Ui(modifier: Modifier = Modifier, props: Account.Props) {
     val buttonTextList by remember(props.buttons) {
         derivedStateOf { props.buttons.map { it.text } }
     }
@@ -84,7 +84,7 @@ fun WithLargestTextWidth(
     }
 }
 
-fun Authentication.makeApp(platform: Platform, slack: Slack) = app(
+fun Account.makeApp(platform: Platform, slack: Slack) = app(
     init = ::init,
     update = makeUpdate(slack, platform),
     view = ::view
