@@ -9,11 +9,11 @@ import java.net.URLEncoder
 import java.nio.charset.Charset
 
 /**
- * This program implements a user account and related functions, including:
+ * This program implements user accounts and related functions, including:
  * - Credentials, personal info
  * - Authentication, inspection
  */
-object Account {
+object Accounts {
     fun init(): Change<Model, Event> = Model.ProviderSelection to none()
 
     fun makeUpdate(
