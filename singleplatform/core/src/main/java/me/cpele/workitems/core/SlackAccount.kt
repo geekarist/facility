@@ -1,7 +1,5 @@
 package me.cpele.workitems.core
 
-import me.cpele.workitems.core.SlackAccount.Model.Authorized
-import me.cpele.workitems.core.SlackAccount.Model.Invalid
 import oolong.effect.none
 
 object SlackAccount {
@@ -40,11 +38,6 @@ object SlackAccount {
 
     /**
      * This model represents a Slack user account.
-     *
-     * I can be in the following states:
-     * user info or authentication data
-     * - [Invalid]: Authentication failed at some point
-     * - [Authorized]: Authentication succeeded so the account has authentication data and user info
      */
     sealed interface Model {
         /** Authentication process wasn't even started */
