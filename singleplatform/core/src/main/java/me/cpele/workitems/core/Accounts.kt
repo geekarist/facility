@@ -2,7 +2,7 @@ package me.cpele.workitems.core
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import me.cpele.workitems.core.Slack.AuthStatus
+import me.cpele.workitems.core.Slack.AuthenticationStatus
 import oolong.effect
 import oolong.effect.none
 import java.net.URLEncoder
@@ -73,8 +73,8 @@ object Accounts {
         is Model.Provider.Slack -> effect<Event> { _ ->
             val clientId = "961165435895.5012210604118"
             val status = event.provider.status
-            check(status is AuthStatus.Route.Exposed) {
-                val simpleName = AuthStatus.Route.Exposed::class.simpleName
+            check(status is AuthenticationStatus.Route.Exposed) {
+                val simpleName = AuthenticationStatus.Route.Exposed::class.simpleName
                 "Status should be $simpleName but is $status"
             }
             val decodedRedirectUri = status.url.toExternalForm()
@@ -111,8 +111,8 @@ object Accounts {
 
         return when (event.status) {
 
-            is AuthStatus.Route.Started,
-            is AuthStatus.Route.Exposed
+            is AuthenticationStatus.Route.Started,
+            is AuthenticationStatus.Route.Exposed
             -> model.let {
                 check(it is Model.ProviderInspection)
                 it
@@ -122,10 +122,10 @@ object Accounts {
                 providerInspectionModel.copy(provider = provider)
             } to logEffect
 
-            is AuthStatus.Route.Init,
-            is AuthStatus.Failure -> model to logEffect
+            is AuthenticationStatus.Route.Init,
+            is AuthenticationStatus.Failure -> model to logEffect
 
-            is AuthStatus.Success -> model to exchangeEffect(event.status.code)
+            is AuthenticationStatus.Success -> model to exchangeEffect(event.status.code)
         }
     }
 
@@ -137,7 +137,7 @@ object Accounts {
                     val provider = inspectionStep.provider
                     val isButtonEnabled =
                         provider is Model.Provider.Slack &&
-                                provider.status is AuthStatus.Route.Exposed
+                                provider.status is AuthenticationStatus.Route.Exposed
                     Props.Dialog.of(
                         button = Props.Button("Log in...") {
                             dispatch(Event.InitiateLogin(provider))
@@ -148,7 +148,7 @@ object Accounts {
                     )
                 },
             buttons = listOf(
-                Props.Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthStatus.Route.Init))) },
+                Props.Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthenticationStatus.Route.Init))) },
                 Props.Button("Jira") { dispatch(Event.InspectProvider(Model.Provider.Jira)) },
                 Props.Button("GitHub") { dispatch(Event.InspectProvider(Model.Provider.GitHub)) },
             )
@@ -157,7 +157,7 @@ object Accounts {
     sealed interface Event {
         data class InspectProvider(val provider: Model.Provider) : Event
         data class InitiateLogin(val provider: Model.Provider) : Event
-        data class GotAuthScopeStatus(val status: AuthStatus) : Event
+        data class GotAuthScopeStatus(val status: AuthenticationStatus) : Event
         data class GotLoginResult(val tokenResult: Result<String>) : Event
         data class GotAccessToken(val accessToken: Result<String>) : Event
         object DismissProvider : Event
@@ -170,7 +170,7 @@ object Accounts {
         sealed class Provider(
             val description: String
         ) {
-            data class Slack(val status: AuthStatus) : Provider(
+            data class Slack(val status: AuthenticationStatus) : Provider(
                 description = "Slack lets you use reactions to tag certain messages, turning them into work items",
             )
 

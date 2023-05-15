@@ -46,7 +46,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         }
     }
 
-    override suspend fun requestAuthScopes(): Flow<Slack.AuthStatus> = callbackFlow {
+    override suspend fun requestAuthScopes(): Flow<Slack.AuthenticationStatus> = callbackFlow {
         server?.stop()
         server = embeddedServer(factory = Netty, port = 8080) {
             routing {
@@ -60,17 +60,17 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                         call.parameters["code"]
                             ?.let { code ->
                                 call.respondText(status = HttpStatusCode.OK, text = "Got code: $code")
-                                send(Slack.AuthStatus.Success(code))
+                                send(Slack.AuthenticationStatus.Success(code))
                             }
                             ?: run {
                                 val throwable = IllegalStateException("Called without a code")
                                 call.respondText(status = HttpStatusCode.BadRequest, text = throwable.toString())
-                                send(Slack.AuthStatus.Failure(throwable))
+                                send(Slack.AuthenticationStatus.Failure(throwable))
                             }
                     } catch (throwable: Throwable) {
                         val logString = call.request.toLogString()
                         val exception = IllegalStateException("Error processing request: $logString", throwable)
-                        val failure = Slack.AuthStatus.Failure(exception)
+                        val failure = Slack.AuthenticationStatus.Failure(exception)
                         call.respondText(status = HttpStatusCode.InternalServerError, text = exception.toString())
                         send(failure)
                     }
@@ -78,13 +78,13 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
             }
         }
         server?.start()
-        send(Slack.AuthStatus.Route.Started)
+        send(Slack.AuthenticationStatus.Route.Started)
         ingress.open("http", "8080") { serverTunnel ->
             launch {
                 val url = URL(serverTunnel.url, "/code-ack?tunnel=${serverTunnel.url.host}")
                 platform.logi { "Server tunnel opened at URL: $url" }
                 val staticUrl = wrap(url)
-                send(Slack.AuthStatus.Route.Exposed(staticUrl))
+                send(Slack.AuthenticationStatus.Route.Exposed(staticUrl))
                 tunnel = serverTunnel
             }
         }
@@ -93,7 +93,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
             ingress.close(tunnel)
         }
     }.catch { throwable ->
-        emit(Slack.AuthStatus.Failure(IllegalStateException(throwable)))
+        emit(Slack.AuthenticationStatus.Failure(IllegalStateException(throwable)))
     }
 
     override suspend fun exchangeCodeForToken(code: String): Result<String> {

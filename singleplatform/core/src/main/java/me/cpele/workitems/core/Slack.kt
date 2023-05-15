@@ -8,7 +8,7 @@ interface Slack {
     val authUrlStr: String
 
     suspend fun fetchMessages(): Result<List<Message>>
-    suspend fun requestAuthScopes(): Flow<AuthStatus>
+    suspend fun requestAuthScopes(): Flow<AuthenticationStatus>
     suspend fun tearDownLogin()
     suspend fun exchangeCodeForToken(code: String): Result<String>
 
@@ -16,14 +16,14 @@ interface Slack {
         val text: String
     }
 
-    sealed interface AuthStatus {
-        sealed interface Route : AuthStatus {
+    sealed interface AuthenticationStatus {
+        sealed interface Route : AuthenticationStatus {
             object Init : Route
             object Started : Route
             data class Exposed(val url: URL) : Route
         }
 
-        data class Success(val code: String) : AuthStatus
-        data class Failure(val throwable: Throwable) : AuthStatus
+        data class Success(val code: String) : AuthenticationStatus
+        data class Failure(val throwable: Throwable) : AuthenticationStatus
     }
 }
