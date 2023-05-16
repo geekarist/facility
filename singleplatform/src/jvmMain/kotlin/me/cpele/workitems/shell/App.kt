@@ -15,7 +15,7 @@ fun <PropsT, ModelT, EventT> app(
 ) {
     application {
         var props: PropsT by rememberSaveable {
-            val initModel = init().first
+            val initModel = init().model
             val initProps = view(initModel) {}
             mutableStateOf(initProps)
         }
@@ -25,12 +25,21 @@ fun <PropsT, ModelT, EventT> app(
         }
         LaunchedEffect(Unit) {
             runtime(
-                init = init,
-                update = update,
+                init = {
+                    init().let { initialChange ->
+                        initialChange.model to initialChange.effect
+                    }
+                },
+                update = { event, model ->
+                    update(event, model).let { change ->
+                        change.model to change.effect
+                    }
+                },
                 view = view,
-                render = {
-                    it.also { props = it }
-                }, renderContext = coroutineScope.coroutineContext
+                render = { newProps ->
+                    newProps.also { props = it }
+                },
+                renderContext = coroutineScope.coroutineContext
             )
         }
     }

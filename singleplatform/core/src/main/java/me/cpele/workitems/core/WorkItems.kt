@@ -2,44 +2,42 @@ package me.cpele.workitems.core
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import oolong.Effect
 import oolong.effect
 import oolong.effect.none
 
 object WorkItems {
-    fun makeInit(slack: Slack): () -> Pair<Model, Effect<Event>> = {
-        Model(items = listOf(), status = Model.Status.Loading) to effect { dispatch ->
+    fun makeInit(slack: Slack): () -> Change<Model, Event> = {
+        Change(model = Model(
+            items = listOf(), status = Model.Status.Loading
+        ), effect = effect { dispatch ->
             dispatch(Event.SlackMessagesFetched(slack.fetchMessages()))
-        }
+        })
     }
 
-    fun makeUpdate(platform: Platform): (Event, Model) -> Pair<Model, Effect<Event>> = { event, model ->
+    fun makeUpdate(platform: Platform): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
             is Event.SlackMessagesFetched -> {
                 event.result.map { messages ->
                     val items = messages.map { message ->
                         Model.Item(
-                            title = "Unknown title",
-                            desc = message.text,
-                            status = Model.Item.Status.ToDo,
-                            url = "TODO"
+                            title = "Unknown title", desc = message.text, status = Model.Item.Status.ToDo, url = "TODO"
                         )
                     }
-                    model.copy(status = Model.Status.Success, items = items) to none<Event>()
+                    Change(model.copy(status = Model.Status.Success, items = items), none<Event>())
                 }.getOrElse { thrown: Throwable ->
-                    model.copy(
+                    Change(model.copy(
                         status = Model.Status.Failure
-                    ) to effect {
+                    ), effect {
                         platform.logw(thrown) { "Error fetching Slack messages" }
-                    }
+                    })
                 }
             }
 
-            is Event.ItemClicked -> model to effect { _ ->
+            is Event.ItemClicked -> Change(model, effect { _ ->
                 withContext(Dispatchers.IO) {
                     platform.openUri(event.itemModel.url)
                 }
-            }
+            })
         }
     }
 

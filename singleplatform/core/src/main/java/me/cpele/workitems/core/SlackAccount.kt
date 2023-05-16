@@ -1,21 +1,22 @@
 package me.cpele.workitems.core
 
+import oolong.Dispatch
 import oolong.effect.none
 
 object SlackAccount {
 
-    fun init() = Model.Blank to none<Event>()
+    fun init() = Change<Model, _>(Model.Blank, none<Event>())
 
     fun makeUpdate(
         slack: Slack,
         platform: Platform
-    ): (model: Model, event: Event) -> Change<Model, Event> = { model, event ->
+    ): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
             else -> Change(model, none())
         }
     }
 
-    fun view(model: Model) = when (model) {
+    fun view(model: Model, dispatch: Dispatch<Event>) = when (model) {
         is Model.Blank -> Props(
             // "Sign in..." button, enabled
         )

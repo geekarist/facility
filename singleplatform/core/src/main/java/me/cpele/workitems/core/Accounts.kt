@@ -143,8 +143,8 @@ object Accounts {
                     val isButtonEnabled =
                         provider is Model.Provider.Slack &&
                                 provider.status is AuthenticationStatus.Route.Exposed
-                    Props.Dialog.of(
-                        button = Props.Button("Log in...") {
+                    Dialog.of(
+                        button = Button("Log in...") {
                             dispatch(Event.InitiateLogin(provider))
                         },
                         isButtonEnabled = isButtonEnabled,
@@ -153,9 +153,9 @@ object Accounts {
                     )
                 },
             buttons = listOf(
-                Props.Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthenticationStatus.Route.Init))) },
-                Props.Button("Jira") { dispatch(Event.InspectProvider(Model.Provider.Jira)) },
-                Props.Button("GitHub") { dispatch(Event.InspectProvider(Model.Provider.GitHub)) },
+                Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthenticationStatus.Route.Init))) },
+                Button("Jira") { dispatch(Event.InspectProvider(Model.Provider.Jira)) },
+                Button("GitHub") { dispatch(Event.InspectProvider(Model.Provider.GitHub)) },
             )
         )
 
@@ -184,30 +184,5 @@ object Accounts {
         }
     }
 
-    data class Props(
-        val dialog: Dialog? = null, val buttons: List<Button>
-    ) {
-        data class Dialog(
-            val texts: Collection<String>,
-            val isButtonEnabled: Boolean,
-            val button: Button,
-            val onClose: () -> Unit
-        ) {
-            companion object
-        }
-
-        data class Button(val text: String, val onClick: () -> Unit)
-    }
-
-    private fun Props.Dialog.Companion.of(
-        button: Props.Button,
-        isButtonEnabled: Boolean,
-        onClose: () -> Unit,
-        vararg texts: String
-    ): Props.Dialog = Props.Dialog(
-        texts = texts.toList(),
-        isButtonEnabled = isButtonEnabled,
-        button = button,
-        onClose = onClose
-    )
+    data class Props(val dialog: Dialog? = null, val buttons: List<Button>)
 }

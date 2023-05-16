@@ -13,4 +13,27 @@ import oolong.Effect
  * @property model The new model
  * @property effect The effect to apply
  */
-data class Change<ModelT, EventT>(val model: ModelT, private val effect: Effect<EventT>)
+data class Change<ModelT, EventT>(val model: ModelT, val effect: Effect<EventT>)
+
+data class Button(val text: String, val onClick: () -> Unit)
+
+data class Dialog(
+    val texts: Collection<String>,
+    val isButtonEnabled: Boolean,
+    val button: Button,
+    val onClose: () -> Unit
+) {
+    companion object
+}
+
+fun Dialog.Companion.of(
+    button: Button,
+    isButtonEnabled: Boolean,
+    onClose: () -> Unit,
+    vararg texts: String
+): Dialog = Dialog(
+    texts = texts.toList(),
+    isButtonEnabled = isButtonEnabled,
+    button = button,
+    onClose = onClose
+)
