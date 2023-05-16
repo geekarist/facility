@@ -1,6 +1,7 @@
 package me.cpele.workitems.core
 
 import oolong.Dispatch
+import oolong.effect
 import oolong.effect.none
 
 object SlackAccount {
@@ -12,14 +13,17 @@ object SlackAccount {
         platform: Platform
     ): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
-            else -> Change(model, none())
+            Event.SignInRequested -> Change(model, effect {
+                platform.logi { "Got $event" }
+            })
         }
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>) = when (model) {
         is Model.Blank -> Props(
-            // "Sign in..." button, enabled
-            Button(text = "Sign into Slack", isEnabled = true) {}
+            Button(text = "Sign into Slack", isEnabled = true) {
+                dispatch(Event.SignInRequested)
+            }
         )
 
         Model.Invalid -> Props(
@@ -58,7 +62,8 @@ object SlackAccount {
         object Authorized : Model
     }
 
-    class Event {
+    sealed class Event {
+        object SignInRequested : Event()
     }
 
     data class Props(val button: Button)
