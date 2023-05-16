@@ -11,7 +11,7 @@ object SlackAccount {
         platform: Platform
     ): (model: Model, event: Event) -> Change<Model, Event> = { model, event ->
         when (event) {
-            else -> model to none()
+            else -> Change(model, none())
         }
     }
 
