@@ -15,6 +15,9 @@ object SlackAccount {
         when (event) {
             Event.SignInRequested -> Change(model, effect {
                 platform.logi { "Got $event" }
+                slack.requestAuthScopes().collect { status ->
+                    platform.logi { "Got status $status" }
+                }
             })
         }
     }
