@@ -14,7 +14,7 @@ import java.nio.charset.Charset
  * - Authentication, inspection
  */
 object Accounts {
-    fun init(): Change<Model, Event> = Model.ProviderSelection to none()
+    fun init(): Change<Model, Event> = Change(Model.ProviderSelection, none())
 
     fun makeUpdate(
         slack: Slack, platform: Platform
@@ -32,44 +32,46 @@ object Accounts {
 
     private fun handleDismissProvider(
         slack: Slack
-    ): Change<Model, Event> =
-        Model.ProviderSelection to effect {
+    ): Change<Model, Event> = Change(
+        Model.ProviderSelection,
+        effect {
             slack.tearDownLogin()
-        }
+        })
 
     private fun handle(
         event: Event.GotLoginResult,
         model: Model,
         platform: Platform
-    ): Change<Model, Event> =
-        model to effect {
-            platform.logi { "Got login result: ${event.tokenResult}" }
-        }
+    ): Change<Model, Event> = Change(model, effect {
+        platform.logi { "Got login result: ${event.tokenResult}" }
+    })
 
     private fun handle(
         event: Event.InspectProvider,
         slack: Slack,
         platform: Platform
-    ) = Model.ProviderInspection(provider = event.provider) to
-            if (event.provider is Model.Provider.Slack) {
-                effect { dispatch ->
-                    platform.logi { "Got message: $event" }
-                    slack.requestAuthScopes().collect { status ->
-                        dispatch(Event.GotAuthScopeStatus(status))
-                    }
-                }
-            } else {
-                {
-                    TODO("Sign in to other providers")
+    ): Change<Model, Event> = Change(
+        Model.ProviderInspection(provider = event.provider),
+        if (event.provider is Model.Provider.Slack) {
+            effect { dispatch ->
+                platform.logi { "Got message: $event" }
+                slack.requestAuthScopes().collect { status ->
+                    dispatch(Event.GotAuthScopeStatus(status))
                 }
             }
+        } else {
+            {
+                TODO("Sign in to other providers")
+            }
+        }
+    )
 
     private fun handle(
         event: Event.InitiateLogin,
         model: Model,
         platform: Platform,
         slack: Slack
-    ) = model to when (event.provider) {
+    ) = Change(model, when (event.provider) {
         is Model.Provider.Slack -> effect<Event> { _ ->
             val clientId = "961165435895.5012210604118"
             val status = event.provider.status
@@ -90,7 +92,7 @@ object Accounts {
 
         Model.Provider.Jira -> TODO()
         Model.Provider.GitHub -> TODO()
-    }
+    })
 
     private fun handle(
         event: Event.GotAuthScopeStatus,
@@ -113,19 +115,22 @@ object Accounts {
 
             is AuthenticationStatus.Route.Started,
             is AuthenticationStatus.Route.Exposed
-            -> model.let {
-                check(it is Model.ProviderInspection)
-                it
-            }.let { providerInspectionModel ->
-                check(providerInspectionModel.provider is Model.Provider.Slack)
-                val provider = providerInspectionModel.provider.copy(event.status)
-                providerInspectionModel.copy(provider = provider)
-            } to logEffect
+            -> Change(
+                model.let {
+                    check(it is Model.ProviderInspection)
+                    it
+                }.let { providerInspectionModel ->
+                    check(providerInspectionModel.provider is Model.Provider.Slack)
+                    val provider = providerInspectionModel.provider.copy(event.status)
+                    providerInspectionModel.copy(provider = provider)
+                },
+                logEffect
+            )
 
             is AuthenticationStatus.Route.Init,
-            is AuthenticationStatus.Failure -> model to logEffect
+            is AuthenticationStatus.Failure -> Change(model, logEffect)
 
-            is AuthenticationStatus.Success -> model to exchangeEffect(event.status.code)
+            is AuthenticationStatus.Success -> Change(model, exchangeEffect(event.status.code))
         }
     }
 
