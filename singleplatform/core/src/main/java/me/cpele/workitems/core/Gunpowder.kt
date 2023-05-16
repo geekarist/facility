@@ -9,5 +9,8 @@ import oolong.Effect
  *
  * @param ModelT The type of the new model
  * @param EventT The type of events dispatched by the [Effect]
+ *
+ * @property model The new model
+ * @property effect The effect to apply
  */
 data class Change<ModelT, EventT>(val model: ModelT, private val effect: Effect<EventT>)
