@@ -1,8 +1,12 @@
 package me.cpele.workitems.shell
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
 import me.cpele.workitems.core.SlackAccount
@@ -28,7 +32,15 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform) {
 
 @Composable
 private fun SlackAccount.Ui(props: SlackAccount.Props) {
-    Button(onClick = props.button.onClick, enabled = props.button.isEnabled) {
-        Text(text = props.button.text)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Button(
+            onClick = props.button.onClick,
+            enabled = props.button.isEnabled
+        ) {
+            Text(text = props.button.text)
+        }
     }
 }
