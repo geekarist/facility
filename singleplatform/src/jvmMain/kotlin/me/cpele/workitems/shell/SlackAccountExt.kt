@@ -1,5 +1,6 @@
 package me.cpele.workitems.shell
 
+import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import me.cpele.workitems.core.Platform
@@ -27,5 +28,7 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform) {
 
 @Composable
 private fun SlackAccount.Ui(props: SlackAccount.Props) {
-    Text("Yo")
+    Button(onClick = props.button.onClick, enabled = props.button.isEnabled) {
+        Text(text = props.button.text)
+    }
 }

@@ -15,7 +15,11 @@ import oolong.Effect
  */
 data class Change<ModelT, EventT>(val model: ModelT, val effect: Effect<EventT>)
 
-data class Button(val text: String, val onClick: () -> Unit)
+data class Button(
+    val text: String,
+    val isEnabled: Boolean = true,
+    val onClick: () -> Unit
+)
 
 data class Dialog(
     val texts: Collection<String>,
