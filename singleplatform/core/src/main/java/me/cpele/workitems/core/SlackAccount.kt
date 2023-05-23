@@ -23,27 +23,27 @@ object SlackAccount {
         }
     }
 
-    fun view(model: Model, dispatch: Dispatch<Event>) = when (model) {
-        is Model.Blank -> Props(Prop.Button(text = "Sign into Slack", isEnabled = true) {
-            dispatch(Event.SignInRequested)
-        })
+    fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
 
-        Model.Invalid -> Props(
-            // "Retry sign-in..." button, enabled
-            Prop.Button(text = "Retry Slack sign-in", isEnabled = true) {}
-            // Dialog with partial account data, authentication status detail
+        is Model.Blank -> Props.SignedOut(
+            title = Prop.Text(text = "Yo"),
+            desc = Prop.Text(text = "Yo"),
+            button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
+                dispatch(Event.SignInRequested)
+            })
+
+        Model.Invalid -> TODO()
+
+        Model.Pending -> Props.SigningIn(
+            title = Prop.Text("Welcome to Slaccount"),
+            status = Prop.Text("Waiting for sign-in..."),
+            progress = Prop.Progress(value = Math.random())
         )
 
-        Model.Pending -> Props(
-            // "Signing in" button, disabled
-            Prop.Button(text = "Signing in...", isEnabled = false) {}
-            // Dialog with partial account data, authentication status detail
-        )
-
-        Model.Authorized -> Props(
-            // "Sign out" button, enabled
-            Prop.Button(text = "Sign out from Slack", isEnabled = false) {}
-            // Dialog with account data
+        Model.Authorized -> Props.SignedIn(
+            image = Prop.Image("https://TODO"),
+            name = Prop.Text("Firstname lastname"),
+            availability = Prop.Text("Active")
         )
     }
 
@@ -68,5 +68,11 @@ object SlackAccount {
         object SignInRequested : Event()
     }
 
-    data class Props(val button: Prop.Button)
+    sealed interface Props {
+        data class SignedOut(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : Props
+
+        data class SigningIn(val title: Prop.Text, val status: Prop.Text, val progress: Prop.Progress) : Props
+
+        data class SignedIn(val image: Prop.Image, val name: Prop.Text, val availability: Prop.Text) : Props
+    }
 }

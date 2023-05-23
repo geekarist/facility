@@ -36,11 +36,18 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
-        Button(
-            onClick = props.button.onClick,
-            enabled = props.button.isEnabled
-        ) {
-            Text(text = props.button.text)
+        when (props) {
+
+            is SlackAccount.Props.SignedIn -> TODO()
+
+            is SlackAccount.Props.SignedOut -> Button(
+                onClick = props.button.onClick,
+                enabled = props.button.isEnabled
+            ) {
+                Text(text = props.button.text)
+            }
+
+            is SlackAccount.Props.SigningIn -> TODO()
         }
     }
 }

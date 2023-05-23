@@ -31,6 +31,18 @@ object Prop {
         companion object
     }
 
+    class Text(text: String) {
+
+    }
+
+    class Progress(value: Double) {
+
+    }
+
+    class Image(uri: String) {
+
+    }
+
     fun Dialog.Companion.of(
         button: Button,
         isButtonEnabled: Boolean,
