@@ -2,6 +2,7 @@ package me.cpele.workitems.core
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.cpele.workitems.core.Prop.of
 import me.cpele.workitems.core.Slack.AuthenticationStatus
 import oolong.effect
 import oolong.effect.none
@@ -143,8 +144,8 @@ object Accounts {
                     val isButtonEnabled =
                         provider is Model.Provider.Slack &&
                                 provider.status is AuthenticationStatus.Route.Exposed
-                    Dialog.of(
-                        button = Button("Log in...") {
+                    Prop.Dialog.of(
+                        button = Prop.Button("Log in...") {
                             dispatch(Event.InitiateLogin(provider))
                         },
                         isButtonEnabled = isButtonEnabled,
@@ -153,9 +154,9 @@ object Accounts {
                     )
                 },
             buttons = listOf(
-                Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthenticationStatus.Route.Init))) },
-                Button("Jira") { dispatch(Event.InspectProvider(Model.Provider.Jira)) },
-                Button("GitHub") { dispatch(Event.InspectProvider(Model.Provider.GitHub)) },
+                Prop.Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthenticationStatus.Route.Init))) },
+                Prop.Button("Jira") { dispatch(Event.InspectProvider(Model.Provider.Jira)) },
+                Prop.Button("GitHub") { dispatch(Event.InspectProvider(Model.Provider.GitHub)) },
             )
         )
 
@@ -184,5 +185,5 @@ object Accounts {
         }
     }
 
-    data class Props(val dialog: Dialog? = null, val buttons: List<Button>)
+    data class Props(val dialog: Prop.Dialog? = null, val buttons: List<Prop.Button>)
 }

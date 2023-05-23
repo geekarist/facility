@@ -24,25 +24,25 @@ object SlackAccount {
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>) = when (model) {
-        is Model.Blank -> Props(Button(text = "Sign into Slack", isEnabled = true) {
+        is Model.Blank -> Props(Prop.Button(text = "Sign into Slack", isEnabled = true) {
             dispatch(Event.SignInRequested)
         })
 
         Model.Invalid -> Props(
             // "Retry sign-in..." button, enabled
-            Button(text = "Retry Slack sign-in", isEnabled = true) {}
+            Prop.Button(text = "Retry Slack sign-in", isEnabled = true) {}
             // Dialog with partial account data, authentication status detail
         )
 
         Model.Pending -> Props(
             // "Signing in" button, disabled
-            Button(text = "Signing in...", isEnabled = false) {}
+            Prop.Button(text = "Signing in...", isEnabled = false) {}
             // Dialog with partial account data, authentication status detail
         )
 
         Model.Authorized -> Props(
             // "Sign out" button, enabled
-            Button(text = "Sign out from Slack", isEnabled = false) {}
+            Prop.Button(text = "Sign out from Slack", isEnabled = false) {}
             // Dialog with account data
         )
     }
@@ -68,5 +68,5 @@ object SlackAccount {
         object SignInRequested : Event()
     }
 
-    data class Props(val button: Button)
+    data class Props(val button: Prop.Button)
 }

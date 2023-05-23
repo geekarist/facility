@@ -15,29 +15,31 @@ import oolong.Effect
  */
 data class Change<ModelT, EventT>(val model: ModelT, val effect: Effect<EventT>)
 
-data class Button(
-    val text: String,
-    val isEnabled: Boolean = true,
-    val onClick: () -> Unit
-)
+object Prop {
+    data class Button(
+        val text: String,
+        val isEnabled: Boolean = true,
+        val onClick: () -> Unit
+    )
 
-data class Dialog(
-    val texts: Collection<String>,
-    val isButtonEnabled: Boolean,
-    val button: Button,
-    val onClose: () -> Unit
-) {
-    companion object
+    data class Dialog(
+        val texts: Collection<String>,
+        val isButtonEnabled: Boolean,
+        val button: Button,
+        val onClose: () -> Unit
+    ) {
+        companion object
+    }
+
+    fun Dialog.Companion.of(
+        button: Button,
+        isButtonEnabled: Boolean,
+        onClose: () -> Unit,
+        vararg texts: String
+    ): Dialog = Dialog(
+        texts = texts.toList(),
+        isButtonEnabled = isButtonEnabled,
+        button = button,
+        onClose = onClose
+    )
 }
-
-fun Dialog.Companion.of(
-    button: Button,
-    isButtonEnabled: Boolean,
-    onClose: () -> Unit,
-    vararg texts: String
-): Dialog = Dialog(
-    texts = texts.toList(),
-    isButtonEnabled = isButtonEnabled,
-    button = button,
-    onClose = onClose
-)
