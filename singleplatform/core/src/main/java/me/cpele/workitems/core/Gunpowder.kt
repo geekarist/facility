@@ -13,7 +13,11 @@ import oolong.Effect
  * @property model The new model
  * @property effect The effect to apply
  */
-data class Change<ModelT, EventT>(val model: ModelT, val effect: Effect<EventT>)
+data class Change<ModelT, EventT>(
+    val model: ModelT, val effect: Effect<EventT> = {
+        // No-op by default
+    }
+)
 
 object Prop {
     data class Button(
@@ -31,17 +35,11 @@ object Prop {
         companion object
     }
 
-    class Text(text: String) {
+    data class Text(val text: String)
 
-    }
+    data class Progress(val value: Float)
 
-    class Progress(value: Double) {
-
-    }
-
-    class Image(uri: String) {
-
-    }
+    data class Image(val uri: String)
 
     fun Dialog.Companion.of(
         button: Button,
