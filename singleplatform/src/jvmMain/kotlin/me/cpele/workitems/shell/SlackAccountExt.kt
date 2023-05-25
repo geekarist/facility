@@ -65,7 +65,9 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(text = props.title.text, style = MaterialTheme.typography.h4)
-                    Text(props.status.text)
+                    props.statuses.forEach {
+                        Text(it.text)
+                    }
                     CircularProgressIndicator()
                     Button(props.cancel.onClick) {
                         Text(text = props.cancel.text)

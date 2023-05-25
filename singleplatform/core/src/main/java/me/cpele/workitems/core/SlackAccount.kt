@@ -23,8 +23,9 @@ object SlackAccount {
                 })
 
             Event.SignInCancelRequested -> {
-                Change<Model, Event>(Model.Blank)
-                TODO("Stop server")
+                Change(Model.Blank) {
+                    slack.tearDownLogin()
+                }
             }
         }
     }
@@ -33,7 +34,7 @@ object SlackAccount {
 
         is Model.Blank -> Props.SignedOut(
             title = Prop.Text(text = "Welcome to Slaccount"),
-            desc = Prop.Text(text = "Please sign in with you Slack account to display your personal info"),
+            desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
             button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
                 dispatch(Event.SignInRequested)
             })
@@ -42,11 +43,12 @@ object SlackAccount {
 
         Model.Pending -> Props.SigningIn(
             title = Prop.Text("Welcome to Slaccount"),
-            status = Prop.Text("Waiting for sign-in..."),
             progress = Prop.Progress(value = Math.random().toFloat()),
             cancel = Prop.Button(text = "Cancel") {
                 dispatch(Event.SignInCancelRequested)
-            }
+            },
+            Prop.Text("We need your authorization to let Slack give us info about you."),
+            Prop.Text("Waiting for you sign into Slack through a web-browser window...")
         )
 
         Model.Authorized -> Props.SignedIn(
@@ -83,10 +85,20 @@ object SlackAccount {
 
         data class SigningIn(
             val title: Prop.Text,
-            val status: Prop.Text,
             val progress: Prop.Progress,
-            val cancel: Prop.Button
-        ) : Props
+            val cancel: Prop.Button,
+            val statuses: List<Prop.Text>
+        ) : Props {
+            companion object {
+                operator fun invoke(
+                    title: Prop.Text,
+                    progress: Prop.Progress,
+                    cancel: Prop.Button,
+                    vararg status: Prop.Text
+                ) = SigningIn(title, progress, cancel, status.asList())
+            }
+        }
+
 
         data class SignedIn(val image: Prop.Image, val name: Prop.Text, val availability: Prop.Text) : Props
     }
