@@ -44,36 +44,49 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
         ) {
             when (props) {
 
-                is SlackAccount.Props.SignedIn -> Text("☺")
-
-                is SlackAccount.Props.SignedOut -> Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(text = props.title.text, style = MaterialTheme.typography.h4)
-                    Text(props.desc.text)
-                    Button(
-                        onClick = props.button.onClick,
-                        enabled = props.button.isEnabled
-                    ) {
-                        Text(text = props.button.text)
-                    }
-                }
-
-                is SlackAccount.Props.SigningIn -> Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(text = props.title.text, style = MaterialTheme.typography.h4)
-                    props.statuses.forEach {
-                        Text(it.text)
-                    }
-                    CircularProgressIndicator()
-                    Button(props.cancel.onClick) {
-                        Text(text = props.cancel.text)
-                    }
-                }
+                is SlackAccount.Props.SignedIn -> SignedIn()
+                is SlackAccount.Props.SignedOut -> SignedOut(props)
+                is SlackAccount.Props.SigningIn -> SigningIn(props)
             }
+        }
+    }
+}
+
+@Composable
+private fun SignedIn() {
+    Text("☺")
+}
+
+@Composable
+private fun SigningIn(props: SlackAccount.Props.SigningIn) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(text = props.title.text, style = MaterialTheme.typography.h4)
+        props.statuses.forEach {
+            Text(it.text)
+        }
+        CircularProgressIndicator()
+        Button(props.cancel.onClick) {
+            Text(text = props.cancel.text)
+        }
+    }
+}
+
+@Composable
+private fun SignedOut(props: SlackAccount.Props.SignedOut) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(text = props.title.text, style = MaterialTheme.typography.h4)
+        Text(props.desc.text)
+        Button(
+            onClick = props.button.onClick,
+            enabled = props.button.isEnabled
+        ) {
+            Text(text = props.button.text)
         }
     }
 }
