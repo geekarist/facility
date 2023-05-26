@@ -15,16 +15,33 @@ object SlackAccount {
 
             Event.SignInRequested -> Change(
                 Model.Pending,
-                effect {
+                effect { dispatch ->
                     platform.logi { "Got $event" }
                     slack.requestAuthScopes().collect { status ->
                         platform.logi { "Got status $status" }
+                        dispatch(Event.GotSlackAuthScopeStatus(status))
                     }
                 })
 
             Event.SignInCancelRequested -> {
                 Change(Model.Blank) {
                     slack.tearDownLogin()
+                }
+            }
+
+            is Event.GotSlackAuthScopeStatus -> {
+                when (event.status) {
+                    is Slack.AuthenticationStatus.Failure -> Change(Model.Invalid) {
+                        slack.tearDownLogin()
+                    }
+
+                    is Slack.AuthenticationStatus.Route.Exposed,
+                    Slack.AuthenticationStatus.Route.Init,
+                    Slack.AuthenticationStatus.Route.Started -> Change(Model.Pending)
+
+                    is Slack.AuthenticationStatus.Success -> Change(Model.Authorized) {
+                        slack.tearDownLogin()
+                    }
                 }
             }
         }
@@ -76,6 +93,7 @@ object SlackAccount {
     }
 
     sealed class Event {
+        data class GotSlackAuthScopeStatus(val status: Slack.AuthenticationStatus) : Event()
         object SignInRequested : Event()
         object SignInCancelRequested : Event()
     }
