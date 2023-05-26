@@ -16,8 +16,8 @@ import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Slack
 import me.cpele.workitems.core.SlackAccount
 
-fun main(args: Array<String>) {
-    if (args.contains("--mock")) {
+fun SlackAccount.main(vararg args: String) { // TODO: SlackAccount.main(args)
+    if (args.contains("mock")) {
         SlackAccount.makeApp(MockSlack, DesktopPlatform)
     } else {
         SlackAccount.makeApp(DefaultSlack(DesktopPlatform, NgrokIngress), DesktopPlatform)

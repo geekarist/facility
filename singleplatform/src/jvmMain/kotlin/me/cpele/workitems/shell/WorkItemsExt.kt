@@ -9,7 +9,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -62,3 +62,4 @@ fun WorkItems.app() = app(
     view = WorkItems::view
 ) { WorkItems.Ui(it) }
 
+fun WorkItems.main(vararg args: String) = app()

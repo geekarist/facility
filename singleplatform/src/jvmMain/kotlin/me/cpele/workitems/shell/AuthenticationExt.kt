@@ -89,3 +89,8 @@ fun Accounts.makeApp(platform: Platform, slack: Slack) = app(
     update = makeUpdate(slack, platform),
     view = ::view
 ) { Ui(props = it) }
+
+fun Accounts.main(vararg args: String) = makeApp(
+    DesktopPlatform,
+    DefaultSlack(DesktopPlatform, NgrokIngress)
+)

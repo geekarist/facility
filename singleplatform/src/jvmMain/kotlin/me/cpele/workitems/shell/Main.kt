@@ -1,17 +1,24 @@
 package me.cpele.workitems.shell
 
 import me.cpele.workitems.core.Accounts
+import me.cpele.workitems.core.SlackAccount
+import me.cpele.workitems.core.WorkItems
 
-fun main(vararg args: String) = if (args.contains("--mock")) {
-    DesktopPlatform.logi { "Command launched with `--mock` argument ⇒ mocking Slack, Ingress effects" }
-    Accounts.makeApp(
-        DesktopPlatform, MockSlack
-    )
-} else {
-    DesktopPlatform.logi { "Command launched normally ⇒ default Slack, Ingress effects" }
-    Accounts.makeApp(
-        DesktopPlatform, DefaultSlack(
-            DesktopPlatform, NgrokIngress
-        )
-    )
-}
+const val MAIN_COMMAND_USAGE = "Usage: work-items <program-name> <program-command>"
+
+fun main(vararg args: String): Unit = args.firstOrNull()
+    ?.let { programArg ->
+        when (programArg) {
+            "slack-account" -> SlackAccount::main
+            "accounts" -> Accounts::main
+            "work-items" -> WorkItems::main
+            else -> {
+                { System.err.println(MAIN_COMMAND_USAGE) }
+            }
+        }
+    }?.let { programMainFun ->
+        val programArgs: Array<String> = args.drop(1).toTypedArray()
+        programMainFun to programArgs
+    }
+    ?.let { (programMainFun, args) -> programMainFun(args) }
+    ?: run { System.err.println(MAIN_COMMAND_USAGE) }
