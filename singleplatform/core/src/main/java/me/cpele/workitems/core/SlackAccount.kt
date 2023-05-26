@@ -65,7 +65,7 @@ object SlackAccount {
                 dispatch(Event.SignInCancelRequested)
             },
             Prop.Text("We need your authorization to let Slack give us info about you."),
-            Prop.Text("Waiting for you sign into Slack through a web-browser window...")
+            Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
         )
 
         Model.Authorized -> Props.SignedIn(
