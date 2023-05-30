@@ -39,7 +39,20 @@ object Prop {
 
     data class Progress(val value: Float)
 
-    data class Image(val uri: String)
+    data class Image(val buffer: ByteArray) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Image
+
+            return buffer.contentEquals(other.buffer)
+        }
+
+        override fun hashCode(): Int {
+            return buffer.contentHashCode()
+        }
+    }
 
     fun Dialog.Companion.of(
         button: Button,

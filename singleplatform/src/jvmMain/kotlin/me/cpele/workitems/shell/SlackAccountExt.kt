@@ -1,5 +1,6 @@
 package me.cpele.workitems.shell
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,11 +9,15 @@ import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.res.loadImageBitmap
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import me.cpele.workitems.core.Platform
+import me.cpele.workitems.core.Prop
 import me.cpele.workitems.core.Slack
 import me.cpele.workitems.core.SlackAccount
 
@@ -44,7 +49,7 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
         ) {
             when (props) {
 
-                is SlackAccount.Props.SignedIn -> SignedIn()
+                is SlackAccount.Props.SignedIn -> SignedIn(props)
                 is SlackAccount.Props.SignedOut -> SignedOut(props)
                 is SlackAccount.Props.SigningIn -> SigningIn(props)
             }
@@ -53,8 +58,23 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 }
 
 @Composable
-private fun SignedIn() {
-    Text("☺")
+private fun SignedIn(props: SlackAccount.Props.SignedIn) {
+    var bitmap: ImageBitmap? by remember { mutableStateOf(null) }
+    LaunchedEffect(props.image) {
+        bitmap = props.image.asBitmap()
+    }
+    bitmap?.let {
+        Image(bitmap = it, contentDescription = null)
+    } ?: run {
+        Image(painter = painterResource("classpath:"), contentDescription = null)
+    }
+}
+
+private fun Prop.Image.asBitmap(): ImageBitmap {
+    val bitmap = buffer.inputStream().use { stream ->
+        loadImageBitmap(stream)
+    }
+    return bitmap
 }
 
 @Composable
