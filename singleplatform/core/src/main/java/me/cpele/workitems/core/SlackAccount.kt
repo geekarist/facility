@@ -68,14 +68,11 @@ object SlackAccount {
             Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
         )
 
-        Model.Authorized -> {
-            Props.SignedIn(
-                image = Prop.Image(ByteArray(10)),
-                name = Prop.Text("Firstname lastname"),
-                availability = Prop.Text("Active")
-            )
-            TODO("Generate fake byte array")
-        }
+        Model.Authorized -> Props.SignedIn(
+            image = null,
+            name = Prop.Text("Firstname lastname"),
+            availability = Prop.Text("Active")
+        )
     }
 
     /**
@@ -121,7 +118,8 @@ object SlackAccount {
         }
 
         data class SignedIn(
-            val image: Prop.Image,
+            /** Account image. When absent, `null` */
+            val image: Prop.Image?,
             val name: Prop.Text,
             val availability: Prop.Text
         ) : Props

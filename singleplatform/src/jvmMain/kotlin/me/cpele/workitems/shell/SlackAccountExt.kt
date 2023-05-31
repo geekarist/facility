@@ -61,12 +61,14 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 private fun SignedIn(props: SlackAccount.Props.SignedIn) {
     var bitmap: ImageBitmap? by remember { mutableStateOf(null) }
     LaunchedEffect(props.image) {
-        bitmap = props.image.asBitmap()
+        bitmap = props.image?.asBitmap()
     }
     bitmap?.let {
         Image(bitmap = it, contentDescription = null)
     } ?: run {
-        Image(painter = painterResource("classpath:"), contentDescription = null)
+        val pkg = SlackAccount::class.java.`package`.name
+        val placeholder = "classpath:$pkg.placeholder.svg"
+        Image(painter = painterResource(placeholder), contentDescription = null)
     }
 }
 
