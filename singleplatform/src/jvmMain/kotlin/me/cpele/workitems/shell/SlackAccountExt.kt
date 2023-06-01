@@ -13,6 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toAwtImage
+import androidx.compose.ui.graphics.toPainter
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -59,12 +62,12 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 
 @Composable
 private fun SignedIn(props: SlackAccount.Props.SignedIn) {
-    var bitmap: ImageBitmap? by remember { mutableStateOf(null) }
+    var painter: Painter? by remember { mutableStateOf(null) }
     LaunchedEffect(props.image) {
-        bitmap = props.image?.asBitmap()
+        painter = props.image?.asBitmap()?.toAwtImage()?.toPainter()
     }
-    bitmap?.let {
-        Image(bitmap = it, contentDescription = null)
+    painter?.let {
+        Image(it, contentDescription = null)
     } ?: run {
         val pkg = SlackAccount::class.java.`package`.name
         val path = pkg.replace('.', '/')
