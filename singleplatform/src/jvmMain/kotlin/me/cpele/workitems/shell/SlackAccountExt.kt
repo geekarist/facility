@@ -67,7 +67,8 @@ private fun SignedIn(props: SlackAccount.Props.SignedIn) {
         Image(bitmap = it, contentDescription = null)
     } ?: run {
         val pkg = SlackAccount::class.java.`package`.name
-        val placeholder = "classpath:$pkg.placeholder.svg"
+        val path = pkg.replace('.', '/')
+        val placeholder = "$path/placeholder.svg"
         Image(painter = painterResource(placeholder), contentDescription = null)
     }
 }
