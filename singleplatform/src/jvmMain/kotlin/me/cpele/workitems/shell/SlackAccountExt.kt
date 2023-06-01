@@ -16,8 +16,11 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.graphics.toPainter
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.loadImageBitmap
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.loadSvgPainter
+import androidx.compose.ui.res.useResource
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import me.cpele.workitems.core.Platform
 import me.cpele.workitems.core.Prop
@@ -63,19 +66,22 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 @Composable
 private fun SignedIn(props: SlackAccount.Props.SignedIn) {
     var painter: Painter? by remember { mutableStateOf(null) }
-    LaunchedEffect(props.image) {
-        painter = painter(props) ?: placeholderPainter()
+    val density = LocalDensity.current
+    LaunchedEffect(props.image, density) {
+        painter = painter(props) ?: placeholderPainter(density)
     }
     painter?.let {
         Image(it, contentDescription = null)
     }
 }
 
-private fun placeholderPainter(): Painter {
+private fun placeholderPainter(density: Density): Painter {
     val pkg = SlackAccount::class.java.`package`.name
     val path = pkg.replace('.', '/')
     val placeholder = "$path/placeholder.svg"
-    return painterResource(placeholder)
+    return useResource(placeholder) { inputStream ->
+        loadSvgPainter(inputStream, density)
+    }
 }
 
 private fun painter(props: SlackAccount.Props.SignedIn) =
