@@ -64,19 +64,24 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 private fun SignedIn(props: SlackAccount.Props.SignedIn) {
     var painter: Painter? by remember { mutableStateOf(null) }
     LaunchedEffect(props.image) {
-        painter = props.image?.asBitmap()?.toAwtImage()?.toPainter()
+        painter = painter(props) ?: placeholderPainter()
     }
     painter?.let {
         Image(it, contentDescription = null)
-    } ?: run {
-        val pkg = SlackAccount::class.java.`package`.name
-        val path = pkg.replace('.', '/')
-        val placeholder = "$path/placeholder.svg"
-        Image(painter = painterResource(placeholder), contentDescription = null)
     }
 }
 
-private fun Prop.Image.asBitmap(): ImageBitmap {
+private fun placeholderPainter(): Painter {
+    val pkg = SlackAccount::class.java.`package`.name
+    val path = pkg.replace('.', '/')
+    val placeholder = "$path/placeholder.svg"
+    return painterResource(placeholder)
+}
+
+private fun painter(props: SlackAccount.Props.SignedIn) =
+    props.image?.loadBitmap()?.toAwtImage()?.toPainter()
+
+private fun Prop.Image.loadBitmap(): ImageBitmap {
     val bitmap = buffer.inputStream().use { stream ->
         loadImageBitmap(stream)
     }
