@@ -1,7 +1,6 @@
 package me.cpele.workitems.core
 
 import oolong.Dispatch
-import oolong.effect
 import oolong.effect.none
 
 object SlackAccount {
@@ -13,15 +12,13 @@ object SlackAccount {
     ): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
 
-            Event.Intent.SignIn -> Change(
-                Model.Pending,
-                effect { dispatch ->
-                    platform.logi { "Got $event" }
-                    slack.requestAuthScopes().collect { status ->
-                        platform.logi { "Got status $status" }
-                        dispatch(Event.Outcome.AuthScopeStatus(status))
-                    }
-                })
+            Event.Intent.SignIn -> Change(Model.Pending) { dispatch ->
+                platform.logi { "Got $event" }
+                slack.requestAuthScopes().collect { status ->
+                    platform.logi { "Got status $status" }
+                    dispatch(Event.Outcome.AuthScopeStatus(status))
+                }
+            }
 
             Event.Intent.SignInCancel -> {
                 Change(Model.Blank) {
