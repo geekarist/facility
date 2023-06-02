@@ -13,23 +13,23 @@ object SlackAccount {
     ): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
 
-            Event.SignInRequested -> Change(
+            Event.Intent.SignIn -> Change(
                 Model.Pending,
                 effect { dispatch ->
                     platform.logi { "Got $event" }
                     slack.requestAuthScopes().collect { status ->
                         platform.logi { "Got status $status" }
-                        dispatch(Event.GotSlackAuthScopeStatus(status))
+                        dispatch(Event.Outcome.AuthScopeStatus(status))
                     }
                 })
 
-            Event.SignInCancelRequested -> {
+            Event.Intent.SignInCancel -> {
                 Change(Model.Blank) {
                     slack.tearDownLogin()
                 }
             }
 
-            is Event.GotSlackAuthScopeStatus -> {
+            is Event.Outcome.AuthScopeStatus -> {
                 when (event.status) {
                     is Slack.AuthenticationStatus.Failure -> Change(Model.Invalid) {
                         slack.tearDownLogin()
@@ -44,6 +44,12 @@ object SlackAccount {
                     }
                 }
             }
+
+            Event.Intent.SignOut -> {
+                Change(model) {
+                    platform.logi { "TODO: Handle $event" }
+                }
+            }
         }
     }
 
@@ -53,7 +59,7 @@ object SlackAccount {
             title = Prop.Text(text = "Welcome to Slaccount"),
             desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
             button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
-                dispatch(Event.SignInRequested)
+                dispatch(Event.Intent.SignIn)
             })
 
         Model.Invalid -> TODO()
@@ -62,7 +68,7 @@ object SlackAccount {
             title = Prop.Text("Welcome to Slaccount"),
             progress = Prop.Progress(value = Math.random().toFloat()),
             cancel = Prop.Button(text = "Cancel") {
-                dispatch(Event.SignInCancelRequested)
+                dispatch(Event.Intent.SignInCancel)
             },
             Prop.Text("We need your permission to let Slack give us info about you."),
             Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
@@ -71,7 +77,8 @@ object SlackAccount {
         Model.Authorized -> Props.SignedIn(
             image = null,
             name = Prop.Text("Firstname lastname"),
-            availability = Prop.Text("Active")
+            availability = Prop.Text("Active"),
+            signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
         )
     }
 
@@ -92,10 +99,16 @@ object SlackAccount {
         object Authorized : Model
     }
 
-    sealed class Event {
-        data class GotSlackAuthScopeStatus(val status: Slack.AuthenticationStatus) : Event()
-        object SignInRequested : Event()
-        object SignInCancelRequested : Event()
+    sealed interface Event {
+        sealed interface Intent : Event {
+            object SignOut : Event
+            object SignIn : Event
+            object SignInCancel : Event
+        }
+
+        sealed interface Outcome : Event {
+            data class AuthScopeStatus(val status: Slack.AuthenticationStatus) : Event
+        }
     }
 
     sealed interface Props {
@@ -121,7 +134,8 @@ object SlackAccount {
             /** Account image. When absent, `null` */
             val image: Prop.Image?,
             val name: Prop.Text,
-            val availability: Prop.Text
+            val availability: Prop.Text,
+            val signOut: Prop.Button
         ) : Props
     }
 }

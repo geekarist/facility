@@ -1,10 +1,7 @@
 package me.cpele.workitems.shell
 
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
@@ -65,13 +62,22 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 
 @Composable
 private fun SignedIn(props: SlackAccount.Props.SignedIn) {
-    var painter: Painter? by remember { mutableStateOf(null) }
-    val density = LocalDensity.current
-    LaunchedEffect(props.image, density) {
-        painter = painter(props.image) ?: placeholderPainter(density)
-    }
-    painter?.let {
-        Image(it, contentDescription = null)
+    Column {
+        var painter: Painter? by remember { mutableStateOf(null) }
+        val density = LocalDensity.current
+        LaunchedEffect(props.image, density) {
+            painter = painter(props.image) ?: placeholderPainter(density)
+        }
+        painter?.let {
+            Image(it, contentDescription = null)
+            Spacer(Modifier.height(16.dp))
+        }
+        Text(props.name.text)
+        Spacer(Modifier.height(16.dp))
+        Text(props.availability.text)
+        Button(props.signOut.onClick) {
+            Text(props.signOut.text)
+        }
     }
 }
 
