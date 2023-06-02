@@ -2,6 +2,8 @@ package me.cpele.workitems.shell
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
@@ -62,22 +64,29 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 
 @Composable
 private fun SignedIn(props: SlackAccount.Props.SignedIn) {
-    Column {
+    val scrollState = rememberScrollState()
+    Column(
+        Modifier.verticalScroll(scrollState).padding(horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Spacer(Modifier.height(16.dp))
         var painter: Painter? by remember { mutableStateOf(null) }
         val density = LocalDensity.current
         LaunchedEffect(props.image, density) {
             painter = painter(props.image) ?: placeholderPainter(density)
         }
-        painter?.let {
-            Image(it, contentDescription = null)
-            Spacer(Modifier.height(16.dp))
+        painter?.let { actualPainter ->
+            Image(painter = actualPainter, contentDescription = null, modifier = Modifier.width(256.dp))
+            Spacer(Modifier.height(32.dp))
         }
-        Text(props.name.text)
+        Text(text = props.name.text, style = MaterialTheme.typography.h4)
         Spacer(Modifier.height(16.dp))
         Text(props.availability.text)
+        Spacer(Modifier.height(32.dp))
         Button(props.signOut.onClick) {
             Text(props.signOut.text)
         }
+        Spacer(Modifier.height(16.dp))
     }
 }
 
