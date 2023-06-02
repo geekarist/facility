@@ -35,7 +35,14 @@ object SlackAccount {
                         slack.tearDownLogin()
                     }
 
-                    is Slack.AuthenticationStatus.Route.Exposed,
+                    is Slack.AuthenticationStatus.Route.Exposed -> Change(Model.Pending) {
+                        platform.logi {
+                            "Callback server exposed. " +
+                                    "A fake authorization code can be sent through this URL: " +
+                                    "${event.status.url}?code=fake-auth-code"
+                        }
+                    }
+
                     Slack.AuthenticationStatus.Route.Init,
                     Slack.AuthenticationStatus.Route.Started -> Change(Model.Pending)
 
