@@ -68,7 +68,7 @@ private fun SignedIn(props: SlackAccount.Props.SignedIn) {
     var painter: Painter? by remember { mutableStateOf(null) }
     val density = LocalDensity.current
     LaunchedEffect(props.image, density) {
-        painter = painter(props) ?: placeholderPainter(density)
+        painter = painter(props.image) ?: placeholderPainter(density)
     }
     painter?.let {
         Image(it, contentDescription = null)
@@ -84,8 +84,8 @@ private fun placeholderPainter(density: Density): Painter {
     }
 }
 
-private fun painter(props: SlackAccount.Props.SignedIn) =
-    props.image?.loadBitmap()?.toAwtImage()?.toPainter()
+private fun painter(image: Prop.Image?) =
+    image?.loadBitmap()?.toAwtImage()?.toPainter()
 
 private fun Prop.Image.loadBitmap(): ImageBitmap {
     val bitmap = buffer.inputStream().use { stream ->
