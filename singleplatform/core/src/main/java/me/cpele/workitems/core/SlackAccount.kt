@@ -24,28 +24,7 @@ object SlackAccount {
                 slack.tearDownLogin()
             }
 
-            is Event.Outcome.AuthScopeStatus -> when (event.status) {
-                is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid) {
-                    slack.tearDownLogin()
-                }
-
-                is Slack.AuthenticationScopeStatus.Route.Exposed -> Change(Model.Pending) {
-                    platform.logi {
-                        "Callback server exposed. " +
-                                "A fake authorization code can be sent through this URL: " +
-                                "${event.status.url}?code=fake-auth-code"
-                    }
-                }
-
-                Slack.AuthenticationScopeStatus.Route.Init,
-                Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
-
-                is Slack.AuthenticationScopeStatus.Success -> Change(Model.Authorized) { dispatch ->
-                    val authorizationCode = event.status.code
-                    val tokenResult = slack.exchangeCodeForToken(authorizationCode)
-                    dispatch(Event.Outcome.AccessToken(tokenResult))
-                }
-            }
+            is Event.Outcome.AuthScopeStatus -> handleAuthScopeStatusOutcome(event, slack, platform)
 
             Event.Intent.SignOut -> Change(model) {
                 platform.logi { "TODO: Handle $event" }
@@ -54,6 +33,33 @@ object SlackAccount {
             is Event.Outcome.AccessToken -> Change(model) {
                 platform.logi { "\uD83D\uDE0C Got auth token: $event" }
             }
+        }
+    }
+
+    private fun handleAuthScopeStatusOutcome(
+        event: Event.Outcome.AuthScopeStatus,
+        slack: Slack,
+        platform: Platform
+    ): Change<Model, Event> = when (event.status) {
+        is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid) {
+            slack.tearDownLogin()
+        }
+
+        is Slack.AuthenticationScopeStatus.Route.Exposed -> Change(Model.Pending) {
+            platform.logi {
+                "Callback server exposed. " +
+                        "A fake authorization code can be sent through this URL: " +
+                        "${event.status.url}?code=fake-auth-code"
+            }
+        }
+
+        Slack.AuthenticationScopeStatus.Route.Init,
+        Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
+
+        is Slack.AuthenticationScopeStatus.Success -> Change(Model.Authorized) { dispatch ->
+            val authorizationCode = event.status.code
+            val tokenResult = slack.exchangeCodeForToken(authorizationCode)
+            dispatch(Event.Outcome.AccessToken(tokenResult))
         }
     }
 
