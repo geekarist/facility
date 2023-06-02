@@ -25,11 +25,11 @@ object SlackAccount {
             }
 
             is Event.Outcome.AuthScopeStatus -> when (event.status) {
-                is Slack.AuthenticationStatus.Failure -> Change(Model.Invalid) {
+                is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid) {
                     slack.tearDownLogin()
                 }
 
-                is Slack.AuthenticationStatus.Route.Exposed -> Change(Model.Pending) {
+                is Slack.AuthenticationScopeStatus.Route.Exposed -> Change(Model.Pending) {
                     platform.logi {
                         "Callback server exposed. " +
                                 "A fake authorization code can be sent through this URL: " +
@@ -37,16 +37,22 @@ object SlackAccount {
                     }
                 }
 
-                Slack.AuthenticationStatus.Route.Init,
-                Slack.AuthenticationStatus.Route.Started -> Change(Model.Pending)
+                Slack.AuthenticationScopeStatus.Route.Init,
+                Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
 
-                is Slack.AuthenticationStatus.Success -> Change(Model.Authorized) {
-                    slack.tearDownLogin()
+                is Slack.AuthenticationScopeStatus.Success -> Change(Model.Authorized) { dispatch ->
+                    val authorizationCode = event.status.code
+                    val tokenResult = slack.exchangeCodeForToken(authorizationCode)
+                    dispatch(Event.Outcome.AccessToken(tokenResult))
                 }
             }
 
             Event.Intent.SignOut -> Change(model) {
                 platform.logi { "TODO: Handle $event" }
+            }
+
+            is Event.Outcome.AccessToken -> Change(model) {
+                platform.logi { "\uD83D\uDE0C Got auth token: $event" }
             }
         }
     }
@@ -105,7 +111,8 @@ object SlackAccount {
         }
 
         sealed interface Outcome : Event {
-            data class AuthScopeStatus(val status: Slack.AuthenticationStatus) : Event
+            data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
+            data class AccessToken(val token: Result<String>) : Event
         }
     }
 

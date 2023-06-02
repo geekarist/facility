@@ -3,7 +3,7 @@ package me.cpele.workitems.core
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.Prop.of
-import me.cpele.workitems.core.Slack.AuthenticationStatus
+import me.cpele.workitems.core.Slack.AuthenticationScopeStatus
 import oolong.effect
 import oolong.effect.none
 import java.net.URLEncoder
@@ -76,8 +76,8 @@ object Accounts {
         is Model.Provider.Slack -> effect<Event> { _ ->
             val clientId = "961165435895.5012210604118"
             val status = event.provider.status
-            check(status is AuthenticationStatus.Route.Exposed) {
-                val simpleName = AuthenticationStatus.Route.Exposed::class.simpleName
+            check(status is AuthenticationScopeStatus.Route.Exposed) {
+                val simpleName = AuthenticationScopeStatus.Route.Exposed::class.simpleName
                 "Status should be $simpleName but is $status"
             }
             val decodedRedirectUri = status.url.toExternalForm()
@@ -114,8 +114,8 @@ object Accounts {
 
         return when (event.status) {
 
-            is AuthenticationStatus.Route.Started,
-            is AuthenticationStatus.Route.Exposed
+            is AuthenticationScopeStatus.Route.Started,
+            is AuthenticationScopeStatus.Route.Exposed
             -> Change(
                 model.let {
                     check(it is Model.ProviderInspection)
@@ -128,10 +128,10 @@ object Accounts {
                 logEffect
             )
 
-            is AuthenticationStatus.Route.Init,
-            is AuthenticationStatus.Failure -> Change(model, logEffect)
+            is AuthenticationScopeStatus.Route.Init,
+            is AuthenticationScopeStatus.Failure -> Change(model, logEffect)
 
-            is AuthenticationStatus.Success -> Change(model, exchangeEffect(event.status.code))
+            is AuthenticationScopeStatus.Success -> Change(model, exchangeEffect(event.status.code))
         }
     }
 
@@ -143,7 +143,7 @@ object Accounts {
                     val provider = inspectionStep.provider
                     val isButtonEnabled =
                         provider is Model.Provider.Slack &&
-                                provider.status is AuthenticationStatus.Route.Exposed
+                                provider.status is AuthenticationScopeStatus.Route.Exposed
                     Prop.Dialog.of(
                         button = Prop.Button("Log in...") {
                             dispatch(Event.InitiateLogin(provider))
@@ -154,7 +154,7 @@ object Accounts {
                     )
                 },
             buttons = listOf(
-                Prop.Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthenticationStatus.Route.Init))) },
+                Prop.Button("Slack") { dispatch(Event.InspectProvider(Model.Provider.Slack(AuthenticationScopeStatus.Route.Init))) },
                 Prop.Button("Jira") { dispatch(Event.InspectProvider(Model.Provider.Jira)) },
                 Prop.Button("GitHub") { dispatch(Event.InspectProvider(Model.Provider.GitHub)) },
             )
@@ -163,7 +163,7 @@ object Accounts {
     sealed interface Event {
         data class InspectProvider(val provider: Model.Provider) : Event
         data class InitiateLogin(val provider: Model.Provider) : Event
-        data class GotAuthScopeStatus(val status: AuthenticationStatus) : Event
+        data class GotAuthScopeStatus(val status: AuthenticationScopeStatus) : Event
         data class GotLoginResult(val tokenResult: Result<String>) : Event
         data class GotAccessToken(val accessToken: Result<String>) : Event
         object DismissProvider : Event
@@ -176,7 +176,7 @@ object Accounts {
         sealed class Provider(
             val description: String
         ) {
-            data class Slack(val status: AuthenticationStatus) : Provider(
+            data class Slack(val status: AuthenticationScopeStatus) : Provider(
                 description = "Slack lets you use reactions to tag certain messages, turning them into work items",
             )
 

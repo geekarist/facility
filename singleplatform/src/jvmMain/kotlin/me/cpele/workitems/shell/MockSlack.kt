@@ -28,21 +28,21 @@ object MockSlack : Slack {
         TODO("Not yet implemented")
     }
 
-    override suspend fun requestAuthScopes(): Flow<Slack.AuthenticationStatus> = callbackFlow {
-        send(Slack.AuthenticationStatus.Route.Init)
+    override suspend fun requestAuthScopes(): Flow<Slack.AuthenticationScopeStatus> = callbackFlow {
+        send(Slack.AuthenticationScopeStatus.Route.Init)
         server = embeddedServer(Netty, host = "localhost", port = 8080) {
             routing {
                 routingCodeAck(callbackRoutePath = "/fake-code-ack",
-                    onCode = { send(Slack.AuthenticationStatus.Success(it)) },
-                    onFailure = { send(Slack.AuthenticationStatus.Failure(it)) })
+                    onCode = { send(Slack.AuthenticationScopeStatus.Success(it)) },
+                    onFailure = { send(Slack.AuthenticationScopeStatus.Failure(it)) })
                 routingAuth("/fake-auth-url")
             }
         }
         server?.start()
-        send(Slack.AuthenticationStatus.Route.Started)
+        send(Slack.AuthenticationScopeStatus.Route.Started)
         server?.environment?.config?.let { serverConfig ->
             val url = URL("http", "localhost", serverConfig.port, "/fake-code-ack")
-            send(Slack.AuthenticationStatus.Route.Exposed(url))
+            send(Slack.AuthenticationScopeStatus.Route.Exposed(url))
         }
         awaitClose {
             launch { tearDownLogin() }
@@ -81,7 +81,6 @@ object MockSlack : Slack {
     }
 
     override suspend fun exchangeCodeForToken(code: String) = Result.success("fake-access-token")
-
 
     override suspend fun tearDownLogin() {
         server?.stop()
