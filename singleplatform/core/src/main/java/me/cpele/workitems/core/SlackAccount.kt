@@ -20,39 +20,33 @@ object SlackAccount {
                 }
             }
 
-            Event.Intent.SignInCancel -> {
-                Change(Model.Blank) {
+            Event.Intent.SignInCancel -> Change(Model.Blank) {
+                slack.tearDownLogin()
+            }
+
+            is Event.Outcome.AuthScopeStatus -> when (event.status) {
+                is Slack.AuthenticationStatus.Failure -> Change(Model.Invalid) {
+                    slack.tearDownLogin()
+                }
+
+                is Slack.AuthenticationStatus.Route.Exposed -> Change(Model.Pending) {
+                    platform.logi {
+                        "Callback server exposed. " +
+                                "A fake authorization code can be sent through this URL: " +
+                                "${event.status.url}?code=fake-auth-code"
+                    }
+                }
+
+                Slack.AuthenticationStatus.Route.Init,
+                Slack.AuthenticationStatus.Route.Started -> Change(Model.Pending)
+
+                is Slack.AuthenticationStatus.Success -> Change(Model.Authorized) {
                     slack.tearDownLogin()
                 }
             }
 
-            is Event.Outcome.AuthScopeStatus -> {
-                when (event.status) {
-                    is Slack.AuthenticationStatus.Failure -> Change(Model.Invalid) {
-                        slack.tearDownLogin()
-                    }
-
-                    is Slack.AuthenticationStatus.Route.Exposed -> Change(Model.Pending) {
-                        platform.logi {
-                            "Callback server exposed. " +
-                                    "A fake authorization code can be sent through this URL: " +
-                                    "${event.status.url}?code=fake-auth-code"
-                        }
-                    }
-
-                    Slack.AuthenticationStatus.Route.Init,
-                    Slack.AuthenticationStatus.Route.Started -> Change(Model.Pending)
-
-                    is Slack.AuthenticationStatus.Success -> Change(Model.Authorized) {
-                        slack.tearDownLogin()
-                    }
-                }
-            }
-
-            Event.Intent.SignOut -> {
-                Change(model) {
-                    platform.logi { "TODO: Handle $event" }
-                }
+            Event.Intent.SignOut -> Change(model) {
+                platform.logi { "TODO: Handle $event" }
             }
         }
     }
