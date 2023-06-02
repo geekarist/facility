@@ -11,30 +11,26 @@ object SlackAccount {
         slack: Slack, platform: Platform
     ): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
-
-            Event.Intent.SignIn -> Change(Model.Pending) { dispatch ->
-                platform.logi { "Got $event" }
-                slack.requestAuthScopes().collect { status ->
-                    platform.logi { "Got status $status" }
-                    dispatch(Event.Outcome.AuthScopeStatus(status))
-                }
-            }
-
-            Event.Intent.SignInCancel -> Change(Model.Blank) {
-                slack.tearDownLogin()
-            }
-
+            Event.Intent.SignIn -> handleSignInIntent(platform, event, slack)
+            Event.Intent.SignInCancel -> Change(Model.Blank) { slack.tearDownLogin() }
             is Event.Outcome.AuthScopeStatus -> handleAuthScopeStatusOutcome(event, slack, platform)
-
-            Event.Intent.SignOut -> Change(model) {
-                platform.logi { "TODO: Handle $event" }
-            }
-
-            is Event.Outcome.AccessToken -> Change(model) {
-                platform.logi { "\uD83D\uDE0C Got auth token: $event" }
-            }
+            Event.Intent.SignOut -> Change(model) { platform.logi { "TODO: Handle $event" } }
+            is Event.Outcome.AccessToken -> Change(model) { platform.logi { "\uD83D\uDE0C Got auth token: $event" } }
         }
     }
+
+    private fun handleSignInIntent(
+        platform: Platform,
+        event: Event,
+        slack: Slack
+    ): Change<Model, Event> =
+        Change(Model.Pending) { dispatch ->
+            platform.logi { "Got $event" }
+            slack.requestAuthScopes().collect { status ->
+                platform.logi { "Got status $status" }
+                dispatch(Event.Outcome.AuthScopeStatus(status))
+            }
+        }
 
     private fun handleAuthScopeStatusOutcome(
         event: Event.Outcome.AuthScopeStatus,
