@@ -11,31 +11,30 @@ object SlackAccount {
         slack: Slack, platform: Platform
     ): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
-            Event.Intent.SignIn -> handleSignInIntent(platform, event, slack)
+            is Event.Intent.SignIn -> handle(event, platform, slack)
+            is Event.Outcome.AuthScopeStatus -> handle(event, platform, slack)
             Event.Intent.SignInCancel -> Change(Model.Blank) { slack.tearDownLogin() }
-            is Event.Outcome.AuthScopeStatus -> handleAuthScopeStatusOutcome(event, slack, platform)
-            Event.Intent.SignOut -> Change(model) { platform.logi { "TODO: Handle $event" } }
             is Event.Outcome.AccessToken -> Change(model) { platform.logi { "\uD83D\uDE0C Got auth token: $event" } }
+            Event.Intent.SignOut -> Change(model) { platform.logi { "TODO: Handle $event" } }
         }
     }
 
-    private fun handleSignInIntent(
+    private fun handle(
+        event: Event.Intent.SignIn,
         platform: Platform,
-        event: Event,
         slack: Slack
-    ): Change<Model, Event> =
-        Change(Model.Pending) { dispatch ->
-            platform.logi { "Got $event" }
-            slack.requestAuthScopes().collect { status ->
-                platform.logi { "Got status $status" }
-                dispatch(Event.Outcome.AuthScopeStatus(status))
-            }
+    ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
+        platform.logi { "Got $event" }
+        slack.requestAuthScopes().collect { status ->
+            platform.logi { "Got status $status" }
+            dispatch(Event.Outcome.AuthScopeStatus(status))
         }
+    }
 
-    private fun handleAuthScopeStatusOutcome(
+    private fun handle(
         event: Event.Outcome.AuthScopeStatus,
-        slack: Slack,
-        platform: Platform
+        platform: Platform,
+        slack: Slack
     ): Change<Model, Event> = when (event.status) {
         is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid) {
             slack.tearDownLogin()
@@ -60,20 +59,20 @@ object SlackAccount {
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
-        is Model.Blank -> viewBlank(dispatch)
+        is Model.Blank -> view(model, dispatch)
         Model.Invalid -> TODO()
-        Model.Pending -> viewPending(dispatch)
-        Model.Authorized -> viewAuthorized(dispatch)
+        is Model.Pending -> view(model, dispatch)
+        is Model.Authorized -> view(model, dispatch)
     }
 
-    private fun viewAuthorized(dispatch: Dispatch<Event>) = Props.SignedIn(
+    private fun view(model: Model.Authorized, dispatch: Dispatch<Event>) = Props.SignedIn(
         image = null,
         name = Prop.Text("Firstname lastname"),
         availability = Prop.Text("Active"),
         signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
     )
 
-    private fun viewPending(dispatch: Dispatch<Event>) = Props.SigningIn(
+    private fun view(model: Model.Pending, dispatch: Dispatch<Event>) = Props.SigningIn(
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
@@ -83,7 +82,7 @@ object SlackAccount {
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
 
-    private fun viewBlank(dispatch: Dispatch<Event>) = Props.SignedOut(
+    private fun view(model: Model.Blank, dispatch: Dispatch<Event>) = Props.SignedOut(
         title = Prop.Text(text = "Welcome to Slaccount"),
         desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
         button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
