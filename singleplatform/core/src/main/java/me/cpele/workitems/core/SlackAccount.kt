@@ -60,33 +60,35 @@ object SlackAccount {
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
-
-        is Model.Blank -> Props.SignedOut(
-            title = Prop.Text(text = "Welcome to Slaccount"),
-            desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
-            button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
-                dispatch(Event.Intent.SignIn)
-            })
-
+        is Model.Blank -> viewBlank(dispatch)
         Model.Invalid -> TODO()
-
-        Model.Pending -> Props.SigningIn(
-            title = Prop.Text("Welcome to Slaccount"),
-            progress = Prop.Progress(value = Math.random().toFloat()),
-            cancel = Prop.Button(text = "Cancel") {
-                dispatch(Event.Intent.SignInCancel)
-            },
-            Prop.Text("We need your permission to let Slack give us info about you."),
-            Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
-        )
-
-        Model.Authorized -> Props.SignedIn(
-            image = null,
-            name = Prop.Text("Firstname lastname"),
-            availability = Prop.Text("Active"),
-            signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
-        )
+        Model.Pending -> viewPending(dispatch)
+        Model.Authorized -> viewAuthorized(dispatch)
     }
+
+    private fun viewAuthorized(dispatch: Dispatch<Event>) = Props.SignedIn(
+        image = null,
+        name = Prop.Text("Firstname lastname"),
+        availability = Prop.Text("Active"),
+        signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
+    )
+
+    private fun viewPending(dispatch: Dispatch<Event>) = Props.SigningIn(
+        title = Prop.Text("Welcome to Slaccount"),
+        progress = Prop.Progress(value = Math.random().toFloat()),
+        cancel = Prop.Button(text = "Cancel") {
+            dispatch(Event.Intent.SignInCancel)
+        },
+        Prop.Text("We need your permission to let Slack give us info about you."),
+        Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
+    )
+
+    private fun viewBlank(dispatch: Dispatch<Event>) = Props.SignedOut(
+        title = Prop.Text(text = "Welcome to Slaccount"),
+        desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
+        button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
+            dispatch(Event.Intent.SignIn)
+        })
 
     /**
      * This model represents a Slack user account.
