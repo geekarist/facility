@@ -7,41 +7,50 @@ object SlackAccount {
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
 
-    fun makeUpdate(
-        slack: Slack, platform: Platform
-    ): (Event, Model) -> Change<Model, Event> = { event, model ->
-        when (event) {
-            is Event.Intent.SignIn -> handle(event, platform, slack)
-            is Event.Outcome.AuthScopeStatus -> handle(event, platform, slack)
-            Event.Intent.SignInCancel -> Change(Model.Blank) { slack.tearDownLogin() }
-            is Event.Outcome.AccessToken -> Change(model) { platform.logi { "\uD83D\uDE0C Got auth token: $event" } }
-            Event.Intent.SignOut -> Change(model) { platform.logi { "TODO: Handle $event" } }
-        }
+    fun <Ctx> makeUpdate(
+        ctx: Ctx
+    ): (Event, Model) -> Change<Model, Event>
+            where Ctx : Slack,
+                  Ctx : Platform = { event, model ->
+        handle(ctx, event, model)
     }
 
-    private fun handle(
-        event: Event.Intent.SignIn,
-        platform: Platform,
-        slack: Slack
-    ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
-        platform.logi { "Got $event" }
-        slack.requestAuthScopes().collect { status ->
-            platform.logi { "Got status $status" }
+    private fun <Ctx> handle(
+        ctx: Ctx,
+        event: Event,
+        model: Model
+    ): Change<Model, Event> where Ctx : Platform, Ctx : Slack = when (event) {
+        is Event.Intent.SignIn -> handle(ctx, event)
+        is Event.Outcome.AuthScopeStatus -> handle(ctx, event)
+        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.tearDownLogin() }
+        is Event.Outcome.AccessToken -> Change(model) { ctx.logi { "\uD83D\uDE0C Got auth token: $event" } }
+        Event.Intent.SignOut -> Change(model) { ctx.logi { "TODO: Handle $event" } }
+    }
+
+    private fun <Ctx> handle(
+        ctx: Ctx,
+        event: Event.Intent.SignIn
+    ): Change<Model, Event>
+            where Ctx : Platform, Ctx : Slack = Change(Model.Pending) { dispatch ->
+        ctx.logi { "Got $event" }
+        ctx.requestAuthScopes().collect { status ->
+            ctx.logi { "Got status $status" }
             dispatch(Event.Outcome.AuthScopeStatus(status))
         }
     }
 
-    private fun handle(
-        event: Event.Outcome.AuthScopeStatus,
-        platform: Platform,
-        slack: Slack
-    ): Change<Model, Event> = when (event.status) {
+    private fun <Ctx> handle(
+        ctx: Ctx,
+        event: Event.Outcome.AuthScopeStatus
+    ): Change<Model, Event>
+            where Ctx : Platform, Ctx : Slack = when (event.status) {
+
         is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid) {
-            slack.tearDownLogin()
+            ctx.tearDownLogin()
         }
 
         is Slack.AuthenticationScopeStatus.Route.Exposed -> Change(Model.Pending) {
-            platform.logi {
+            ctx.logi {
                 "Callback server exposed. " +
                         "A fake authorization code can be sent through this URL: " +
                         "${event.status.url}?code=fake-auth-code"
@@ -53,7 +62,7 @@ object SlackAccount {
 
         is Slack.AuthenticationScopeStatus.Success -> Change(Model.Authorized) { dispatch ->
             val authorizationCode = event.status.code
-            val tokenResult = slack.exchangeCodeForToken(authorizationCode)
+            val tokenResult = ctx.exchangeCodeForToken(authorizationCode)
             dispatch(Event.Outcome.AccessToken(tokenResult))
         }
     }
