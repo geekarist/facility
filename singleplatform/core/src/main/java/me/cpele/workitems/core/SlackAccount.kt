@@ -91,6 +91,7 @@ object SlackAccount {
         image = null,
         name = Prop.Text("Firstname lastname"),
         availability = Prop.Text("Active"),
+        token = Prop.Text("Access token: ${model.accessToken}"),
         signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
     )
 
@@ -171,6 +172,7 @@ object SlackAccount {
             val image: Prop.Image?,
             val name: Prop.Text,
             val availability: Prop.Text,
+            val token: Prop.Text,
             val signOut: Prop.Button
         ) : Props
     }

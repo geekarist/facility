@@ -80,6 +80,8 @@ private fun SignedIn(props: SlackAccount.Props.SignedIn) {
             Text(text = props.name.text, style = MaterialTheme.typography.h4)
             Spacer(Modifier.height(16.dp))
             Text(props.availability.text)
+            Spacer(Modifier.height(16.dp))
+            Text(text = props.token.text, style = MaterialTheme.typography.body2)
             Spacer(Modifier.height(32.dp))
             Button(props.signOut.onClick) {
                 Text(props.signOut.text)
