@@ -23,9 +23,19 @@ object SlackAccount {
         is Event.Intent.SignIn -> handle(ctx, event)
         is Event.Outcome.AuthScopeStatus -> handle(ctx, event)
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.tearDownLogin() }
-        is Event.Outcome.AccessToken -> Change(model) { ctx.logi { "\uD83D\uDE0C Got auth token: $event" } }
+        is Event.Outcome.AccessToken -> handle(ctx, event)
         Event.Intent.SignOut -> Change(model) { ctx.logi { "TODO: Handle $event" } }
     }
+
+    private fun <Ctx> handle(
+        ctx: Ctx,
+        event: Event.Outcome.AccessToken
+    ): Change<Model, Event> where Ctx : Platform, Ctx : Slack =
+        Change(
+            event.token.fold(
+                onSuccess = { Model.Authorized(it) },
+                onFailure = { Model.Invalid(it) })
+        ) { ctx.logi { "\uD83D\uDE0C Got auth token: $event" } }
 
     private fun <Ctx> handle(
         ctx: Ctx,
@@ -45,7 +55,7 @@ object SlackAccount {
     ): Change<Model, Event>
             where Ctx : Platform, Ctx : Slack = when (event.status) {
 
-        is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid) {
+        is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid(event.status.throwable)) {
             ctx.tearDownLogin()
         }
 
@@ -60,7 +70,7 @@ object SlackAccount {
         Slack.AuthenticationScopeStatus.Route.Init,
         Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
 
-        is Slack.AuthenticationScopeStatus.Success -> Change(Model.Authorized) { dispatch ->
+        is Slack.AuthenticationScopeStatus.Success -> Change(Model.Pending) { dispatch ->
             val authorizationCode = event.status.code
             val tokenResult = ctx.exchangeCodeForToken(authorizationCode)
             dispatch(Event.Outcome.AccessToken(tokenResult))
@@ -69,19 +79,25 @@ object SlackAccount {
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
         is Model.Blank -> view(model, dispatch)
-        Model.Invalid -> TODO()
+        is Model.Invalid -> TODO()
         is Model.Pending -> view(model, dispatch)
         is Model.Authorized -> view(model, dispatch)
     }
 
-    private fun view(model: Model.Authorized, dispatch: Dispatch<Event>) = Props.SignedIn(
+    private fun view(
+        @Suppress("UNUSED_PARAMETER") model: Model.Authorized,
+        dispatch: Dispatch<Event>
+    ) = Props.SignedIn(
         image = null,
         name = Prop.Text("Firstname lastname"),
         availability = Prop.Text("Active"),
         signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
     )
 
-    private fun view(model: Model.Pending, dispatch: Dispatch<Event>) = Props.SigningIn(
+    private fun view(
+        @Suppress("UNUSED_PARAMETER") model: Model.Pending,
+        dispatch: Dispatch<Event>
+    ) = Props.SigningIn(
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
@@ -91,7 +107,10 @@ object SlackAccount {
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
 
-    private fun view(model: Model.Blank, dispatch: Dispatch<Event>) = Props.SignedOut(
+    private fun view(
+        @Suppress("UNUSED_PARAMETER") model: Model.Blank,
+        dispatch: Dispatch<Event>
+    ) = Props.SignedOut(
         title = Prop.Text(text = "Welcome to Slaccount"),
         desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
         button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
@@ -109,10 +128,10 @@ object SlackAccount {
         object Pending : Model
 
         /** Authentication failed at some point */
-        object Invalid : Model
+        data class Invalid(val throwable: Throwable) : Model
 
         /** Authentication was successful */
-        object Authorized : Model
+        data class Authorized(val accessToken: String) : Model
     }
 
     sealed interface Event {
