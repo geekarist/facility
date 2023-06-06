@@ -5,21 +5,21 @@ import oolong.effect.none
 
 object SlackAccount {
 
+    class Ctx(slack: Slack, platform: Platform) : Slack by slack, Platform by platform
+
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
 
-    fun <Ctx> makeUpdate(
+    fun makeUpdate(
         ctx: Ctx
-    ): (Event, Model) -> Change<Model, Event>
-            where Ctx : Slack,
-                  Ctx : Platform = { event, model ->
+    ): (Event, Model) -> Change<Model, Event> = { event, model ->
         handle(ctx, event, model)
     }
 
-    private fun <Ctx> handle(
+    private fun handle(
         ctx: Ctx,
         event: Event,
         model: Model
-    ): Change<Model, Event> where Ctx : Platform, Ctx : Slack = when (event) {
+    ): Change<Model, Event> = when (event) {
         is Event.Intent.SignIn -> handle(ctx, event)
         is Event.Outcome.AuthScopeStatus -> handle(ctx, event)
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.tearDownLogin() }
@@ -27,21 +27,19 @@ object SlackAccount {
         Event.Intent.SignOut -> Change(model) { ctx.logi { "TODO: Handle $event" } }
     }
 
-    private fun <Ctx> handle(
+    private fun handle(
         ctx: Ctx,
         event: Event.Outcome.AccessToken
-    ): Change<Model, Event> where Ctx : Platform, Ctx : Slack =
-        Change(
-            event.token.fold(
-                onSuccess = { Model.Authorized(it) },
-                onFailure = { Model.Invalid(it) })
-        ) { ctx.logi { "\uD83D\uDE0C Got auth token: $event" } }
+    ): Change<Model, Event> = Change(
+        event.token.fold(
+            onSuccess = { Model.Authorized(it) },
+            onFailure = { Model.Invalid(it) })
+    ) { ctx.logi { "\uD83D\uDE0C Got auth token: $event" } }
 
-    private fun <Ctx> handle(
+    private fun handle(
         ctx: Ctx,
         event: Event.Intent.SignIn
-    ): Change<Model, Event>
-            where Ctx : Platform, Ctx : Slack = Change(Model.Pending) { dispatch ->
+    ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
         ctx.logi { "Got $event" }
         ctx.requestAuthScopes().collect { status ->
             ctx.logi { "Got status $status" }
@@ -49,11 +47,10 @@ object SlackAccount {
         }
     }
 
-    private fun <Ctx> handle(
+    private fun handle(
         ctx: Ctx,
         event: Event.Outcome.AuthScopeStatus
-    ): Change<Model, Event>
-            where Ctx : Platform, Ctx : Slack = when (event.status) {
+    ): Change<Model, Event> = when (event.status) {
 
         is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid(event.status.throwable)) {
             ctx.tearDownLogin()
@@ -85,7 +82,7 @@ object SlackAccount {
     }
 
     private fun view(
-        @Suppress("UNUSED_PARAMETER") model: Model.Authorized,
+        model: Model.Authorized,
         dispatch: Dispatch<Event>
     ) = Props.SignedIn(
         image = null,

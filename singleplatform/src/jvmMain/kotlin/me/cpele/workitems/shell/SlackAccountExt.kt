@@ -34,7 +34,7 @@ fun SlackAccount.main(vararg args: String) { // TODO: SlackAccount.main(args)
 private fun SlackAccount.makeApp(slack: Slack, platform: Platform) {
     app(
         init = ::init,
-        update = makeUpdate(object : Slack by slack, Platform by platform {}),
+        update = makeUpdate(SlackAccount.Ctx(slack, platform)),
         view = ::view,
         ui = {
             Ui(it)
