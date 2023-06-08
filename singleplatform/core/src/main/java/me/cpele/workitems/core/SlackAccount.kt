@@ -2,10 +2,9 @@ package me.cpele.workitems.core
 
 import oolong.Dispatch
 import oolong.effect.none
-
 object SlackAccount {
 
-    class Ctx(slack: Slack, platform: Platform) : Slack by slack, Platform by platform
+    data class Ctx(val slack: Slack, val platform: Platform)
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
 
@@ -22,9 +21,9 @@ object SlackAccount {
     ): Change<Model, Event> = when (event) {
         is Event.Intent.SignIn -> handle(ctx, event)
         is Event.Outcome.AuthScopeStatus -> handle(ctx, event)
-        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.tearDownLogin() }
+        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
         is Event.Outcome.AccessToken -> handle(ctx, event)
-        Event.Intent.SignOut -> Change(model) { ctx.logi { "TODO: Handle $event" } }
+        Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
     }
 
     private fun handle(
@@ -34,15 +33,15 @@ object SlackAccount {
         event.token.fold(
             onSuccess = { Model.Authorized(it) },
             onFailure = { Model.Invalid(it) })
-    ) { ctx.logi { "\uD83D\uDE0C Got auth token: $event" } }
+    ) { ctx.platform.logi { "\uD83D\uDE0C Got auth token: $event" } }
 
     private fun handle(
         ctx: Ctx,
         event: Event.Intent.SignIn
     ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
-        ctx.logi { "Got $event" }
-        ctx.requestAuthScopes().collect { status ->
-            ctx.logi { "Got status $status" }
+        ctx.platform.logi { "Got $event" }
+        ctx.slack.requestAuthScopes().collect { status ->
+            ctx.platform.logi { "Got status $status" }
             dispatch(Event.Outcome.AuthScopeStatus(status))
         }
     }
@@ -53,11 +52,11 @@ object SlackAccount {
     ): Change<Model, Event> = when (event.status) {
 
         is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid(event.status.throwable)) {
-            ctx.tearDownLogin()
+            ctx.slack.tearDownLogin()
         }
 
         is Slack.AuthenticationScopeStatus.Route.Exposed -> Change(Model.Pending) {
-            ctx.logi {
+            ctx.platform.logi {
                 "Callback server exposed. " +
                         "A fake authorization code can be sent through this URL: " +
                         "${event.status.url}?code=fake-auth-code"
@@ -69,7 +68,7 @@ object SlackAccount {
 
         is Slack.AuthenticationScopeStatus.Success -> Change(Model.Pending) { dispatch ->
             val authorizationCode = event.status.code
-            val tokenResult = ctx.exchangeCodeForToken(authorizationCode)
+            val tokenResult = ctx.slack.exchangeCodeForToken(authorizationCode)
             dispatch(Event.Outcome.AccessToken(tokenResult))
         }
     }
@@ -174,3 +173,4 @@ object SlackAccount {
         ) : Props
     }
 }
+
