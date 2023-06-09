@@ -11,12 +11,18 @@ interface Slack {
     suspend fun requestAuthScopes(): Flow<AuthenticationScopeStatus>
     suspend fun tearDownLogin()
     suspend fun exchangeCodeForToken(code: String): Result<String>
+    suspend fun retrieveUser(accessToken: String): Result<UserInfo>
 
     interface Message {
         val text: String
     }
 
+    interface UserInfo {
+        companion object
+    }
+
     sealed interface AuthenticationScopeStatus {
+
         sealed interface Route : AuthenticationScopeStatus {
             object Init : Route
             object Started : Route

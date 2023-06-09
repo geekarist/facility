@@ -3,6 +3,7 @@ package me.cpele.workitems.shell
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
 import com.slack.api.methods.response.search.SearchMessagesResponse
+import com.slack.api.methods.response.users.UsersInfoResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -106,6 +107,38 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         val file = "code-ack"
         return URL("https://$authority/$file?tunnel=${url.host}")
     }
+
+    override suspend fun retrieveUser(accessToken: String) = Result.runCatching {
+        RemoteSlack.getInstance()
+    }.mapCatching { slackInstance ->
+        slackInstance.methods().usersInfo { builder ->
+            builder.token(accessToken)
+        }
+    }.mapCatching { response ->
+        Slack.UserInfo.of(response)
+    }
+
+    private fun Slack.UserInfo.Companion.of(response: UsersInfoResponse): Slack.UserInfo = if (response.isOk) {
+        UserInfo(
+            id = response.user?.id ?: error("Missing ID in user: ${response.user}"),
+            name = response.user?.name ?: error("Missing user name: ${response.user}"),
+            presence = response.user?.presence ?: error("Missing user presence: ${response.user}"),
+            realName = response.user?.realName ?: error("Missing user real name: ${response.user}"),
+            email = response.user?.profile?.email ?: error("Missing user email: ${response.user}"),
+            image = response.user?.profile?.imageOriginal ?: error("Missing user image: ${response.user}"),
+        )
+    } else {
+        error("Got error: ${response.error} in response: $response")
+    }
+
+    data class UserInfo(
+        val id: String,
+        val name: String,
+        val presence: String,
+        val realName: String,
+        val email: String,
+        val image: String
+    ) : Slack.UserInfo
 
     override suspend fun tearDownLogin() {
         server?.stop()
