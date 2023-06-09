@@ -17,7 +17,14 @@ interface Slack {
         val text: String
     }
 
-    interface UserInfo {
+    data class UserInfo(
+        val id: String,
+        val name: String,
+        val presence: String,
+        val realName: String,
+        val email: String,
+        val image: String
+    ) {
         companion object
     }
 

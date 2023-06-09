@@ -97,10 +97,20 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         emit(Slack.AuthenticationScopeStatus.Failure(IllegalStateException(throwable)))
     }
 
-    override suspend fun exchangeCodeForToken(code: String): Result<String> {
-        // See https://api.slack.com/authentication/oauth-v2#exchanging
-        TODO("Not implemented")
-    }
+    override suspend fun exchangeCodeForToken(code: String) =
+        Result.runCatching {
+            RemoteSlack.getInstance()
+        }.mapCatching { instance ->
+            instance.methods().oauthV2Access { builder ->
+                builder.code(code)
+            }
+        }.mapCatching { response ->
+            if (response.isOk) {
+                response.accessToken
+            } else {
+                error("Got error ${response.error} in response: $response")
+            }
+        }
 
     private fun wrap(url: URL): URL {
         val authority = "aloe-vera.cpele.me"
@@ -118,27 +128,19 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         Slack.UserInfo.of(response)
     }
 
-    private fun Slack.UserInfo.Companion.of(response: UsersInfoResponse): Slack.UserInfo = if (response.isOk) {
-        UserInfo(
-            id = response.user?.id ?: error("Missing ID in user: ${response.user}"),
-            name = response.user?.name ?: error("Missing user name: ${response.user}"),
-            presence = response.user?.presence ?: error("Missing user presence: ${response.user}"),
-            realName = response.user?.realName ?: error("Missing user real name: ${response.user}"),
-            email = response.user?.profile?.email ?: error("Missing user email: ${response.user}"),
-            image = response.user?.profile?.imageOriginal ?: error("Missing user image: ${response.user}"),
-        )
-    } else {
-        error("Got error: ${response.error} in response: $response")
-    }
-
-    data class UserInfo(
-        val id: String,
-        val name: String,
-        val presence: String,
-        val realName: String,
-        val email: String,
-        val image: String
-    ) : Slack.UserInfo
+    private fun Slack.UserInfo.Companion.of(response: UsersInfoResponse): Slack.UserInfo =
+        if (response.isOk) {
+            Slack.UserInfo(
+                id = response.user?.id ?: error("Missing ID in user: ${response.user}"),
+                name = response.user?.name ?: error("Missing user name: ${response.user}"),
+                presence = response.user?.presence ?: error("Missing user presence: ${response.user}"),
+                realName = response.user?.realName ?: error("Missing user real name: ${response.user}"),
+                email = response.user?.profile?.email ?: error("Missing user email: ${response.user}"),
+                image = response.user?.profile?.imageOriginal ?: error("Missing user image: ${response.user}"),
+            )
+        } else {
+            error("Got error: ${response.error} in response: $response")
+        }
 
     override suspend fun tearDownLogin() {
         server?.stop()

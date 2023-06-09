@@ -82,6 +82,17 @@ object MockSlack : Slack {
 
     override suspend fun exchangeCodeForToken(code: String) = Result.success("fake-access-token")
 
+    override suspend fun retrieveUser(accessToken: String): Result<Slack.UserInfo> = Result.success(
+        Slack.UserInfo(
+            id = "fake-id-$accessToken",
+            name = "fake-name-$accessToken",
+            presence = "fake-presence-$accessToken",
+            realName = "fake-real-name-$accessToken",
+            email = "fake-email-$accessToken",
+            image = "https://fake-image-$accessToken.png"
+        )
+    )
+
     override suspend fun tearDownLogin() {
         server?.stop()
         server = null
