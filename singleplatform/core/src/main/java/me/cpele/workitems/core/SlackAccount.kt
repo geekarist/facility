@@ -2,6 +2,7 @@ package me.cpele.workitems.core
 
 import oolong.Dispatch
 import oolong.effect.none
+
 object SlackAccount {
 
     data class Ctx(val slack: Slack, val platform: Platform)
@@ -24,16 +25,22 @@ object SlackAccount {
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
         is Event.Outcome.AccessToken -> handle(ctx, event)
         Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
+        is Event.Outcome.UserInfo -> TODO()
     }
 
     private fun handle(
         ctx: Ctx,
         event: Event.Outcome.AccessToken
-    ): Change<Model, Event> = Change(
-        event.token.fold(
-            onSuccess = { Model.Authorized(it) },
-            onFailure = { Model.Invalid(it) })
-    ) { ctx.platform.logi { "\uD83D\uDE0C Got auth token: $event" } }
+    ): Change<Model, Event> = event.token.fold(
+        onSuccess = { token ->
+            Change(Model.Authorized(token)) { dispatch ->
+                val result = ctx.slack.retrieveUser(token)
+                val outcome = Event.Outcome.UserInfo(result)
+                dispatch(outcome)
+            }
+        },
+        onFailure = { Change(Model.Invalid(it)) }
+    )
 
     private fun handle(
         ctx: Ctx,
@@ -78,6 +85,11 @@ object SlackAccount {
         is Model.Invalid -> TODO()
         is Model.Pending -> view(model, dispatch)
         is Model.Authorized -> view(model, dispatch)
+        is Model.Retrieved -> view(model, dispatch)
+    }
+
+    private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props {
+        TODO()
     }
 
     private fun view(
@@ -129,6 +141,9 @@ object SlackAccount {
 
         /** Authentication was successful */
         data class Authorized(val accessToken: String) : Model
+
+        /** Authentication retrieved */
+        object Retrieved : Model
     }
 
     sealed interface Event {
@@ -141,6 +156,7 @@ object SlackAccount {
         sealed interface Outcome : Event {
             data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
             data class AccessToken(val token: Result<String>) : Event
+            data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
         }
     }
 
