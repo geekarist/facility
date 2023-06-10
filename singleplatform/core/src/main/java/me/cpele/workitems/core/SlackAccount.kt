@@ -31,9 +31,29 @@ object SlackAccount {
     private fun handle(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
         check(model is Model.Authorized)
         val accessToken = model.accessToken
-        val authorizedToken = Model.Retrieved(accessToken)
+        val authorizedToken = Model.Retrieved.of(accessToken, event)
         return Change(authorizedToken)
     }
+
+    private fun Model.Retrieved.Companion.of(
+        accessToken: String,
+        event: Event.Outcome.UserInfo
+    ): Model = event.userInfoResult.fold(
+        onSuccess = { info ->
+            Model.Retrieved(
+                accessToken = accessToken,
+                id = info.id,
+                image = info.image,
+                name = info.name,
+                realName = info.realName,
+                email = info.email,
+                presence = info.presence
+            )
+        },
+        onFailure = { throwable ->
+            Model.Invalid(IllegalStateException("Expected valid user info", throwable))
+        }
+    )
 
     private fun handle(
         ctx: Ctx,
@@ -98,8 +118,8 @@ object SlackAccount {
     private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
         Props.SignedIn(
             image = null,
-            name = Prop.Text("Jean-Michel Toudoux"),
-            availability = Prop.Text("Active"),
+            name = Prop.Text(model.realName),
+            availability = Prop.Text(model.presence),
             token = Prop.Text("Access token: ${model.accessToken}"),
             signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
         )
@@ -159,7 +179,17 @@ object SlackAccount {
         data class Authorized(val accessToken: String) : Model
 
         /** Authentication retrieved */
-        data class Retrieved(val accessToken: String) : Model
+        data class Retrieved(
+            val accessToken: String,
+            val id: String,
+            val image: String,
+            val name: String,
+            val realName: String,
+            val email: String,
+            val presence: String
+        ) : Model {
+            companion object
+        }
     }
 
     /**
@@ -211,4 +241,5 @@ object SlackAccount {
         ) : Props
     }
 }
+
 
