@@ -24,8 +24,8 @@ object SlackAccount {
         is Event.Outcome.AuthScopeStatus -> handle(ctx, event)
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
         is Event.Outcome.AccessToken -> handle(ctx, event)
-        Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
         is Event.Outcome.UserInfo -> handle(ctx, model, event)
+        Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
     }
 
     private fun handle(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
@@ -162,13 +162,19 @@ object SlackAccount {
         data class Retrieved(val accessToken: String) : Model
     }
 
+    /**
+     * This type represents a piece of data sent from the outside world to this program,
+     * for example the press of a button from a user, or a response from a web-service */
     sealed interface Event {
+
+        /** User intent e.g. when user presses a button */
         sealed interface Intent : Event {
             object SignOut : Event
             object SignIn : Event
             object SignInCancel : Event
         }
 
+        /** Result of an external operation e.g. response of a web-service call */
         sealed interface Outcome : Event {
             data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
             data class AccessToken(val token: Result<String>) : Event
