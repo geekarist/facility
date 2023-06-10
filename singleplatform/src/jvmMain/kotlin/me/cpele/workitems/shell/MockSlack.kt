@@ -10,6 +10,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.launch
@@ -17,6 +18,7 @@ import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import me.cpele.workitems.core.Slack
 import java.net.URL
+import kotlin.time.Duration.Companion.seconds
 
 object MockSlack : Slack {
 
@@ -90,7 +92,9 @@ object MockSlack : Slack {
             realName = "fake-real-name-$accessToken",
             email = "fake-email-$accessToken",
             image = "https://fake-image-$accessToken.png"
-        )
+        ).also {
+            delay(10.seconds)
+        }
     )
 
     override suspend fun tearDownLogin() {

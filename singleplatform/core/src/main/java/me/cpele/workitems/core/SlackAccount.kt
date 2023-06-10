@@ -25,7 +25,14 @@ object SlackAccount {
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
         is Event.Outcome.AccessToken -> handle(ctx, event)
         Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
-        is Event.Outcome.UserInfo -> TODO()
+        is Event.Outcome.UserInfo -> handle(ctx, model, event)
+    }
+
+    private fun handle(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
+        check(model is Model.Authorized)
+        val accessToken = model.accessToken
+        val authorizedToken = Model.Retrieved(accessToken)
+        return Change(authorizedToken)
     }
 
     private fun handle(
@@ -88,20 +95,14 @@ object SlackAccount {
         is Model.Retrieved -> view(model, dispatch)
     }
 
-    private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props {
-        TODO()
-    }
-
-    private fun view(
-        model: Model.Authorized,
-        dispatch: Dispatch<Event>
-    ) = Props.SignedIn(
-        image = null,
-        name = Prop.Text("Firstname lastname"),
-        availability = Prop.Text("Active"),
-        token = Prop.Text("Access token: ${model.accessToken}"),
-        signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
-    )
+    private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
+        Props.SignedIn(
+            image = null,
+            name = Prop.Text("Jean-Michel Toudoux"),
+            availability = Prop.Text("Active"),
+            token = Prop.Text("Access token: ${model.accessToken}"),
+            signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
+        )
 
     private fun view(
         @Suppress("UNUSED_PARAMETER") model: Model.Pending,
@@ -114,6 +115,21 @@ object SlackAccount {
         },
         Prop.Text("We need your permission to let Slack give us info about you."),
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
+    )
+
+    private fun view(
+        model: Model.Authorized,
+        dispatch: Dispatch<Event>
+    ) = Props.SigningIn(
+        title = Prop.Text("Welcome to Slaccount"),
+        progress = Prop.Progress(value = Math.random().toFloat()),
+        cancel = Prop.Button(text = "Cancel") {
+            dispatch(Event.Intent.SignInCancel)
+        },
+        Prop.Text("Almost done!"),
+        Prop.Text("We're waiting for Slack to give us info about your account."),
+        Prop.Text("Here's your access token:"),
+        Prop.Text(model.accessToken)
     )
 
     private fun view(
@@ -143,7 +159,7 @@ object SlackAccount {
         data class Authorized(val accessToken: String) : Model
 
         /** Authentication retrieved */
-        object Retrieved : Model
+        data class Retrieved(val accessToken: String) : Model
     }
 
     sealed interface Event {
