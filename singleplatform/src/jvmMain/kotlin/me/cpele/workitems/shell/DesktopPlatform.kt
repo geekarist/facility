@@ -3,6 +3,7 @@ package me.cpele.workitems.shell
 import me.cpele.workitems.core.Platform
 import java.awt.Desktop
 import java.net.URI
+import java.net.URL
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -25,5 +26,9 @@ object DesktopPlatform : Platform {
     override fun openUri(url: String) {
         logi { "Opening URI: ${url}..." }
         Desktop.getDesktop().browse(URI.create(url))
+    }
+
+    override fun fetch(url: String): Result<ByteArray> = Result.runCatching {
+        URL(url).readBytes()
     }
 }

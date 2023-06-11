@@ -1,6 +1,7 @@
 package me.cpele.workitems.core
 
 import oolong.Dispatch
+import oolong.Effect
 import oolong.effect.none
 
 object SlackAccount {
@@ -25,14 +26,24 @@ object SlackAccount {
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
         is Event.Outcome.AccessToken -> handle(ctx, event)
         is Event.Outcome.UserInfo -> handle(ctx, model, event)
+        is Event.Outcome.FetchedUserImage -> TODO("Handle fetched user image: $event")
         Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
     }
 
     private fun handle(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
-        check(model is Model.Authorized)
+        check(model is Model.Authorized) {
+            "Model must be ${Model.Authorized::class.simpleName} but is: $model"
+        }
         val accessToken = model.accessToken
-        val authorizedToken = Model.Retrieved.of(accessToken, event)
-        return Change(authorizedToken)
+        val changedModel = Model.Retrieved.of(accessToken, event)
+        val effect: Effect<Event> = if (changedModel is Model.Retrieved) {
+            { dispatch ->
+                val imageUrl = changedModel.image
+                val bufferResult = ctx.platform.fetch(imageUrl)
+                dispatch(Event.Outcome.FetchedUserImage(bufferResult))
+            }
+        } else none()
+        return Change(model = changedModel, effect = effect)
     }
 
     private fun Model.Retrieved.Companion.of(
@@ -209,6 +220,7 @@ object SlackAccount {
             data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
             data class AccessToken(val token: Result<String>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
+            data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
         }
     }
 
