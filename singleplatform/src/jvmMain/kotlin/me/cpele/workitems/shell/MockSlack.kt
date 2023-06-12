@@ -9,6 +9,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +28,22 @@ object MockSlack : Slack {
 
     private var server: ApplicationEngine? = null
 
+    init {
+        // Fake-user-image server
+        GlobalScope.launch(Dispatchers.IO) {
+            embeddedServer(Netty) {
+                routing {
+                    route("/fake-image-fake-access-token.png") {
+                        get {
+                            val bytes = URL("classpath:/fake-image-fake-access-token.png").readBytes()
+                            call.respondBytes(bytes, ContentType.Image.PNG)
+                        }
+                    }
+                }
+            }.start(wait = true)
+        }
+    }
+
     override suspend fun fetchMessages(): Result<List<Slack.Message>> {
         TODO("Not yet implemented")
     }
@@ -34,7 +52,8 @@ object MockSlack : Slack {
         send(Slack.AuthenticationScopeStatus.Route.Init)
         server = embeddedServer(Netty, host = "localhost", port = 8080) {
             routing {
-                routingCodeAck(callbackRoutePath = "/fake-code-ack",
+                routingCodeAck(
+                    callbackRoutePath = "/fake-code-ack",
                     onCode = { send(Slack.AuthenticationScopeStatus.Success(it)) },
                     onFailure = { send(Slack.AuthenticationScopeStatus.Failure(it)) })
                 routingAuth("/fake-auth-url")
