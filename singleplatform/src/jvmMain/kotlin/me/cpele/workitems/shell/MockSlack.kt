@@ -26,7 +26,10 @@ object MockSlack : Slack {
     private var server: ApplicationEngine? = null
 
     init {
-        // Fake-user-image server
+        launchFakeUserImageServer()
+    }
+
+    private fun launchFakeUserImageServer() {
         @OptIn(DelicateCoroutinesApi::class)
         GlobalScope.launch(Dispatchers.IO) {
             embeddedServer(Netty) {
