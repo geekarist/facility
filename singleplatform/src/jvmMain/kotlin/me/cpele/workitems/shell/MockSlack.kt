@@ -26,12 +26,12 @@ object MockSlack : Slack {
     private var server: ApplicationEngine? = null
 
     init {
-        launchFakeUserImageServer()
+        @OptIn(DelicateCoroutinesApi::class)
+        GlobalScope.launchFakeUserImageServer()
     }
 
-    private fun launchFakeUserImageServer() {
-        @OptIn(DelicateCoroutinesApi::class)
-        GlobalScope.launch(Dispatchers.IO) {
+    private fun CoroutineScope.launchFakeUserImageServer() {
+        launch(Dispatchers.IO) {
             embeddedServer(Netty) {
                 routing {
                     route("/fake-image-fake-access-token.png") {
