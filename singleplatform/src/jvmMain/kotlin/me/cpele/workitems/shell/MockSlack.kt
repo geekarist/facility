@@ -21,7 +21,10 @@ import kotlin.time.Duration.Companion.seconds
 
 object MockSlack : Slack {
 
-    override val authUrlStr: String = "http://localhost:8080/fake-auth-url"
+    private const val AUTH_SERVER_PORT = 8080
+    private const val IMG_SERVER_PORT = 8081
+
+    override val authUrlStr: String = "http://localhost:$AUTH_SERVER_PORT/fake-auth-url"
 
     private var server: ApplicationEngine? = null
 
@@ -32,12 +35,26 @@ object MockSlack : Slack {
 
     private fun CoroutineScope.launchFakeUserImageServer() {
         launch(Dispatchers.IO) {
-            embeddedServer(Netty) {
+            embeddedServer(factory = Netty, port = IMG_SERVER_PORT) {
                 routing {
-                    route("/fake-image-fake-access-token.png") {
-                        get {
-                            val bytes = URL("classpath:/fake-image-fake-access-token.png").readBytes()
-                            call.respondBytes(bytes, ContentType.Image.PNG)
+                    route("/fake-image/{imgPath}", HttpMethod.Get) {
+                        handle {
+                            val imgPath = call.parameters["imgPath"]
+                            DesktopPlatform.logi { "Got img path: $imgPath" }
+                            val path = "classpath:/fake-image/$imgPath"
+                            try {
+                                val resource = javaClass.classLoader.getResource(path)
+                                val bytes = resource?.readBytes()
+                                    ?: throw IllegalStateException("Resource not found at path: $path")
+                                DesktopPlatform.logi { "File read successfully ⇒ Returning image" }
+                                call.respondBytes(bytes, ContentType.Image.PNG)
+                            } catch (t: Throwable) {
+                                DesktopPlatform.logi(t) { "Error reading file from path: $path" }
+                                call.respondText(
+                                    status = HttpStatusCode.InternalServerError,
+                                    text = "Error loading image"
+                                )
+                            }
                         }
                     }
                 }
@@ -51,9 +68,9 @@ object MockSlack : Slack {
 
     override suspend fun requestAuthScopes(): Flow<Slack.AuthenticationScopeStatus> = callbackFlow {
         send(Slack.AuthenticationScopeStatus.Route.Init)
-        server = embeddedServer(Netty, host = "localhost", port = 8080) {
+        server = embeddedServer(Netty, host = "localhost", port = AUTH_SERVER_PORT) {
             routing {
-                routingCodeAck(
+                setUpCodeAckRoute(
                     callbackRoutePath = "/fake-code-ack",
                     onCode = { send(Slack.AuthenticationScopeStatus.Success(it)) },
                     onFailure = { send(Slack.AuthenticationScopeStatus.Failure(it)) })
@@ -82,7 +99,7 @@ object MockSlack : Slack {
         }
     }
 
-    private fun Routing.routingCodeAck(
+    private fun Routing.setUpCodeAckRoute(
         onCode: suspend (String) -> Unit,
         onFailure: suspend (Throwable) -> Unit,
         callbackRoutePath: String
@@ -111,7 +128,7 @@ object MockSlack : Slack {
             presence = "fake-presence-$accessToken",
             realName = "fake-real-name-$accessToken",
             email = "fake-email-$accessToken",
-            image = "https://fake-image-$accessToken.png"
+            image = "http://localhost:${IMG_SERVER_PORT}/fake-image/$accessToken.png"
         ).also {
             delay(10.seconds)
         }
