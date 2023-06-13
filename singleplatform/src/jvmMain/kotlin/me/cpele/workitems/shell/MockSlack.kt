@@ -37,11 +37,13 @@ object MockSlack : Slack {
         launch(Dispatchers.IO) {
             embeddedServer(factory = Netty, port = IMG_SERVER_PORT) {
                 routing {
-                    route("/fake-image/{imgPath}", HttpMethod.Get) {
+                    route("/fake-image/{imgName}", HttpMethod.Get) {
                         handle {
-                            val imgPath = call.parameters["imgPath"]
-                            DesktopPlatform.logi { "Got img path: $imgPath" }
-                            val path = "classpath:/fake-image/$imgPath"
+                            val imgName = call.parameters["imgName"]
+                            DesktopPlatform.logi { "Got img path: $imgName" }
+                            val pkg = MockSlack::class.java.`package`.name
+                            val pkgPath = pkg.replace('.', '/')
+                            val path = "$pkgPath/fake-image/$imgName"
                             try {
                                 val resource = javaClass.classLoader.getResource(path)
                                 val bytes = resource?.readBytes()
