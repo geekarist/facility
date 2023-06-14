@@ -6,7 +6,152 @@ import oolong.effect.none
 
 object SlackAccount {
 
+    //region Model
+
+    /**
+     * This model represents a Slack user account.
+     */
+    sealed interface Model {
+        /** Authentication process wasn't even started */
+        object Blank : Model
+
+        /** Authentication started but not complete */
+        object Pending : Model
+
+        /** Authentication failed at some point */
+        data class Invalid(val throwable: Throwable) : Model
+
+        /** Authentication was successful */
+        data class Authorized(val accessToken: String) : Model
+
+        /** Authentication retrieved */
+        data class Retrieved(
+            val accessToken: String,
+            val id: String,
+            val image: String,
+            val name: String,
+            val realName: String,
+            val email: String,
+            val presence: String
+        ) : Model {
+            companion object
+        }
+    }
+
+    //endregion
+
+    //region View
+
+    sealed interface Props {
+        data class SignedOut(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : Props
+
+        data class SigningIn(
+            val title: Prop.Text,
+            val progress: Prop.Progress,
+            val cancel: Prop.Button,
+            val statuses: List<Prop.Text>
+        ) : Props {
+            companion object {
+                operator fun invoke(
+                    title: Prop.Text,
+                    progress: Prop.Progress,
+                    cancel: Prop.Button,
+                    vararg status: Prop.Text
+                ) = SigningIn(title, progress, cancel, status.asList())
+            }
+        }
+
+        data class SignedIn(
+            /** Account image. When absent, `null` */
+            val image: Prop.Image?,
+            val name: Prop.Text,
+            val availability: Prop.Text,
+            val token: Prop.Text,
+            val signOut: Prop.Button
+        ) : Props
+    }
+
+    fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
+        is Model.Blank -> view(model, dispatch)
+        is Model.Invalid -> TODO()
+        is Model.Pending -> view(model, dispatch)
+        is Model.Authorized -> view(model, dispatch)
+        is Model.Retrieved -> view(model, dispatch)
+    }
+
+    private fun view(
+        @Suppress("UNUSED_PARAMETER") model: Model.Blank,
+        dispatch: Dispatch<Event>
+    ) = Props.SignedOut(
+        title = Prop.Text(text = "Welcome to Slaccount"),
+        desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
+        button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
+            dispatch(Event.Intent.SignIn)
+        })
+
+    private fun view(
+        @Suppress("UNUSED_PARAMETER") model: Model.Pending,
+        dispatch: Dispatch<Event>
+    ) = Props.SigningIn(
+        title = Prop.Text("Welcome to Slaccount"),
+        progress = Prop.Progress(value = Math.random().toFloat()),
+        cancel = Prop.Button(text = "Cancel") {
+            dispatch(Event.Intent.SignInCancel)
+        },
+        Prop.Text("We need your permission to let Slack give us info about you."),
+        Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
+    )
+
+    private fun view(
+        model: Model.Authorized,
+        dispatch: Dispatch<Event>
+    ) = Props.SigningIn(
+        title = Prop.Text("Welcome to Slaccount"),
+        progress = Prop.Progress(value = Math.random().toFloat()),
+        cancel = Prop.Button(text = "Cancel") {
+            dispatch(Event.Intent.SignInCancel)
+        },
+        Prop.Text("Almost done!"),
+        Prop.Text("We're waiting for Slack to give us info about your account."),
+        Prop.Text("Here's your access token:"),
+        Prop.Text(model.accessToken)
+    )
+
+    private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
+        Props.SignedIn(
+            image = null,
+            name = Prop.Text(model.realName),
+            availability = Prop.Text(model.presence),
+            token = Prop.Text("Access token: ${model.accessToken}"),
+            signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
+        )
+
+    //endregion
+
+    //region Update
+
     data class Ctx(val slack: Slack, val platform: Platform)
+
+    /**
+     * This type represents a piece of data sent from the outside world to this program,
+     * for example the press of a button from a user, or a response from a web-service */
+    sealed interface Event {
+
+        /** User intent e.g. when user presses a button */
+        sealed interface Intent : Event {
+            object SignOut : Event
+            object SignIn : Event
+            object SignInCancel : Event
+        }
+
+        /** Result of an external operation e.g. response of a web-service call */
+        sealed interface Outcome : Event {
+            data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
+            data class AccessToken(val token: Result<String>) : Event
+            data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
+            data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
+        }
+    }
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
 
@@ -117,141 +262,7 @@ object SlackAccount {
             dispatch(Event.Outcome.AccessToken(tokenResult))
         }
     }
-
-    fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
-        is Model.Blank -> view(model, dispatch)
-        is Model.Invalid -> TODO()
-        is Model.Pending -> view(model, dispatch)
-        is Model.Authorized -> view(model, dispatch)
-        is Model.Retrieved -> view(model, dispatch)
-    }
-
-    private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
-        Props.SignedIn(
-            image = null,
-            name = Prop.Text(model.realName),
-            availability = Prop.Text(model.presence),
-            token = Prop.Text("Access token: ${model.accessToken}"),
-            signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
-        )
-
-    private fun view(
-        @Suppress("UNUSED_PARAMETER") model: Model.Pending,
-        dispatch: Dispatch<Event>
-    ) = Props.SigningIn(
-        title = Prop.Text("Welcome to Slaccount"),
-        progress = Prop.Progress(value = Math.random().toFloat()),
-        cancel = Prop.Button(text = "Cancel") {
-            dispatch(Event.Intent.SignInCancel)
-        },
-        Prop.Text("We need your permission to let Slack give us info about you."),
-        Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
-    )
-
-    private fun view(
-        model: Model.Authorized,
-        dispatch: Dispatch<Event>
-    ) = Props.SigningIn(
-        title = Prop.Text("Welcome to Slaccount"),
-        progress = Prop.Progress(value = Math.random().toFloat()),
-        cancel = Prop.Button(text = "Cancel") {
-            dispatch(Event.Intent.SignInCancel)
-        },
-        Prop.Text("Almost done!"),
-        Prop.Text("We're waiting for Slack to give us info about your account."),
-        Prop.Text("Here's your access token:"),
-        Prop.Text(model.accessToken)
-    )
-
-    private fun view(
-        @Suppress("UNUSED_PARAMETER") model: Model.Blank,
-        dispatch: Dispatch<Event>
-    ) = Props.SignedOut(
-        title = Prop.Text(text = "Welcome to Slaccount"),
-        desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
-        button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
-            dispatch(Event.Intent.SignIn)
-        })
-
-    /**
-     * This model represents a Slack user account.
-     */
-    sealed interface Model {
-        /** Authentication process wasn't even started */
-        object Blank : Model
-
-        /** Authentication started but not complete */
-        object Pending : Model
-
-        /** Authentication failed at some point */
-        data class Invalid(val throwable: Throwable) : Model
-
-        /** Authentication was successful */
-        data class Authorized(val accessToken: String) : Model
-
-        /** Authentication retrieved */
-        data class Retrieved(
-            val accessToken: String,
-            val id: String,
-            val image: String,
-            val name: String,
-            val realName: String,
-            val email: String,
-            val presence: String
-        ) : Model {
-            companion object
-        }
-    }
-
-    /**
-     * This type represents a piece of data sent from the outside world to this program,
-     * for example the press of a button from a user, or a response from a web-service */
-    sealed interface Event {
-
-        /** User intent e.g. when user presses a button */
-        sealed interface Intent : Event {
-            object SignOut : Event
-            object SignIn : Event
-            object SignInCancel : Event
-        }
-
-        /** Result of an external operation e.g. response of a web-service call */
-        sealed interface Outcome : Event {
-            data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
-            data class AccessToken(val token: Result<String>) : Event
-            data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
-            data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
-        }
-    }
-
-    sealed interface Props {
-        data class SignedOut(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : Props
-
-        data class SigningIn(
-            val title: Prop.Text,
-            val progress: Prop.Progress,
-            val cancel: Prop.Button,
-            val statuses: List<Prop.Text>
-        ) : Props {
-            companion object {
-                operator fun invoke(
-                    title: Prop.Text,
-                    progress: Prop.Progress,
-                    cancel: Prop.Button,
-                    vararg status: Prop.Text
-                ) = SigningIn(title, progress, cancel, status.asList())
-            }
-        }
-
-        data class SignedIn(
-            /** Account image. When absent, `null` */
-            val image: Prop.Image?,
-            val name: Prop.Text,
-            val availability: Prop.Text,
-            val token: Prop.Text,
-            val signOut: Prop.Button
-        ) : Props
-    }
+    //endregion
 }
 
 
