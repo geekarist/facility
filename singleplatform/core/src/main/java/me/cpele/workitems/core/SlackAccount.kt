@@ -333,7 +333,6 @@ object SlackAccount {
                 val url = "$baseAuthUrl$urlSuffix"
                 ctx.platform.apply {
                     logi { "Callback server exposed at URL: ${status.url}" }
-                    logi { "A fake authorization code can be sent through this URL: ${status.url}?code=fake-auth-code" }
                     openUri(url)
                 }
             }
