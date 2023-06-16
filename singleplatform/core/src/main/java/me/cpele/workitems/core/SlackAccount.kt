@@ -190,24 +190,24 @@ object SlackAccount {
     fun makeUpdate(
         ctx: Ctx
     ): (Event, Model) -> Change<Model, Event> = { event, model ->
-        handle(ctx, event, model)
+        update(ctx, event, model)
     }
 
-    private fun handle(
+    private fun update(
         ctx: Ctx,
         event: Event,
         model: Model
     ): Change<Model, Event> = when (event) {
-        is Event.Intent.SignIn -> handle(ctx, event)
-        is Event.Outcome.AuthScopeStatus -> handle(ctx, event)
+        is Event.Intent.SignIn -> update(ctx, event)
+        is Event.Outcome.AuthScopeStatus -> update(ctx, event)
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
-        is Event.Outcome.AccessToken -> handle(ctx, event)
-        is Event.Outcome.UserInfo -> handle(ctx, model, event)
-        is Event.Outcome.FetchedUserImage -> handle(ctx, model, event)
+        is Event.Outcome.AccessToken -> update(ctx, event)
+        is Event.Outcome.UserInfo -> update(ctx, model, event)
+        is Event.Outcome.FetchedUserImage -> update(ctx, model, event)
         Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
     }
 
-    private fun handle(
+    private fun update(
         ctx: Ctx,
         model: Model,
         event: Event.Outcome.FetchedUserImage
@@ -225,7 +225,7 @@ object SlackAccount {
         )
     }
 
-    private fun handle(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
+    private fun update(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
         check(model is Model.Authorized) {
             "Model must be ${Model.Authorized::class.simpleName} but is: $model"
         }
@@ -261,7 +261,7 @@ object SlackAccount {
         }
     )
 
-    private fun handle(
+    private fun update(
         ctx: Ctx,
         event: Event.Outcome.AccessToken
     ): Change<Model, Event> = event.token.fold(
@@ -275,7 +275,7 @@ object SlackAccount {
         onFailure = { Change(Model.Invalid(it)) }
     )
 
-    private fun handle(
+    private fun update(
         ctx: Ctx,
         event: Event.Intent.SignIn
     ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
@@ -286,7 +286,7 @@ object SlackAccount {
         }
     }
 
-    private fun handle(
+    private fun update(
         ctx: Ctx,
         event: Event.Outcome.AuthScopeStatus
     ): Change<Model, Event> = when (event.status) {
