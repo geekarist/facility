@@ -290,28 +290,32 @@ object SlackAccount {
     }
 
     private fun update(
-        ctx: Ctx,
-        event: Event.Outcome.AuthScopeStatus
+        ctx: Ctx, event: Event.Outcome.AuthScopeStatus
     ): Change<Model, Event> = when (event.status) {
+        is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
+        is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
+        Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
+        is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(event.status, ctx)
+    }
 
-        is Slack.AuthenticationScopeStatus.Failure -> Change(Model.Invalid(event.status.throwable)) {
+    private fun updateOnAuthCodeSuccess(
+        status: Slack.AuthenticationScopeStatus.Success,
+        ctx: Ctx
+    ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
+        val authorizationCode = status.code
+        val tokenResult = ctx.slack.exchangeCodeForToken(authorizationCode)
+        dispatch(Event.Outcome.AccessToken(tokenResult))
+    }
+
+    private fun updateOnAuthScopeFailure(
+        status: Slack.AuthenticationScopeStatus.Failure,
+        ctx: Ctx
+    ): Change<Model, Event> =
+        Change(Model.Invalid(status.throwable)) {
             ctx.slack.tearDownLogin()
         }
 
-        is Slack.AuthenticationScopeStatus.Route.Exposed ->
-            updateOnAuthCodeCallbackExposed(ctx, event.status)
-
-        Slack.AuthenticationScopeStatus.Route.Init,
-        Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
-
-        is Slack.AuthenticationScopeStatus.Success -> Change(Model.Pending) { dispatch ->
-            val authorizationCode = event.status.code
-            val tokenResult = ctx.slack.exchangeCodeForToken(authorizationCode)
-            dispatch(Event.Outcome.AccessToken(tokenResult))
-        }
-    }
-
-    private fun updateOnAuthCodeCallbackExposed(
+    private fun updateOnAuthCodeRouteExposed(
         ctx: Ctx,
         status: Slack.AuthenticationScopeStatus.Route.Exposed
     ): Change<Model, Event> =
@@ -334,6 +338,7 @@ object SlackAccount {
                 }
             }
         }
+
     //endregion
 }
 
