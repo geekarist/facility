@@ -3,6 +3,9 @@ package me.cpele.workitems.core
 import oolong.Dispatch
 import oolong.Effect
 import oolong.effect.none
+// TODO: Don't use Java URL encoder
+import java.net.URLEncoder
+import java.nio.charset.Charset
 
 object SlackAccount {
 
@@ -295,13 +298,8 @@ object SlackAccount {
             ctx.slack.tearDownLogin()
         }
 
-        is Slack.AuthenticationScopeStatus.Route.Exposed -> Change(Model.Pending) {
-            ctx.platform.logi {
-                "Callback server exposed. " +
-                        "A fake authorization code can be sent through this URL: " +
-                        "${event.status.url}?code=fake-auth-code"
-            }
-        }
+        is Slack.AuthenticationScopeStatus.Route.Exposed ->
+            updateOnAuthCodeCallbackExposed(ctx, event.status)
 
         Slack.AuthenticationScopeStatus.Route.Init,
         Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
@@ -312,6 +310,30 @@ object SlackAccount {
             dispatch(Event.Outcome.AccessToken(tokenResult))
         }
     }
+
+    private fun updateOnAuthCodeCallbackExposed(
+        ctx: Ctx,
+        status: Slack.AuthenticationScopeStatus.Route.Exposed
+    ): Change<Model, Event> =
+        status.url.let { exposedUrl -> // URL-encode exposed URL
+            val decodedRedirectUri = exposedUrl.toExternalForm()
+            val charset = Charset.defaultCharset().name()
+            URLEncoder.encode(decodedRedirectUri, charset)
+        }.let { redirectUri -> // Make authorization-URI suffix
+            val clientId = "961165435895.5012210604118"
+            val scope = "incoming-webhook,commands"
+            "?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri"
+        }.let { urlSuffix -> // Take suffix, build full URL, make change
+            Change(Model.Pending) {
+                val baseAuthUrl = ctx.slack.authUrlStr
+                val url = "$baseAuthUrl$urlSuffix"
+                ctx.platform.apply {
+                    logi { "Callback server exposed at URL: ${status.url}" }
+                    logi { "A fake authorization code can be sent through this URL: ${status.url}?code=fake-auth-code" }
+                    openUri(url)
+                }
+            }
+        }
     //endregion
 }
 
