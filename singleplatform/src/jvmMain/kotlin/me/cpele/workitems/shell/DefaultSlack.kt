@@ -142,6 +142,11 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
             error("Got error: ${response.error} in response: $response")
         }
 
+    override suspend fun revoke(accessToken: String) = Result.runCatching {
+        RemoteSlack.getInstance().methods().authRevoke { it.token(accessToken) }
+        Unit
+    }
+
     override suspend fun tearDownLogin() {
         server?.stop()
         server = null

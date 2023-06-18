@@ -12,6 +12,7 @@ interface Slack {
     suspend fun tearDownLogin()
     suspend fun exchangeCodeForToken(code: String): Result<String>
     suspend fun retrieveUser(accessToken: String): Result<UserInfo>
+    suspend fun revoke(accessToken: String): Result<Unit>
 
     interface Message {
         val text: String

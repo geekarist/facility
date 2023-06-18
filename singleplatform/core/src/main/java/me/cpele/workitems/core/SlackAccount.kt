@@ -207,8 +207,17 @@ object SlackAccount {
         is Event.Outcome.AccessToken -> update(ctx, event)
         is Event.Outcome.UserInfo -> update(ctx, model, event)
         is Event.Outcome.FetchedUserImage -> update(ctx, model, event)
-        Event.Intent.SignOut -> Change(model) { ctx.platform.logi { "TODO: Handle $event" } }
+        Event.Intent.SignOut -> update(ctx, model)
     }
+
+    private fun update(
+        ctx: Ctx,
+        model: Model
+    ): Change<Model, Event> =
+        Change(Model.Blank) {
+            check(model is Model.Retrieved)
+            ctx.slack.revoke(model.accessToken)
+        }
 
     private fun update(
         ctx: Ctx,
@@ -230,7 +239,7 @@ object SlackAccount {
 
     private fun update(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
         check(model is Model.Authorized) {
-            "Model must be ${Model.Authorized::class.simpleName} but is: $model"
+            "Model must be authorized but is: $model"
         }
         val accessToken = model.accessToken
         val changedModel = Model.Retrieved.of(accessToken, event)
