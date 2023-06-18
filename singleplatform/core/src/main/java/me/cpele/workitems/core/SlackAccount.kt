@@ -1,7 +1,6 @@
 package me.cpele.workitems.core
 
 import oolong.Dispatch
-import oolong.Effect
 import oolong.effect.none
 // TODO: Don't use Java URL encoder
 import java.net.URLEncoder
@@ -243,41 +242,38 @@ object SlackAccount {
         )
     }
 
-    private fun update(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> {
-        check(model is Model.Authorized) {
-            "Model must be authorized but is: $model"
-        }
-        val accessToken = model.accessToken
-        val changedModel = Model.Retrieved.of(accessToken, event)
-        val effect: Effect<Event> = if (changedModel is Model.Retrieved) {
-            { dispatch ->
-                val imageUrl = changedModel.image
-                val bufferResult = ctx.platform.fetch(imageUrl)
-                dispatch(Event.Outcome.FetchedUserImage(bufferResult))
+    private fun update(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> =
+        let {
+            check(model is Model.Authorized) {
+                "Model must be authorized but is: $model"
             }
-        } else none()
-        return Change(model = changedModel, effect = effect)
-    }
-
-    private fun Model.Retrieved.Companion.of(
-        accessToken: String,
-        event: Event.Outcome.UserInfo
-    ): Model = event.userInfoResult.fold(
-        onSuccess = { info ->
-            Model.Retrieved(
-                accessToken = accessToken,
-                id = info.id,
-                image = info.image,
-                name = info.name,
-                realName = info.realName,
-                email = info.email,
-                presence = info.presence
+            model.accessToken
+        }.let { accessToken ->
+            event.userInfoResult.fold(
+                onSuccess = { info ->
+                    val newModel = Model.Retrieved( // Retrieved account
+                        accessToken = accessToken,
+                        id = info.id,
+                        image = info.image,
+                        name = info.name,
+                        realName = info.realName,
+                        email = info.email,
+                        presence = info.presence
+                    )
+                    Change(newModel) { dispatch ->
+                        // Move on to image retrieval
+                        val imageUrl = newModel.image
+                        val bufferResult = ctx.platform.fetch(imageUrl)
+                        dispatch(Event.Outcome.FetchedUserImage(bufferResult))
+                    }
+                },
+                onFailure = { throwable ->
+                    Change(Model.Invalid(IllegalStateException("Expected valid user info", throwable))) {
+                        ctx.platform.logi(throwable) { "Error retrieving user info" }
+                    }
+                }
             )
-        },
-        onFailure = { throwable ->
-            Model.Invalid(IllegalStateException("Expected valid user info", throwable))
         }
-    )
 
     private fun update(
         ctx: Ctx,
