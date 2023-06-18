@@ -108,11 +108,17 @@ object SlackAccount {
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
         is Model.Blank -> view(model, dispatch)
-        is Model.Invalid -> TODO()
+        is Model.Invalid -> view(model, dispatch)
         is Model.Pending -> view(model, dispatch)
         is Model.Authorized -> view(model, dispatch)
         is Model.Retrieved -> view(model, dispatch)
     }
+
+    private fun view(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
+        Props.SignedOut(
+            Prop.Text("Invalid"),
+            Prop.Text("Got invalid account. Please try signing in again."),
+            Prop.Button("Retry") { dispatch(Event.Intent.SignIn) })
 
     private fun view(
         @Suppress("UNUSED_PARAMETER") model: Model.Blank,
