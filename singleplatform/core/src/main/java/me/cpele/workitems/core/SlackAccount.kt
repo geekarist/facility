@@ -116,7 +116,7 @@ object SlackAccount {
 
     private fun view(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
         Props.SignedOut(
-            Prop.Text("Invalid"),
+            Prop.Text("Something's wrong"),
             Prop.Text("Got invalid account. Please try signing in again."),
             Prop.Button("Retry") { dispatch(Event.Intent.SignIn) })
 
