@@ -18,7 +18,7 @@ object SlackAccount {
         object Blank : Model
 
         /** Authentication started but not complete */
-        object Pending : Model
+        data class Pending(val redirectUri: String? = null) : Model
 
         /** Authentication failed at some point */
         data class Invalid(val throwable: Throwable) : Model
@@ -207,7 +207,7 @@ object SlackAccount {
         model: Model
     ): Change<Model, Event> = when (event) {
         is Event.Intent.SignIn -> update(ctx, event)
-        is Event.Outcome.AuthScopeStatus -> update(ctx, event)
+        is Event.Outcome.AuthScopeStatus -> update(ctx, model, event)
         Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
         is Event.Outcome.AccessToken -> update(ctx, event)
         is Event.Outcome.UserInfo -> update(ctx, model, event)
@@ -286,13 +286,17 @@ object SlackAccount {
                 dispatch(outcome)
             }
         },
-        onFailure = { Change(Model.Invalid(it)) }
+        onFailure = { thrown ->
+            Change(Model.Invalid(thrown)) {
+                ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
+            }
+        }
     )
 
     private fun update(
         ctx: Ctx,
         event: Event.Intent.SignIn
-    ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
+    ): Change<Model, Event> = Change(Model.Pending()) { dispatch ->
         ctx.platform.logi { "Got $event" }
         ctx.slack.requestAuthScopes().collect { status ->
             ctx.platform.logi { "Got status $status" }
@@ -301,21 +305,28 @@ object SlackAccount {
     }
 
     private fun update(
-        ctx: Ctx, event: Event.Outcome.AuthScopeStatus
+        ctx: Ctx, model: Model, event: Event.Outcome.AuthScopeStatus
     ): Change<Model, Event> = when (event.status) {
-        is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
+        Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending())
         is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
-        Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending)
-        is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(event.status, ctx)
+        is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
+        is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
     }
 
     private fun updateOnAuthCodeSuccess(
-        status: Slack.AuthenticationScopeStatus.Success,
-        ctx: Ctx
-    ): Change<Model, Event> = Change(Model.Pending) { dispatch ->
-        val authorizationCode = status.code
-        val tokenResult = ctx.slack.exchangeCodeForToken(authorizationCode)
-        dispatch(Event.Outcome.AccessToken(tokenResult))
+        ctx: Ctx,
+        model: Model,
+        status: Slack.AuthenticationScopeStatus.Success
+    ): Change<Model, Event> = model.let {
+        check(it is Model.Pending)
+        it
+    }.let { pendingModel ->
+        checkNotNull(pendingModel.redirectUri)
+        Change(Model.Pending(pendingModel.redirectUri)) { dispatch ->
+            val authorizationCode = status.code
+            val tokenResult = ctx.slack.exchangeCodeForToken(authorizationCode, pendingModel.redirectUri)
+            dispatch(Event.Outcome.AccessToken(tokenResult))
+        }
     }
 
     private fun updateOnAuthScopeFailure(
@@ -337,9 +348,9 @@ object SlackAccount {
         }.let { redirectUri -> // Make authorization-URI suffix
             val clientId = "961165435895.5012210604118"
             val scope = "incoming-webhook,commands"
-            "?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri"
-        }.let { urlSuffix -> // Take suffix, build full URL, make change
-            Change(Model.Pending) {
+            "?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri" to redirectUri
+        }.let { (urlSuffix, redirectUri) -> // Take suffix, build full URL, make change
+            Change(Model.Pending(redirectUri)) {
                 val baseAuthUrl = ctx.slack.authUrlStr
                 val url = "$baseAuthUrl$urlSuffix"
                 ctx.platform.apply {

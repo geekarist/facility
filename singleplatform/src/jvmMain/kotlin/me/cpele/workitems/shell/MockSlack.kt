@@ -123,7 +123,8 @@ object MockSlack : Slack {
 
     override suspend fun revoke(accessToken: String) = Result.success(Unit)
 
-    override suspend fun exchangeCodeForToken(code: String) = Result.success("fake-access-token")
+    override suspend fun exchangeCodeForToken(code: String, redirectUri: String): Result<String> =
+        Result.success("fake-access-token")
 
     override suspend fun retrieveUser(accessToken: String): Result<Slack.UserInfo> = Result.success(
         Slack.UserInfo(

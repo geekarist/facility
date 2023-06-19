@@ -105,9 +105,9 @@ object Accounts {
         val logEffect = effect<Event> {
             platform.logi { "Got login status: $event" }
         }
-        val exchangeEffect = { code: String ->
+        val exchangeEffect = { code: String, redirectUri: String ->
             effect<Event> { dispatch ->
-                val accessToken = slack.exchangeCodeForToken(code)
+                val accessToken = slack.exchangeCodeForToken(code, redirectUri)
                 dispatch(Event.GotAccessToken(accessToken))
             }
         }
@@ -131,7 +131,10 @@ object Accounts {
             is AuthenticationScopeStatus.Route.Init,
             is AuthenticationScopeStatus.Failure -> Change(model, logEffect)
 
-            is AuthenticationScopeStatus.Success -> Change(model, exchangeEffect(event.status.code))
+            is AuthenticationScopeStatus.Success -> Change(
+                model,
+                exchangeEffect(event.status.code, "todo-redirect-uri")
+            )
         }
     }
 
