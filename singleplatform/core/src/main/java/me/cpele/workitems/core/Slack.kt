@@ -10,7 +10,7 @@ interface Slack {
     suspend fun fetchMessages(): Result<List<Message>>
     suspend fun requestAuthScopes(): Flow<AuthenticationScopeStatus>
     suspend fun tearDownLogin()
-    suspend fun exchangeCodeForToken(code: String, redirectUri: String): Result<String>
+    suspend fun exchangeCodeForToken(code: String, clientId: String, redirectUri: String): Result<String>
     suspend fun retrieveUser(accessToken: String): Result<UserInfo>
     suspend fun revoke(accessToken: String): Result<Unit>
 

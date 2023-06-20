@@ -97,11 +97,12 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         emit(Slack.AuthenticationScopeStatus.Failure(IllegalStateException(throwable)))
     }
 
-    override suspend fun exchangeCodeForToken(code: String, redirectUri: String) =
+    override suspend fun exchangeCodeForToken(code: String, clientId: String, redirectUri: String) =
         Result.runCatching {
             RemoteSlack.getInstance()
         }.mapCatching { instance ->
             instance.methods().oauthV2Access { builder ->
+                builder.clientId(clientId)
                 builder.code(code)
                 builder.redirectUri(redirectUri)
             }

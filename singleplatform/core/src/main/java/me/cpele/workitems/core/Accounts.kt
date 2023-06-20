@@ -9,6 +9,8 @@ import oolong.effect.none
 import java.net.URLEncoder
 import java.nio.charset.Charset
 
+private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
+
 /**
  * This program implements user accounts and related functions, including:
  * - Credentials, personal info
@@ -74,7 +76,6 @@ object Accounts {
         slack: Slack
     ) = Change(model, when (event.provider) {
         is Model.Provider.Slack -> effect<Event> { _ ->
-            val clientId = "961165435895.5012210604118"
             val status = event.provider.status
             check(status is AuthenticationScopeStatus.Route.Exposed) {
                 val simpleName = AuthenticationScopeStatus.Route.Exposed::class.simpleName
@@ -87,7 +88,7 @@ object Accounts {
             }
             val authUrl = slack.authUrlStr
             val scope = "incoming-webhook,commands"
-            val url = "$authUrl?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri"
+            val url = "$authUrl?scope=$scope&client_id=$SLACK_CLIENT_ID&redirect_uri=$redirectUri"
             platform.openUri(url = url)
         }
 
@@ -107,7 +108,7 @@ object Accounts {
         }
         val exchangeEffect = { code: String, redirectUri: String ->
             effect<Event> { dispatch ->
-                val accessToken = slack.exchangeCodeForToken(code, redirectUri)
+                val accessToken = slack.exchangeCodeForToken(code, SLACK_CLIENT_ID, redirectUri)
                 dispatch(Event.GotAccessToken(accessToken))
             }
         }

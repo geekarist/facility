@@ -6,6 +6,8 @@ import oolong.effect.none
 import java.net.URLEncoder
 import java.nio.charset.Charset
 
+private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
+
 object SlackAccount {
 
     //region Model
@@ -324,7 +326,8 @@ object SlackAccount {
         checkNotNull(pendingModel.redirectUri)
         Change(Model.Pending(pendingModel.redirectUri)) { dispatch ->
             val authorizationCode = status.code
-            val tokenResult = ctx.slack.exchangeCodeForToken(authorizationCode, pendingModel.redirectUri)
+            val tokenResult =
+                ctx.slack.exchangeCodeForToken(authorizationCode, SLACK_CLIENT_ID, pendingModel.redirectUri)
             dispatch(Event.Outcome.AccessToken(tokenResult))
         }
     }
@@ -346,7 +349,7 @@ object SlackAccount {
             val charset = Charset.defaultCharset().name()
             URLEncoder.encode(decodedRedirectUri, charset)
         }.let { redirectUri -> // Make authorization-URI suffix
-            val clientId = "961165435895.5012210604118"
+            val clientId = SLACK_CLIENT_ID
             val scope = "incoming-webhook,commands"
             "?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri" to redirectUri
         }.let { (urlSuffix, redirectUri) -> // Take suffix, build full URL, make change
