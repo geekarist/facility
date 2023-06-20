@@ -1,7 +1,10 @@
-package me.cpele.workitems.core
+package me.cpele.workitems.core.programs
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.cpele.workitems.core.framework.Change
+import me.cpele.workitems.core.framework.Platform
+import me.cpele.workitems.core.framework.Slack
 import oolong.effect
 import oolong.effect.none
 

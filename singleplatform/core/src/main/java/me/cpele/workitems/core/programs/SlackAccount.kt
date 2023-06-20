@@ -1,5 +1,9 @@
-package me.cpele.workitems.core
+package me.cpele.workitems.core.programs
 
+import me.cpele.workitems.core.framework.Change
+import me.cpele.workitems.core.framework.Platform
+import me.cpele.workitems.core.framework.Prop
+import me.cpele.workitems.core.framework.Slack
 import oolong.Dispatch
 import oolong.effect.none
 // TODO: Don't use Java URL encoder

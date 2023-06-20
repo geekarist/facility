@@ -1,4 +1,4 @@
-package me.cpele.workitems.core
+package me.cpele.workitems.core.framework
 
 interface Platform {
     fun logw(thrown: Throwable? = null, makeMessage: () -> String)

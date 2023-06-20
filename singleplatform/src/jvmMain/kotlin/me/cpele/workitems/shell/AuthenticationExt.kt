@@ -16,9 +16,9 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import me.cpele.workitems.core.Accounts
-import me.cpele.workitems.core.Platform
-import me.cpele.workitems.core.Slack
+import me.cpele.workitems.core.framework.Platform
+import me.cpele.workitems.core.framework.Slack
+import me.cpele.workitems.core.programs.Accounts
 
 @Composable
 fun Accounts.Ui(modifier: Modifier = Modifier, props: Accounts.Props) {

@@ -1,8 +1,8 @@
 package me.cpele.workitems.shell
 
-import me.cpele.workitems.core.Accounts
-import me.cpele.workitems.core.SlackAccount
-import me.cpele.workitems.core.WorkItems
+import me.cpele.workitems.core.programs.Accounts
+import me.cpele.workitems.core.programs.SlackAccount
+import me.cpele.workitems.core.programs.WorkItems
 
 const val MAIN_COMMAND_USAGE = "Usage: work-items <program-name> <program-command>"
 

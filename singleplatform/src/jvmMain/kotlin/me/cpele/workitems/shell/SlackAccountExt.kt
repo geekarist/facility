@@ -18,10 +18,10 @@ import androidx.compose.ui.res.loadSvgPainter
 import androidx.compose.ui.res.useResource
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import me.cpele.workitems.core.Platform
-import me.cpele.workitems.core.Prop
-import me.cpele.workitems.core.Slack
-import me.cpele.workitems.core.SlackAccount
+import me.cpele.workitems.core.framework.Platform
+import me.cpele.workitems.core.framework.Prop
+import me.cpele.workitems.core.framework.Slack
+import me.cpele.workitems.core.programs.SlackAccount
 
 fun SlackAccount.main(vararg args: String) { // TODO: SlackAccount.main(args)
     if (args.contains("mock")) {

@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
-import me.cpele.workitems.core.Slack
+import me.cpele.workitems.core.framework.Slack
 import java.net.URL
 import kotlin.time.Duration.Companion.seconds
 

@@ -4,7 +4,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import me.cpele.workitems.core.Change
+import me.cpele.workitems.core.framework.Change
 import oolong.runtime
 
 fun <PropsT, ModelT, EventT> app(

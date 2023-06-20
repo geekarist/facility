@@ -13,7 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import me.cpele.workitems.core.WorkItems
+import me.cpele.workitems.core.programs.WorkItems
 
 @Composable
 fun WorkItems.Ui(props: WorkItems.Props) {

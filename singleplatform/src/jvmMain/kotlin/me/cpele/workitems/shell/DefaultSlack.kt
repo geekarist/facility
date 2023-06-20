@@ -18,8 +18,8 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.cpele.workitems.core.Platform
-import me.cpele.workitems.core.Slack
+import me.cpele.workitems.core.framework.Platform
+import me.cpele.workitems.core.framework.Slack
 import java.net.URL
 import com.slack.api.Slack as RemoteSlack
 
