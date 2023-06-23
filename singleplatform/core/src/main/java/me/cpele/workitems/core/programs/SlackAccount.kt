@@ -37,43 +37,12 @@ object SlackAccount {
             val accessToken: String,
             val id: String,
             val image: String,
-            val imageBuffer: ByteArray? = null,
+            val imageBuffer: ImageBuffer? = null,
             val name: String,
             val realName: String,
             val email: String,
             val presence: String
         ) : Model {
-            override fun equals(other: Any?): Boolean {
-                if (this === other) return true
-                if (javaClass != other?.javaClass) return false
-
-                other as Retrieved
-
-                if (accessToken != other.accessToken) return false
-                if (id != other.id) return false
-                if (image != other.image) return false
-                if (imageBuffer != null) {
-                    if (other.imageBuffer == null) return false
-                    if (!imageBuffer.contentEquals(other.imageBuffer)) return false
-                } else if (other.imageBuffer != null) return false
-                if (name != other.name) return false
-                if (realName != other.realName) return false
-                if (email != other.email) return false
-                return presence == other.presence
-            }
-
-            override fun hashCode(): Int {
-                var result = accessToken.hashCode()
-                result = 31 * result + id.hashCode()
-                result = 31 * result + image.hashCode()
-                result = 31 * result + (imageBuffer?.contentHashCode() ?: 0)
-                result = 31 * result + name.hashCode()
-                result = 31 * result + realName.hashCode()
-                result = 31 * result + email.hashCode()
-                result = 31 * result + presence.hashCode()
-                return result
-            }
-
             companion object
         }
     }
@@ -165,7 +134,7 @@ object SlackAccount {
 
     private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
         Props.SignedIn(
-            image = model.imageBuffer?.let { Prop.Image(it) },
+            image = model.imageBuffer?.let { Prop.Image(it.array) },
             name = Prop.Text(model.realName),
             availability = Prop.Text(model.presence),
             token = Prop.Text("Access token: ${model.accessToken}"),
@@ -239,7 +208,7 @@ object SlackAccount {
             "Model must be ${Model.Retrieved::class.simpleName} but is: $model"
         }
         event.bufferResult.fold(
-            onSuccess = { Change(model.copy(imageBuffer = it)) },
+            onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
             onFailure = { throwable ->
                 Change(model) {
                     ctx.platform.logi(throwable) { "Failed retrieving image ${model.image}" }
