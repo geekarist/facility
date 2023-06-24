@@ -112,7 +112,7 @@ object Accounts {
         }
         val exchangeEffect = { code: String, redirectUri: String ->
             effect<Event> { dispatch ->
-                val accessToken = slack.exchangeCodeForToken(code, SLACK_CLIENT_ID, redirectUri)
+                val accessToken = slack.exchangeCodeForToken(code, SLACK_CLIENT_ID, "TODO", redirectUri)
                 dispatch(Event.GotAccessToken(accessToken))
             }
         }

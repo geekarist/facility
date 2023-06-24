@@ -292,15 +292,22 @@ object SlackAccount {
         ctx: Ctx,
         model: Model,
         status: Slack.AuthenticationScopeStatus.Success
-    ): Change<Model, Event> = model.let {
-        check(it is Model.Pending)
-        it
+    ): Change<Model, Event> = run {
+        check(model is Model.Pending)
+        model
     }.let { pendingModel ->
         checkNotNull(pendingModel.redirectUri)
         Change(Model.Pending(pendingModel.redirectUri)) { dispatch ->
-            val authorizationCode = status.code
-            val tokenResult =
-                ctx.slack.exchangeCodeForToken(authorizationCode, SLACK_CLIENT_ID, pendingModel.redirectUri)
+            val envVarResult = ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
+            val tokenResult = envVarResult.mapCatching { clientSecret ->
+                val authorizationCode = status.code
+                ctx.slack.exchangeCodeForToken(
+                    code = authorizationCode,
+                    clientId = SLACK_CLIENT_ID,
+                    clientSecret = clientSecret,
+                    redirectUri = pendingModel.redirectUri
+                ).getOrThrow()
+            }
             dispatch(Event.Outcome.AccessToken(tokenResult))
         }
     }
