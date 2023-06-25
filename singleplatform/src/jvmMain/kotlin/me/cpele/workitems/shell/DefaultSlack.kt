@@ -21,6 +21,7 @@ import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Slack
 import java.net.URL
+import java.net.URLDecoder
 import com.slack.api.Slack as RemoteSlack
 
 class DefaultSlack(private val platform: Platform, private val ingress: Ingress) : Slack {
@@ -102,22 +103,29 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         clientId: String,
         clientSecret: String,
         redirectUri: String
-    ) = Result.runCatching { RemoteSlack.getInstance() }
-        .mapCatching { instance ->
-            instance.methods().oauthV2Access { builder ->
-                builder.clientId(clientId)
-                builder.clientSecret(clientSecret)
-                builder.code(code)
-                builder.redirectUri(redirectUri)
-            }
+    ) = Result.runCatching { RemoteSlack.getInstance() }.mapCatching { instance ->
+        instance.methods().oauthV2Access { builder ->
+            builder.clientId(clientId)
+            builder.clientSecret(clientSecret)
+            builder.code(code)
+            builder.redirectUri(URLDecoder.decode(redirectUri))
         }
-        .mapCatching { response ->
-            if (response.isOk) {
-                response.accessToken
-            } else {
-                error("Got error ${response.error} in response: $response")
+    }.mapCatching { response ->
+        if (response.isOk) {
+            response.accessToken
+        } else {
+            DesktopPlatform.logi {
+                """
+                    |Error exchanging code for token with request:
+                    |- Code: $code
+                    |- Client ID: $clientId
+                    |- Client secret: $clientSecret
+                    |- Redirect URI: $redirectUri
+                    """.trimMargin()
             }
+            error("Got error ${response.error} in response: $response")
         }
+    }
 
     private fun wrap(url: URL): URL {
         val authority = "aloe-vera.cpele.me"
