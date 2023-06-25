@@ -31,4 +31,8 @@ object DesktopPlatform : Platform {
     override fun fetch(url: String): Result<ByteArray> = Result.runCatching {
         URL(url).readBytes()
     }
+
+    override suspend fun getEnvVar(name: String): Result<String> = Result.runCatching {
+        System.getenv(name) ?: error("Required environment variable $name is not defined")
+    }
 }
