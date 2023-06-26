@@ -128,8 +128,11 @@ object MockSlack : Slack {
         clientId: String,
         clientSecret: String,
         redirectUri: String
-    ): Result<String> =
-        Result.success("fake-access-token")
+    ): Result<String> = run {
+        val token = "fake-access-token"
+        DesktopPlatform.logi { "Mocking successful token exchange ⇒ Return $token" }
+        Result.success(token)
+    }
 
     override suspend fun retrieveUser(accessToken: String): Result<Slack.UserInfo> = Result.success(
         Slack.UserInfo(

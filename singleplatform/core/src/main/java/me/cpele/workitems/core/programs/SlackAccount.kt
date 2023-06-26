@@ -331,8 +331,8 @@ object SlackAccount {
             URLEncoder.encode(decodedRedirectUri, charset)
         }.let { redirectUri -> // Make authorization-URI suffix
             val clientId = SLACK_CLIENT_ID
-            val scope = "incoming-webhook,commands"
-            "?scope=$scope&client_id=$clientId&redirect_uri=$redirectUri" to redirectUri
+            val scope = "openid,email,profile"
+            "?response_type=code&scope=$scope&client_id=$clientId&redirect_uri=$redirectUri" to redirectUri
         }.let { (urlSuffix, redirectUri) -> // Take suffix, build full URL, make change
             Change(Model.Pending(redirectUri)) {
                 val baseAuthUrl = ctx.slack.authUrlStr
