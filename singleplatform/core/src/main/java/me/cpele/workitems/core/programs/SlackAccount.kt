@@ -298,17 +298,18 @@ object SlackAccount {
     }.let { pendingModel ->
         checkNotNull(pendingModel.redirectUri)
         Change(Model.Pending(pendingModel.redirectUri)) { dispatch ->
-            val envVarResult = ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
-            val tokenResult = envVarResult.mapCatching { clientSecret ->
-                val authorizationCode = status.code
-                ctx.slack.exchangeCodeForToken(
-                    code = authorizationCode,
-                    clientId = SLACK_CLIENT_ID,
-                    clientSecret = clientSecret,
-                    redirectUri = pendingModel.redirectUri
-                ).getOrThrow()
-            }
-            dispatch(Event.Outcome.AccessToken(tokenResult))
+            ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
+                .mapCatching { clientSecret ->
+                    ctx.slack.exchangeCodeForToken(
+                        code = status.code,
+                        clientId = SLACK_CLIENT_ID,
+                        clientSecret = clientSecret,
+                        redirectUri = pendingModel.redirectUri
+                    )
+                }.let { accessTokenResult ->
+                    val accessToken = accessTokenResult.getOrThrow()
+                    Event.Outcome.AccessToken(accessToken)
+                }.also(dispatch)
         }
     }
 
