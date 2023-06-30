@@ -196,6 +196,7 @@ object SlackAccount {
     ): Change<Model, Event> =
         Change(Model.Blank) {
             check(model is Model.Retrieved)
+            ctx.slack.tearDownLogin()
             ctx.slack.revoke(model.accessToken)
         }
 
