@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.loadSvgPainter
 import androidx.compose.ui.res.useResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import me.cpele.workitems.core.framework.Platform
@@ -63,30 +65,32 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 private fun SignedIn(props: SlackAccount.Props.SignedIn) {
     Card {
         val scrollState = rememberScrollState()
-        Column(
-            Modifier.verticalScroll(scrollState).padding(horizontal = 48.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(Modifier.height(16.dp))
-            var painter: Painter? by remember { mutableStateOf(null) }
-            val density = LocalDensity.current
-            LaunchedEffect(props.image, density) {
-                painter = painter(props.image) ?: placeholderPainter(density)
-            }
-            painter?.let { actualPainter ->
-                Image(painter = actualPainter, contentDescription = null, modifier = Modifier.width(256.dp))
+        ProvideTextStyle(TextStyle(textAlign = TextAlign.Center)) {
+            Column(
+                Modifier.verticalScroll(scrollState).padding(horizontal = 48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Spacer(Modifier.height(16.dp))
+                var painter: Painter? by remember { mutableStateOf(null) }
+                val density = LocalDensity.current
+                LaunchedEffect(props.image, density) {
+                    painter = painter(props.image) ?: placeholderPainter(density)
+                }
+                painter?.let { actualPainter ->
+                    Image(painter = actualPainter, contentDescription = null, modifier = Modifier.width(256.dp))
+                    Spacer(Modifier.height(32.dp))
+                }
+                Text(text = props.name.text, style = MaterialTheme.typography.h4)
+                Spacer(Modifier.height(16.dp))
+                Text(props.availability.text)
+                Spacer(Modifier.height(16.dp))
+                Text(text = props.token.text, style = MaterialTheme.typography.body2.merge(LocalTextStyle.current))
                 Spacer(Modifier.height(32.dp))
+                Button(props.signOut.onClick) {
+                    Text(props.signOut.text)
+                }
+                Spacer(Modifier.height(16.dp))
             }
-            Text(text = props.name.text, style = MaterialTheme.typography.h4)
-            Spacer(Modifier.height(16.dp))
-            Text(props.availability.text)
-            Spacer(Modifier.height(16.dp))
-            Text(text = props.token.text, style = MaterialTheme.typography.body2)
-            Spacer(Modifier.height(32.dp))
-            Button(props.signOut.onClick) {
-                Text(props.signOut.text)
-            }
-            Spacer(Modifier.height(16.dp))
         }
     }
 }
