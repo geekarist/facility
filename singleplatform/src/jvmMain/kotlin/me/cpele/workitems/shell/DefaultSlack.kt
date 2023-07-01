@@ -146,7 +146,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
     private fun Slack.UserInfo.Companion.of(response: OpenIDConnectUserInfoResponse): Slack.UserInfo =
         if (response.isOk) {
             Slack.UserInfo(
-                id = "TODO",
+                id = response.userId,
                 name = response.name ?: error("Missing user name: $response"),
                 presence = "TODO",
                 realName = response.givenName ?: error("Missing user real name: $response"),

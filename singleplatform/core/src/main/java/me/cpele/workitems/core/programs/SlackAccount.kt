@@ -76,6 +76,7 @@ object SlackAccount {
             val name: Prop.Text,
             val availability: Prop.Text,
             val token: Prop.Text,
+            val email: Prop.Text,
             val signOut: Prop.Button
         ) : Props
     }
@@ -138,6 +139,7 @@ object SlackAccount {
             name = Prop.Text(model.realName),
             availability = Prop.Text(model.presence),
             token = Prop.Text("Access token: ${model.accessToken}"),
+            email = Prop.Text("Email: ${model.email}"),
             signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
         )
 
