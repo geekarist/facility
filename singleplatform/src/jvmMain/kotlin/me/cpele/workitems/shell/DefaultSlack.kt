@@ -2,8 +2,8 @@ package me.cpele.workitems.shell
 
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
-import com.slack.api.methods.response.openid.connect.OpenIDConnectUserInfoResponse
 import com.slack.api.methods.response.search.SearchMessagesResponse
+import com.slack.api.methods.response.users.UsersInfoResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.engine.*
@@ -26,7 +26,7 @@ import com.slack.api.Slack as RemoteSlack
 
 class DefaultSlack(private val platform: Platform, private val ingress: Ingress) : Slack {
 
-    override val authUrlStr: String = "https://slack.com/openid/connect/authorize"
+    override val authUrlStr: String = "https://slack.com/oauth/v2/authorize"
 
     private var server: ApplicationEngine? = null
     private var tunnel: Ingress.Tunnel? = null
@@ -104,7 +104,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         clientSecret: String,
         redirectUri: String
     ) = Result.runCatching { RemoteSlack.getInstance() }.mapCatching { instance ->
-        instance.methods().openIDConnectToken { builder ->
+        instance.methods().oauthV2Access { builder ->
             builder.clientId(clientId)
             builder.clientSecret(clientSecret)
             builder.code(code)
@@ -136,22 +136,22 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
     override suspend fun retrieveUser(accessToken: String) = Result.runCatching {
         RemoteSlack.getInstance()
     }.mapCatching { slackInstance ->
-        slackInstance.methods().openIDConnectUserInfo { builder ->
+        slackInstance.methods().usersInfo { builder ->
             builder.token(accessToken)
         }
     }.mapCatching { response ->
         Slack.UserInfo.of(response)
     }
 
-    private fun Slack.UserInfo.Companion.of(response: OpenIDConnectUserInfoResponse): Slack.UserInfo =
+    private fun Slack.UserInfo.Companion.of(response: UsersInfoResponse): Slack.UserInfo =
         if (response.isOk) {
             Slack.UserInfo(
-                id = response.userId,
-                name = response.name ?: error("Missing user name: $response"),
-                presence = "TODO",
-                realName = response.givenName ?: error("Missing user real name: $response"),
-                email = response.email ?: "TODO: Handle missing email",
-                image = response.userImage1024 ?: "TODO: Handle missing image",
+                id = response.user?.id ?: error("Missing ID in user: ${response.user}"),
+                name = response.user?.name ?: error("Missing user name: ${response.user}"),
+                presence = response.user?.presence ?: error("Missing user presence: ${response.user}"),
+                realName = response.user?.realName ?: error("Missing user real name: ${response.user}"),
+                email = response.user?.profile?.email ?: error("Missing user email: ${response.user}"),
+                image = response.user?.profile?.imageOriginal ?: error("Missing user image: ${response.user}"),
             )
         } else {
             error("Got error: ${response.error} in response: $response")
