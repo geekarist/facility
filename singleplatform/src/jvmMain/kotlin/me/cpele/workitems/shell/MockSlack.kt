@@ -131,6 +131,15 @@ object MockSlack : Slack {
     ): Result<String> =
         Result.success("fake-access-token")
 
+    override suspend fun exchangeCodeForCredentials(
+        code: String,
+        clientId: String,
+        clientSecret: String,
+        redirectUri: String
+    ): Result<Slack.Credentials> {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun retrieveUser(accessToken: String): Result<Slack.UserInfo> = Result.success(
         Slack.UserInfo(
             id = "fake-id-$accessToken",

@@ -127,6 +127,15 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         }
     }
 
+    override suspend fun exchangeCodeForCredentials(
+        code: String,
+        clientId: String,
+        clientSecret: String,
+        redirectUri: String
+    ): Result<Slack.Credentials> {
+        TODO("Not yet implemented")
+    }
+
     private fun wrap(url: URL): URL {
         val authority = "aloe-vera.cpele.me"
         val file = "code-ack"

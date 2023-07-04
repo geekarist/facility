@@ -303,15 +303,16 @@ object SlackAccount {
         Change(Model.Pending(pendingModel.redirectUri)) { dispatch ->
             ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
                 .mapCatching { clientSecret ->
-                    ctx.slack.exchangeCodeForToken(
+                    ctx.slack.exchangeCodeForCredentials(
                         code = status.code,
                         clientId = SLACK_CLIENT_ID,
                         clientSecret = clientSecret,
                         redirectUri = pendingModel.redirectUri
-                    )
+                    ).getOrThrow()
+                }.mapCatching {
+                    it.userToken
                 }.let { accessTokenResult ->
-                    val accessToken = accessTokenResult.getOrThrow()
-                    Event.Outcome.AccessToken(accessToken)
+                    Event.Outcome.AccessToken(accessTokenResult)
                 }.also(dispatch)
         }
     }

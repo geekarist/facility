@@ -10,12 +10,26 @@ interface Slack {
     suspend fun fetchMessages(): Result<List<Message>>
     suspend fun requestAuthScopes(): Flow<AuthenticationScopeStatus>
     suspend fun tearDownLogin()
+
+    @Deprecated(
+        message = "Does not provide a user token but a bot token",
+        ReplaceWith("exchangeCodeForCredentials(code, clientId, clientSecret, redirectUri).map { it.userToken }")
+    )
     suspend fun exchangeCodeForToken(
         code: String,
         clientId: String,
         clientSecret: String,
         redirectUri: String
     ): Result<String>
+
+    suspend fun exchangeCodeForCredentials(
+        code: String,
+        clientId: String,
+        clientSecret: String,
+        redirectUri: String
+    ): Result<Credentials>
+
+    data class Credentials(val botToken: String, val userToken: String)
 
     suspend fun retrieveUser(accessToken: String): Result<UserInfo>
     suspend fun revoke(accessToken: String): Result<Unit>
