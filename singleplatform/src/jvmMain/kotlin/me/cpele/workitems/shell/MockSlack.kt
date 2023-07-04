@@ -123,6 +123,10 @@ object MockSlack : Slack {
 
     override suspend fun revoke(accessToken: String) = Result.success(Unit)
 
+    @Deprecated(
+        "Does not provide a user token but a bot token",
+        replaceWith = ReplaceWith("exchangeCodeForCredentials(code, clientId, clientSecret, redirectUri).map { it.userToken }")
+    )
     override suspend fun exchangeCodeForToken(
         code: String,
         clientId: String,

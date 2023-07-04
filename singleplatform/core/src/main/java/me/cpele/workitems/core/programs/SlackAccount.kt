@@ -1,9 +1,6 @@
 package me.cpele.workitems.core.programs
 
-import me.cpele.workitems.core.framework.Change
-import me.cpele.workitems.core.framework.Platform
-import me.cpele.workitems.core.framework.Prop
-import me.cpele.workitems.core.framework.Slack
+import me.cpele.workitems.core.framework.*
 import oolong.Dispatch
 import oolong.effect.none
 // TODO: Don't use Java URL encoder
@@ -14,7 +11,7 @@ private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
 
 object SlackAccount {
 
-    //region Model
+    // region Model
 
     /**
      * This model represents a Slack user account.
@@ -47,9 +44,9 @@ object SlackAccount {
         }
     }
 
-    //endregion
+    // endregion
 
-    //region View
+    // region View
 
     sealed interface Props {
         data class SignedOut(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : Props
@@ -143,9 +140,9 @@ object SlackAccount {
             signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
         )
 
-    //endregion
+    // endregion
 
-    //region Update
+    // region Update
 
     data class Ctx(val slack: Slack, val platform: Platform)
 
@@ -302,13 +299,13 @@ object SlackAccount {
         checkNotNull(pendingModel.redirectUri)
         Change(Model.Pending(pendingModel.redirectUri)) { dispatch ->
             ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
-                .mapCatching { clientSecret ->
+                .flatMapCatching { clientSecret ->
                     ctx.slack.exchangeCodeForCredentials(
                         code = status.code,
                         clientId = SLACK_CLIENT_ID,
                         clientSecret = clientSecret,
                         redirectUri = pendingModel.redirectUri
-                    ).getOrThrow()
+                    )
                 }.mapCatching {
                     it.userToken
                 }.let { accessTokenResult ->
@@ -349,7 +346,7 @@ object SlackAccount {
             }
         }
 
-    //endregion
+    // endregion
 }
 
 
