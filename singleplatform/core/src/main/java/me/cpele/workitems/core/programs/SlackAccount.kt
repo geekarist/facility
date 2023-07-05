@@ -294,17 +294,15 @@ object SlackAccount {
         status: Slack.AuthenticationScopeStatus.Success
     ): Change<Model, Event> = run {
         check(model is Model.Pending)
-        model
-    }.let { pendingModel ->
-        checkNotNull(pendingModel.redirectUri)
-        Change(Model.Pending(pendingModel.redirectUri)) { dispatch ->
+        checkNotNull(model.redirectUri)
+        Change(Model.Pending(model.redirectUri)) { dispatch ->
             ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
                 .flatMapCatching { clientSecret ->
                     ctx.slack.exchangeCodeForCredentials(
                         code = status.code,
                         clientId = SLACK_CLIENT_ID,
                         clientSecret = clientSecret,
-                        redirectUri = pendingModel.redirectUri
+                        redirectUri = model.redirectUri
                     )
                 }.mapCatching {
                     it.userToken
