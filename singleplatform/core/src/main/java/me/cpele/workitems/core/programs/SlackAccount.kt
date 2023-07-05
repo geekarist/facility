@@ -161,7 +161,7 @@ object SlackAccount {
         /** Result of an external operation e.g. response of a web-service call */
         sealed interface Outcome : Event {
             data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
-            data class AccessToken(val token: Result<String>) : Event
+            data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
             data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
         }
@@ -253,8 +253,9 @@ object SlackAccount {
     private fun update(
         ctx: Ctx,
         event: Event.Outcome.AccessToken
-    ): Change<Model, Event> = event.token.fold(
-        onSuccess = { token ->
+    ): Change<Model, Event> = event.credentialsResult.fold(
+        onSuccess = { credentials ->
+            val token = credentials.userToken
             Change(Model.Authorized(token)) { dispatch ->
                 val result = ctx.slack.retrieveUser(token)
                 val outcome = Event.Outcome.UserInfo(result)
@@ -304,10 +305,8 @@ object SlackAccount {
                         clientSecret = clientSecret,
                         redirectUri = model.redirectUri
                     )
-                }.mapCatching {
-                    it.userToken
-                }.let { accessTokenResult ->
-                    Event.Outcome.AccessToken(accessTokenResult)
+                }.let { credentialsResult ->
+                    Event.Outcome.AccessToken(credentialsResult)
                 }.also(dispatch)
         }
     }

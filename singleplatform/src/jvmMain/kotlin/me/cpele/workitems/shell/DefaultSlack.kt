@@ -98,6 +98,10 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         emit(Slack.AuthenticationScopeStatus.Failure(IllegalStateException(throwable)))
     }
 
+    @Deprecated(
+        "Does not provide a user token but a bot token",
+        replaceWith = ReplaceWith("exchangeCodeForCredentials(code, clientId, clientSecret, redirectUri).map { it.userToken }")
+    )
     override suspend fun exchangeCodeForToken(
         code: String,
         clientId: String,
@@ -132,9 +136,30 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         clientId: String,
         clientSecret: String,
         redirectUri: String
-    ): Result<Slack.Credentials> {
-        TODO("Not yet implemented")
+    ): Result<Slack.Credentials> = Result.runCatching { RemoteSlack.getInstance() }.mapCatching { instance ->
+        instance.methods().oauthV2Access { builder ->
+            builder.clientId(clientId)
+            builder.clientSecret(clientSecret)
+            builder.code(code)
+            builder.redirectUri(URLDecoder.decode(redirectUri))
+        }
+    }.mapCatching { response ->
+        if (response.isOk) {
+            Slack.Credentials(response.accessToken, response.authedUser.accessToken, response.authedUser.id)
+        } else {
+            DesktopPlatform.logi {
+                """
+                    |Error exchanging code for token with request:
+                    |- Code: $code
+                    |- Client ID: $clientId
+                    |- Client secret: $clientSecret
+                    |- Redirect URI: $redirectUri
+                    """.trimMargin()
+            }
+            error("Got error ${response.error} in response: $response")
+        }
     }
+
 
     private fun wrap(url: URL): URL {
         val authority = "aloe-vera.cpele.me"
@@ -165,6 +190,19 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         } else {
             error("Got error: ${response.error} in response: $response")
         }
+
+    override suspend fun retrieveUser(credentials: Slack.Credentials): Result<Slack.UserInfo> =
+        Result.runCatching {
+            RemoteSlack.getInstance()
+        }.mapCatching { slackInstance ->
+            slackInstance.methods().usersInfo { builder ->
+                builder.token(credentials.userToken)
+                builder.user(credentials.userId)
+            }
+        }.mapCatching { response ->
+            Slack.UserInfo.of(response)
+        }
+
 
     override suspend fun revoke(accessToken: String) = Result.runCatching {
         RemoteSlack.getInstance().methods().authRevoke { it.token(accessToken) }

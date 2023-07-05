@@ -29,9 +29,10 @@ interface Slack {
         redirectUri: String
     ): Result<Credentials>
 
-    data class Credentials(val botToken: String, val userToken: String)
+    data class Credentials(val botToken: String, val userToken: String, val userId: String)
 
     suspend fun retrieveUser(accessToken: String): Result<UserInfo>
+    suspend fun retrieveUser(credentials: Credentials): Result<UserInfo>
     suspend fun revoke(accessToken: String): Result<Unit>
 
     interface Message {

@@ -157,6 +157,10 @@ object MockSlack : Slack {
         }
     )
 
+    override suspend fun retrieveUser(credentials: Slack.Credentials): Result<Slack.UserInfo> {
+        TODO("Not yet implemented")
+    }
+
     override suspend fun tearDownLogin() {
         server?.stop()
         server = null
