@@ -31,6 +31,7 @@ interface Slack {
 
     data class Credentials(val botToken: String, val userToken: String, val userId: String)
 
+    @Deprecated("Was not working, missing user ID")
     suspend fun retrieveUser(accessToken: String): Result<UserInfo>
     suspend fun retrieveUser(credentials: Credentials): Result<UserInfo>
     suspend fun revoke(accessToken: String): Result<Unit>

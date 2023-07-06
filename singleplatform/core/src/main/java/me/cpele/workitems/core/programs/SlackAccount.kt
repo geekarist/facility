@@ -257,7 +257,7 @@ object SlackAccount {
         onSuccess = { credentials ->
             val token = credentials.userToken
             Change(Model.Authorized(token)) { dispatch ->
-                val result = ctx.slack.retrieveUser(token)
+                val result = ctx.slack.retrieveUser(credentials)
                 val outcome = Event.Outcome.UserInfo(result)
                 dispatch(outcome)
             }
