@@ -3,6 +3,7 @@ package me.cpele.workitems.shell
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
 import com.slack.api.methods.response.search.SearchMessagesResponse
+import com.slack.api.methods.response.users.UsersGetPresenceResponse
 import com.slack.api.methods.response.users.UsersInfoResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -167,22 +168,21 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         return URL("https://$authority/$file?tunnel=${url.host}")
     }
 
-    override suspend fun retrieveUser(accessToken: String) = Result.runCatching {
-        RemoteSlack.getInstance()
-    }.mapCatching { slackInstance ->
-        slackInstance.methods().usersInfo { builder ->
-            builder.token(accessToken)
+    private fun Slack.UserInfo.Companion.of(
+        response: UsersInfoResponse,
+        presenceResponse: UsersGetPresenceResponse
+    ): Slack.UserInfo = run {
+        if (presenceResponse.isOk) {
+            presenceResponse.presence
+        } else {
+            error("Got error: ${presenceResponse.error} in response: $presenceResponse")
         }
-    }.mapCatching { response ->
-        Slack.UserInfo.of(response)
-    }
-
-    private fun Slack.UserInfo.Companion.of(response: UsersInfoResponse): Slack.UserInfo =
+    }.let { presenceRespStr ->
         if (response.isOk) {
             Slack.UserInfo(
                 id = response.user?.id ?: error("Missing ID in user: ${response.user}"),
                 name = response.user?.name ?: error("Missing user name: ${response.user}"),
-                presence = response.user?.presence ?: error("Missing user presence: ${response.user}"),
+                presence = presenceRespStr,
                 realName = response.user?.realName ?: error("Missing user real name: ${response.user}"),
                 email = response.user?.profile?.email ?: error("Missing user email: ${response.user}"),
                 image = response.user?.profile?.imageOriginal ?: error("Missing user image: ${response.user}"),
@@ -190,6 +190,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         } else {
             error("Got error: ${response.error} in response: $response")
         }
+    }
 
     override suspend fun retrieveUser(credentials: Slack.Credentials): Result<Slack.UserInfo> =
         Result.runCatching {
@@ -198,9 +199,12 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
             slackInstance.methods().usersInfo { builder ->
                 builder.token(credentials.userToken)
                 builder.user(credentials.userId)
+            } to slackInstance.methods().usersGetPresence { builder ->
+                builder.token(credentials.userToken)
+                builder.user(credentials.userId)
             }
-        }.mapCatching { response ->
-            Slack.UserInfo.of(response)
+        }.mapCatching { (infoResponse, presenceResponse) ->
+            Slack.UserInfo.of(infoResponse, presenceResponse)
         }
 
 
