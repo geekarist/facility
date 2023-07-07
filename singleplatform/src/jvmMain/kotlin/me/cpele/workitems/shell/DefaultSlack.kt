@@ -12,13 +12,11 @@ import io.ktor.server.logging.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Slack
 import java.net.URL
@@ -196,12 +194,22 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         Result.runCatching {
             RemoteSlack.getInstance()
         }.mapCatching { slackInstance ->
-            slackInstance.methods().usersInfo { builder ->
-                builder.token(credentials.userToken)
-                builder.user(credentials.userId)
-            } to slackInstance.methods().usersGetPresence { builder ->
-                builder.token(credentials.userToken)
-                builder.user(credentials.userId)
+            coroutineScope {
+                val deferredUserInfo = async {
+                    slackInstance.methods().usersInfo { builder ->
+                        builder.token(credentials.userToken)
+                        builder.user(credentials.userId)
+                    }
+                }
+                val deferredPresence = async {
+                    slackInstance.methods().usersGetPresence { builder ->
+                        builder.token(credentials.userToken)
+                        builder.user(credentials.userId)
+                    }
+                }
+                val userInfo = deferredUserInfo.await()
+                val presence = deferredPresence.await()
+                userInfo to presence
             }
         }.mapCatching { (infoResponse, presenceResponse) ->
             Slack.UserInfo.of(infoResponse, presenceResponse)
