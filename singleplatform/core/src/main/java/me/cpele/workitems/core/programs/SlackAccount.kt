@@ -182,11 +182,68 @@ object SlackAccount {
     ): Change<Model, Event> = when (model) {
         is Model.Blank -> change(ctx, model, event)
         is Model.Pending -> change(ctx, model, event)
+        is Model.Authorized -> change(ctx, model, event)
 
-        is Model.Authorized -> updateWhenEvent(ctx, model, event)
         is Model.Invalid -> updateWhenEvent(ctx, model, event)
         is Model.Retrieved -> updateWhenEvent(ctx, model, event)
     }
+
+    private fun change(
+        ctx: Ctx,
+        model: Model.Authorized,
+        event: Event
+    ): Change<Model, Event> =
+        when (event) {
+
+            Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
+
+            is Event.Outcome.AccessToken -> event.credentialsResult.fold(
+                onSuccess = { credentials ->
+                    val token = credentials.userToken
+                    Change(Model.Authorized(token)) { dispatch ->
+                        val result = ctx.slack.retrieveUser(credentials)
+                        val outcome = Event.Outcome.UserInfo(result)
+                        dispatch(outcome)
+                    }
+                },
+                onFailure = { thrown ->
+                    Change(Model.Invalid(thrown)) {
+                        ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
+                    }
+                }
+            )
+
+            is Event.Outcome.UserInfo -> let {
+                model.accessToken
+            }.let { accessToken ->
+                event.userInfoResult.fold(
+                    onSuccess = { info ->
+                        val newModel = Model.Retrieved( // Retrieved account
+                            accessToken = accessToken,
+                            id = info.id,
+                            image = info.image,
+                            name = info.name,
+                            realName = info.realName,
+                            email = info.email,
+                            presence = info.presence
+                        )
+                        Change(newModel) { dispatch ->
+                            // Move on to image retrieval
+                            val imageUrl = newModel.image
+                            val bufferResult = ctx.platform.fetch(imageUrl)
+                            dispatch(Event.Outcome.FetchedUserImage(bufferResult))
+                        }
+                    },
+                    onFailure = { throwable ->
+                        Change(Model.Invalid(IllegalStateException("Expected valid user info", throwable))) {
+                            ctx.platform.logi(throwable) { "Error retrieving user info" }
+                        }
+                    }
+                )
+            }
+
+            else -> error("Invalid event for authorized account: $event")
+        }
 
     private fun change(
         ctx: Ctx,
