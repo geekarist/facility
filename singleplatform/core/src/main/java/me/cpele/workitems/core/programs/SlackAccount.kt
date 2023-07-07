@@ -302,22 +302,6 @@ object SlackAccount {
 
             Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
 
-            is Event.Outcome.AccessToken -> event.credentialsResult.fold(
-                onSuccess = { credentials ->
-                    val token = credentials.userToken
-                    Change(Model.Authorized(token)) { dispatch ->
-                        val result = ctx.slack.retrieveUser(credentials)
-                        val outcome = Event.Outcome.UserInfo(result)
-                        dispatch(outcome)
-                    }
-                },
-                onFailure = { thrown ->
-                    Change(Model.Invalid(thrown)) {
-                        ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
-                    }
-                }
-            )
-
             is Event.Outcome.UserInfo -> let {
                 model.accessToken
             }.let { accessToken ->
