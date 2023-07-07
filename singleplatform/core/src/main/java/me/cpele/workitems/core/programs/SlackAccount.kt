@@ -181,7 +181,8 @@ object SlackAccount {
         model: Model
     ): Change<Model, Event> = when (model) {
         is Model.Blank -> change(ctx, model, event)
-        is Model.Pending -> updateWhenEvent(ctx, model, event)
+        is Model.Pending -> change(ctx, model, event)
+
         is Model.Authorized -> updateWhenEvent(ctx, model, event)
         is Model.Invalid -> updateWhenEvent(ctx, model, event)
         is Model.Retrieved -> updateWhenEvent(ctx, model, event)
@@ -200,6 +201,43 @@ object SlackAccount {
                 dispatch(Event.Outcome.AuthScopeStatus(status))
             }
         }
+    }
+
+    private fun change(
+        ctx: Ctx,
+        model: Model.Pending,
+        event: Event
+    ) = when (event) {
+
+        is Event.Outcome.AuthScopeStatus -> when (event.status) {
+            Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(
+                Model.Pending()
+            )
+
+            is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
+            is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
+            is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
+        }
+
+        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
+
+        is Event.Outcome.AccessToken -> event.credentialsResult.fold(
+            onSuccess = { credentials ->
+                val token = credentials.userToken
+                Change(Model.Authorized(token)) { dispatch ->
+                    val result = ctx.slack.retrieveUser(credentials)
+                    val outcome = Event.Outcome.UserInfo(result)
+                    dispatch(outcome)
+                }
+            },
+            onFailure = { thrown ->
+                Change(Model.Invalid(thrown)) {
+                    ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
+                }
+            }
+        )
+
+        else -> error("Invalid event for pending model: $event")
     }
 
     private fun updateWhenEvent(
