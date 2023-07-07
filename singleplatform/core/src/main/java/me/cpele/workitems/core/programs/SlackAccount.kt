@@ -180,11 +180,26 @@ object SlackAccount {
         event: Event,
         model: Model
     ): Change<Model, Event> = when (model) {
-        Model.Blank -> updateWhenEvent(ctx, model, event)
+        is Model.Blank -> change(ctx, model, event)
         is Model.Pending -> updateWhenEvent(ctx, model, event)
         is Model.Authorized -> updateWhenEvent(ctx, model, event)
         is Model.Invalid -> updateWhenEvent(ctx, model, event)
         is Model.Retrieved -> updateWhenEvent(ctx, model, event)
+    }
+
+    private fun change(
+        ctx: Ctx,
+        blankModel: Model.Blank,
+        event: Event
+    ): Change<Model, Event> = blankModel.run {
+        check(event is Event.Intent.SignIn)
+        Change(Model.Pending()) { dispatch ->
+            ctx.platform.logi { "Got $event" }
+            ctx.slack.requestAuthScopes().collect { status ->
+                ctx.platform.logi { "Got status $status" }
+                dispatch(Event.Outcome.AuthScopeStatus(status))
+            }
+        }
     }
 
     private fun updateWhenEvent(
