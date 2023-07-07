@@ -180,10 +180,10 @@ object SlackAccount {
         event: Event,
         model: Model
     ): Change<Model, Event> = when (model) {
-        is Model.Authorized -> updateWhenEvent(ctx, model, event)
         Model.Blank -> updateWhenEvent(ctx, model, event)
-        is Model.Invalid -> updateWhenEvent(ctx, model, event)
         is Model.Pending -> updateWhenEvent(ctx, model, event)
+        is Model.Authorized -> updateWhenEvent(ctx, model, event)
+        is Model.Invalid -> updateWhenEvent(ctx, model, event)
         is Model.Retrieved -> updateWhenEvent(ctx, model, event)
     }
 
