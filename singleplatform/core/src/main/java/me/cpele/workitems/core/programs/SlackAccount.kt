@@ -189,105 +189,9 @@ object SlackAccount {
 
     private fun change(
         ctx: Ctx,
-        model: Model.Retrieved,
-        event: Event
-    ): Change<Model, Event> = when (event) {
-        is Event.Outcome.FetchedUserImage -> run {
-            event.bufferResult.fold(
-                onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
-                onFailure = { throwable ->
-                    Change(model) {
-                        ctx.platform.logi(throwable) { "Failed retrieving image ${model.image}" }
-                    }
-                }
-            )
-        }
-
-        Event.Intent.SignOut -> Change(Model.Blank) {
-            ctx.slack.tearDownLogin()
-            ctx.slack.revoke(model.accessToken)
-        }
-
-        else -> error("Invalid event for retrieved account: $event")
-    }
-
-    private fun change(
-        ctx: Ctx,
-        model: Model.Authorized,
-        event: Event
-    ): Change<Model, Event> =
-        when (event) {
-
-            Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
-
-            is Event.Outcome.AccessToken -> event.credentialsResult.fold(
-                onSuccess = { credentials ->
-                    val token = credentials.userToken
-                    Change(Model.Authorized(token)) { dispatch ->
-                        val result = ctx.slack.retrieveUser(credentials)
-                        val outcome = Event.Outcome.UserInfo(result)
-                        dispatch(outcome)
-                    }
-                },
-                onFailure = { thrown ->
-                    Change(Model.Invalid(thrown)) {
-                        ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
-                    }
-                }
-            )
-
-            is Event.Outcome.UserInfo -> let {
-                model.accessToken
-            }.let { accessToken ->
-                event.userInfoResult.fold(
-                    onSuccess = { info ->
-                        val newModel = Model.Retrieved( // Retrieved account
-                            accessToken = accessToken,
-                            id = info.id,
-                            image = info.image,
-                            name = info.name,
-                            realName = info.realName,
-                            email = info.email,
-                            presence = info.presence
-                        )
-                        Change(newModel) { dispatch ->
-                            // Move on to image retrieval
-                            val imageUrl = newModel.image
-                            val bufferResult = ctx.platform.fetch(imageUrl)
-                            dispatch(Event.Outcome.FetchedUserImage(bufferResult))
-                        }
-                    },
-                    onFailure = { throwable ->
-                        Change(Model.Invalid(IllegalStateException("Expected valid user info", throwable))) {
-                            ctx.platform.logi(throwable) { "Error retrieving user info" }
-                        }
-                    }
-                )
-            }
-
-            else -> error("Invalid event for authorized account: $event")
-        }
-
-    private fun change(
-        ctx: Ctx,
         blankModel: Model.Blank,
         event: Event
     ): Change<Model, Event> = blankModel.run {
-        check(event is Event.Intent.SignIn)
-        Change(Model.Pending()) { dispatch ->
-            ctx.platform.logi { "Got $event" }
-            ctx.slack.requestAuthScopes().collect { status ->
-                ctx.platform.logi { "Got status $status" }
-                dispatch(Event.Outcome.AuthScopeStatus(status))
-            }
-        }
-    }
-
-    private fun change(
-        ctx: Ctx,
-        model: Model.Invalid,
-        event: Event
-    ): Change<Model, Event> = model.run {
         check(event is Event.Intent.SignIn)
         Change(Model.Pending()) { dispatch ->
             ctx.platform.logi { "Got $event" }
@@ -388,6 +292,102 @@ object SlackAccount {
                 }
             }
         }
+
+    private fun change(
+        ctx: Ctx,
+        model: Model.Authorized,
+        event: Event
+    ): Change<Model, Event> =
+        when (event) {
+
+            Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
+
+            is Event.Outcome.AccessToken -> event.credentialsResult.fold(
+                onSuccess = { credentials ->
+                    val token = credentials.userToken
+                    Change(Model.Authorized(token)) { dispatch ->
+                        val result = ctx.slack.retrieveUser(credentials)
+                        val outcome = Event.Outcome.UserInfo(result)
+                        dispatch(outcome)
+                    }
+                },
+                onFailure = { thrown ->
+                    Change(Model.Invalid(thrown)) {
+                        ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
+                    }
+                }
+            )
+
+            is Event.Outcome.UserInfo -> let {
+                model.accessToken
+            }.let { accessToken ->
+                event.userInfoResult.fold(
+                    onSuccess = { info ->
+                        val newModel = Model.Retrieved( // Retrieved account
+                            accessToken = accessToken,
+                            id = info.id,
+                            image = info.image,
+                            name = info.name,
+                            realName = info.realName,
+                            email = info.email,
+                            presence = info.presence
+                        )
+                        Change(newModel) { dispatch ->
+                            // Move on to image retrieval
+                            val imageUrl = newModel.image
+                            val bufferResult = ctx.platform.fetch(imageUrl)
+                            dispatch(Event.Outcome.FetchedUserImage(bufferResult))
+                        }
+                    },
+                    onFailure = { throwable ->
+                        Change(Model.Invalid(IllegalStateException("Expected valid user info", throwable))) {
+                            ctx.platform.logi(throwable) { "Error retrieving user info" }
+                        }
+                    }
+                )
+            }
+
+            else -> error("Invalid event for authorized account: $event")
+        }
+
+    private fun change(
+        ctx: Ctx,
+        model: Model.Invalid,
+        event: Event
+    ): Change<Model, Event> = model.run {
+        check(event is Event.Intent.SignIn)
+        Change(Model.Pending()) { dispatch ->
+            ctx.platform.logi { "Got $event" }
+            ctx.slack.requestAuthScopes().collect { status ->
+                ctx.platform.logi { "Got status $status" }
+                dispatch(Event.Outcome.AuthScopeStatus(status))
+            }
+        }
+    }
+
+    private fun change(
+        ctx: Ctx,
+        model: Model.Retrieved,
+        event: Event
+    ): Change<Model, Event> = when (event) {
+        is Event.Outcome.FetchedUserImage -> run {
+            event.bufferResult.fold(
+                onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
+                onFailure = { throwable ->
+                    Change(model) {
+                        ctx.platform.logi(throwable) { "Failed retrieving image ${model.image}" }
+                    }
+                }
+            )
+        }
+
+        Event.Intent.SignOut -> Change(Model.Blank) {
+            ctx.slack.tearDownLogin()
+            ctx.slack.revoke(model.accessToken)
+        }
+
+        else -> error("Invalid event for retrieved account: $event")
+    }
 
     // endregion
 }
