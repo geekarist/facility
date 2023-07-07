@@ -140,26 +140,28 @@ object MockSlack : Slack {
         clientId: String,
         clientSecret: String,
         redirectUri: String
-    ): Result<Slack.Credentials> {
-        TODO("Not yet implemented")
+    ): Result<Slack.Credentials> = Result.runCatching {
+        Slack.Credentials(
+            botToken = "fake-bot-token-$code",
+            userToken = "fake-user-token-$code",
+            userId = "fake-user-id-$code"
+        )
     }
 
-    override suspend fun retrieveUser(accessToken: String): Result<Slack.UserInfo> = Result.success(
-        Slack.UserInfo(
-            id = "fake-id-$accessToken",
-            name = "fake-name-$accessToken",
-            presence = "fake-presence-$accessToken",
-            realName = "fake-real-name-$accessToken",
-            email = "fake-email-$accessToken",
-            image = "http://localhost:${IMG_SERVER_PORT}/fake-image/$accessToken.png"
-        ).also {
-            delay(10.seconds)
+    override suspend fun retrieveUser(credentials: Slack.Credentials): Result<Slack.UserInfo> =
+        Result.runCatching {
+            val accessToken = credentials.userToken
+            Slack.UserInfo(
+                id = "fake-id-$accessToken",
+                name = "fake-name-$accessToken",
+                presence = "fake-presence-$accessToken",
+                realName = "fake-real-name-$accessToken",
+                email = "fake-email-$accessToken",
+                image = "http://localhost:${IMG_SERVER_PORT}/fake-image/$accessToken.png"
+            ).also {
+                delay(10.seconds)
+            }
         }
-    )
-
-    override suspend fun retrieveUser(credentials: Slack.Credentials): Result<Slack.UserInfo> {
-        TODO("Not yet implemented")
-    }
 
     override suspend fun tearDownLogin() {
         server?.stop()
