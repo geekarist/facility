@@ -134,7 +134,7 @@ object SlackAccount {
         Props.SignedIn(
             image = model.imageBuffer?.let { Prop.Image(it.array) },
             name = Prop.Text(model.realName),
-            availability = Prop.Text(model.presence),
+            availability = Prop.Text("Presence: ${model.presence}"),
             token = Prop.Text("Access token: ${model.accessToken}"),
             email = Prop.Text("Email: ${model.email}"),
             signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
@@ -179,46 +179,52 @@ object SlackAccount {
         ctx: Ctx,
         event: Event,
         model: Model
-    ): Change<Model, Event> = when (event) {
-        is Event.Intent.SignIn -> update(ctx, event)
-        is Event.Outcome.AuthScopeStatus -> update(ctx, model, event)
-        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
-        is Event.Outcome.AccessToken -> update(ctx, event)
-        is Event.Outcome.UserInfo -> update(ctx, model, event)
-        is Event.Outcome.FetchedUserImage -> update(ctx, model, event)
-        Event.Intent.SignOut -> update(ctx, model)
+    ): Change<Model, Event> = when (model) {
+        is Model.Authorized -> updateWhenEvent(ctx, model, event)
+        Model.Blank -> updateWhenEvent(ctx, model, event)
+        is Model.Invalid -> updateWhenEvent(ctx, model, event)
+        is Model.Pending -> updateWhenEvent(ctx, model, event)
+        is Model.Retrieved -> updateWhenEvent(ctx, model, event)
     }
 
-    private fun update(
-        ctx: Ctx,
-        model: Model
-    ): Change<Model, Event> =
-        Change(Model.Blank) {
-            check(model is Model.Retrieved)
-            ctx.slack.tearDownLogin()
-            ctx.slack.revoke(model.accessToken)
-        }
-
-    private fun update(
+    private fun updateWhenEvent(
         ctx: Ctx,
         model: Model,
-        event: Event.Outcome.FetchedUserImage
-    ): Change<Model, Event> = run {
-        check(model is Model.Retrieved) {
-            "Model must be ${Model.Retrieved::class.simpleName} but is: $model"
+        event: Event
+    ) = when (event) {
+        is Event.Intent.SignIn -> Change(Model.Pending()) { dispatch ->
+            ctx.platform.logi { "Got $event" }
+            ctx.slack.requestAuthScopes().collect { status ->
+                ctx.platform.logi { "Got status $status" }
+                dispatch(Event.Outcome.AuthScopeStatus(status))
+            }
         }
-        event.bufferResult.fold(
-            onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
-            onFailure = { throwable ->
-                Change(model) {
-                    ctx.platform.logi(throwable) { "Failed retrieving image ${model.image}" }
+
+        is Event.Outcome.AuthScopeStatus -> when (event.status) {
+            Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending())
+            is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
+            is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
+            is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
+        }
+
+        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
+        is Event.Outcome.AccessToken -> event.credentialsResult.fold(
+            onSuccess = { credentials ->
+                val token = credentials.userToken
+                Change(Model.Authorized(token)) { dispatch ->
+                    val result = ctx.slack.retrieveUser(credentials)
+                    val outcome = Event.Outcome.UserInfo(result)
+                    dispatch(outcome)
+                }
+            },
+            onFailure = { thrown ->
+                Change(Model.Invalid(thrown)) {
+                    ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
                 }
             }
         )
-    }
 
-    private fun update(ctx: Ctx, model: Model, event: Event.Outcome.UserInfo): Change<Model, Event> =
-        let {
+        is Event.Outcome.UserInfo -> let {
             check(model is Model.Authorized) {
                 "Model must be authorized but is: $model"
             }
@@ -250,43 +256,25 @@ object SlackAccount {
             )
         }
 
-    private fun update(
-        ctx: Ctx,
-        event: Event.Outcome.AccessToken
-    ): Change<Model, Event> = event.credentialsResult.fold(
-        onSuccess = { credentials ->
-            val token = credentials.userToken
-            Change(Model.Authorized(token)) { dispatch ->
-                val result = ctx.slack.retrieveUser(credentials)
-                val outcome = Event.Outcome.UserInfo(result)
-                dispatch(outcome)
+        is Event.Outcome.FetchedUserImage -> run {
+            check(model is Model.Retrieved) {
+                "Model must be ${Model.Retrieved::class.simpleName} but is: $model"
             }
-        },
-        onFailure = { thrown ->
-            Change(Model.Invalid(thrown)) {
-                ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
-            }
+            event.bufferResult.fold(
+                onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
+                onFailure = { throwable ->
+                    Change(model) {
+                        ctx.platform.logi(throwable) { "Failed retrieving image ${model.image}" }
+                    }
+                }
+            )
         }
-    )
 
-    private fun update(
-        ctx: Ctx,
-        event: Event.Intent.SignIn
-    ): Change<Model, Event> = Change(Model.Pending()) { dispatch ->
-        ctx.platform.logi { "Got $event" }
-        ctx.slack.requestAuthScopes().collect { status ->
-            ctx.platform.logi { "Got status $status" }
-            dispatch(Event.Outcome.AuthScopeStatus(status))
+        Event.Intent.SignOut -> Change(Model.Blank) {
+            check(model is Model.Retrieved)
+            ctx.slack.tearDownLogin()
+            ctx.slack.revoke(model.accessToken)
         }
-    }
-
-    private fun update(
-        ctx: Ctx, model: Model, event: Event.Outcome.AuthScopeStatus
-    ): Change<Model, Event> = when (event.status) {
-        Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(Model.Pending())
-        is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
-        is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
-        is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
     }
 
     private fun updateOnAuthCodeSuccess(
