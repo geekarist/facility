@@ -189,9 +189,9 @@ object SlackAccount {
 
     private fun change(
         ctx: Ctx,
-        blankModel: Model.Blank,
+        model: Model.Blank,
         event: Event
-    ): Change<Model, Event> = blankModel.run {
+    ): Change<Model, Event> = model.run {
         check(event is Event.Intent.SignIn)
         Change(Model.Pending()) { dispatch ->
             ctx.platform.logi { "Got $event" }
