@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.Slack
+import me.cpele.workitems.core.programs.Blank
 import me.cpele.workitems.core.programs.SlackAccount
 
 fun SlackAccount.main(vararg args: String) { // TODO: SlackAccount.main(args)
@@ -54,7 +55,8 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
             when (props) {
 
                 is SlackAccount.Props.SignedIn -> SignedIn(props)
-                is SlackAccount.Props.SignedOut -> SignedOut(props)
+                is Blank.Props -> Blank(props)
+                is SlackAccount.Props.Invalid -> Invalid(props)
                 is SlackAccount.Props.SigningIn -> SigningIn(props)
             }
         }
@@ -134,7 +136,24 @@ private fun SigningIn(props: SlackAccount.Props.SigningIn) {
 }
 
 @Composable
-private fun SignedOut(props: SlackAccount.Props.SignedOut) {
+private fun Blank(props: Blank.Props) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(text = props.title.text, style = MaterialTheme.typography.h4)
+        Text(props.desc.text)
+        Button(
+            onClick = props.button.onClick,
+            enabled = props.button.isEnabled
+        ) {
+            Text(text = props.button.text)
+        }
+    }
+}
+
+@Composable
+private fun Invalid(props: SlackAccount.Props.Invalid) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
