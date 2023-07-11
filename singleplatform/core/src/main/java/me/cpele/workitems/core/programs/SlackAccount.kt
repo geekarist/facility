@@ -17,6 +17,8 @@ object SlackAccount {
      * This model represents a Slack user account.
      */
     sealed interface Model {
+        /** Authentication process wasn't even started */
+        object Blank : Model
 
         /** Authentication started but not complete */
         data class Pending(val redirectUri: String? = null) : Model
@@ -47,7 +49,7 @@ object SlackAccount {
     // region View
 
     sealed interface Props {
-        data class Invalid(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : Props
+        data class SignedOut(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : Props
 
         data class SigningIn(
             val title: Prop.Text,
@@ -77,20 +79,30 @@ object SlackAccount {
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
-        is Blank.Model -> Blank.view(model, dispatch)
-        is Model.Invalid -> viewInvalid(model, dispatch)
-        is Model.Pending -> viewPending(model, dispatch)
-        is Model.Authorized -> viewAuthorized(model, dispatch)
-        is Model.Retrieved -> viewRetrieved(model, dispatch)
+        is Model.Blank -> view(model, dispatch)
+        is Model.Invalid -> view(model, dispatch)
+        is Model.Pending -> view(model, dispatch)
+        is Model.Authorized -> view(model, dispatch)
+        is Model.Retrieved -> view(model, dispatch)
     }
 
-    private fun viewInvalid(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
-        Props.Invalid(
+    private fun view(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
+        Props.SignedOut(
             Prop.Text("Something's wrong"),
             Prop.Text("Got invalid account. Please try signing in again."),
             Prop.Button("Retry") { dispatch(Event.Intent.SignIn) })
 
-    private fun viewPending(
+    private fun view(
+        @Suppress("UNUSED_PARAMETER") model: Model.Blank,
+        dispatch: Dispatch<Event>
+    ) = Props.SignedOut(
+        title = Prop.Text(text = "Welcome to Slaccount"),
+        desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
+        button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
+            dispatch(Event.Intent.SignIn)
+        })
+
+    private fun view(
         @Suppress("UNUSED_PARAMETER") model: Model.Pending,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
@@ -103,7 +115,7 @@ object SlackAccount {
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
 
-    private fun viewAuthorized(
+    private fun view(
         model: Model.Authorized,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
@@ -118,7 +130,7 @@ object SlackAccount {
         Prop.Text(model.accessToken)
     )
 
-    private fun viewRetrieved(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
+    private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
         Props.SignedIn(
             image = model.imageBuffer?.let { Prop.Image(it.array) },
             name = Prop.Text(model.realName),
@@ -155,7 +167,7 @@ object SlackAccount {
         }
     }
 
-    fun init() = Change<Model, _>(Blank.Model, none<Event>())
+    fun init() = Change<Model, _>(Model.Blank, none<Event>())
 
     fun makeUpdate(
         ctx: Ctx
@@ -168,14 +180,29 @@ object SlackAccount {
         event: Event,
         model: Model
     ): Change<Model, Event> = when (model) {
-        is Blank.Model -> Blank.update(ctx, model, event)
-        is Model.Pending -> updatePending(ctx, model, event)
-        is Model.Authorized -> updateAuthorized(ctx, model, event)
-        is Model.Invalid -> updateInvalid(ctx, model, event)
-        is Model.Retrieved -> updateRetrieved(ctx, model, event)
+        is Model.Blank -> change(ctx, model, event)
+        is Model.Pending -> change(ctx, model, event)
+        is Model.Authorized -> change(ctx, model, event)
+        is Model.Invalid -> change(ctx, model, event)
+        is Model.Retrieved -> change(ctx, model, event)
     }
 
-    private fun updatePending(
+    private fun change(
+        ctx: Ctx,
+        model: Model.Blank,
+        event: Event
+    ): Change<Model, Event> = model.run {
+        check(event is Event.Intent.SignIn)
+        Change(Model.Pending()) { dispatch ->
+            ctx.platform.logi { "Got $event" }
+            ctx.slack.requestAuthScopes().collect { status ->
+                ctx.platform.logi { "Got status $status" }
+                dispatch(Event.Outcome.AuthScopeStatus(status))
+            }
+        }
+    }
+
+    private fun change(
         ctx: Ctx,
         model: Model.Pending,
         event: Event
@@ -191,7 +218,7 @@ object SlackAccount {
             is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
         }
 
-        Event.Intent.SignInCancel -> Change(Blank.Model) { ctx.slack.tearDownLogin() }
+        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
 
         is Event.Outcome.AccessToken -> event.credentialsResult.fold(
             onSuccess = { credentials ->
@@ -266,14 +293,14 @@ object SlackAccount {
             }
         }
 
-    private fun updateAuthorized(
+    private fun change(
         ctx: Ctx,
         model: Model.Authorized,
         event: Event
     ): Change<Model, Event> =
         when (event) {
 
-            Event.Intent.SignInCancel -> Change(Blank.Model) { ctx.slack.tearDownLogin() }
+            Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
 
             is Event.Outcome.UserInfo -> let {
                 model.accessToken
@@ -307,7 +334,7 @@ object SlackAccount {
             else -> error("Invalid event for authorized account: $event")
         }
 
-    private fun updateInvalid(
+    private fun change(
         ctx: Ctx,
         model: Model.Invalid,
         event: Event
@@ -322,7 +349,7 @@ object SlackAccount {
         }
     }
 
-    private fun updateRetrieved(
+    private fun change(
         ctx: Ctx,
         model: Model.Retrieved,
         event: Event
@@ -338,7 +365,7 @@ object SlackAccount {
             )
         }
 
-        Event.Intent.SignOut -> Change(Blank.Model) {
+        Event.Intent.SignOut -> Change(Model.Blank) {
             ctx.slack.tearDownLogin()
             ctx.slack.revoke(model.accessToken)
         }
@@ -346,38 +373,7 @@ object SlackAccount {
         else -> error("Invalid event for retrieved account: $event")
     }
 
-}
-
-object Blank {
-    fun view(
-        @Suppress("UNUSED_PARAMETER") model: Model,
-        dispatch: Dispatch<SlackAccount.Event>
-    ) = Props(
-        title = Prop.Text(text = "Welcome to Slaccount"),
-        desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
-        button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
-            dispatch(SlackAccount.Event.Intent.SignIn)
-        })
-
-    fun update(
-        ctx: SlackAccount.Ctx,
-        model: Model,
-        event: SlackAccount.Event
-    ): Change<SlackAccount.Model, SlackAccount.Event> = model.run {
-        check(event is SlackAccount.Event.Intent.SignIn)
-        Change(SlackAccount.Model.Pending()) { dispatch ->
-            ctx.platform.logi { "Got $event" }
-            ctx.slack.requestAuthScopes().collect { status ->
-                ctx.platform.logi { "Got status $status" }
-                dispatch(SlackAccount.Event.Outcome.AuthScopeStatus(status))
-            }
-        }
-    }
-
-    /** Authentication process wasn't even started */
-    object Model : SlackAccount.Model
-
     // endregion
-    data class Props(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : SlackAccount.Props
 }
+
 
