@@ -33,7 +33,7 @@ object Retrieved {
         val signOut: Prop.Button,
     )
 
-    interface ParentCtx {
+    interface PeripheralCtx {
         suspend fun raiseError(msg: String, throwable: Throwable)
     }
 
@@ -43,30 +43,55 @@ object Retrieved {
         infoResult: Result<Slack.UserInfo>,
     ): Change<Model?, Event>
             where Ctx : Platform,
-                  Ctx : ParentCtx =
-        run {
-            infoResult.fold(
-                onSuccess = { info ->
-                    val newModel = Model(
-                        accessToken = accessToken,
-                        id = info.id,
-                        image = info.image,
-                        name = info.name,
-                        realName = info.realName,
-                        email = info.email,
-                        presence = info.presence
-                    )
-                    Change(newModel) { dispatch ->
-                        val imageUrl = newModel.image
-                        val bufferResult = ctx.fetch(imageUrl)
-                        dispatch(Event.FetchedUserImage(bufferResult))
-                    }
-                },
+                  Ctx : PeripheralCtx = run {
+        infoResult.fold(
+            onSuccess = { info ->
+                val newModel = Model(
+                    accessToken = accessToken,
+                    id = info.id,
+                    image = info.image,
+                    name = info.name,
+                    realName = info.realName,
+                    email = info.email,
+                    presence = info.presence
+                )
+                Change(newModel) { dispatch ->
+                    val imageUrl = newModel.image
+                    val bufferResult = ctx.fetch(imageUrl)
+                    dispatch(Event.FetchedUserImage(bufferResult))
+                }
+            },
+            onFailure = { throwable ->
+                Change(null) {
+                    ctx.raiseError("User info retrieval failed", throwable)
+                }
+            }
+        )
+    }
+
+    fun <Ctx> update(
+        ctx: Ctx, model: Model?, event: Event
+    ): Change<Model?, Event>
+            where Ctx : PeripheralCtx,
+                  Ctx : Platform,
+                  Ctx : Slack = run {
+        checkNotNull(model) {
+            "Can't update null retrieved account on event: $event"
+        }
+        when (event) {
+            is Event.FetchedUserImage -> event.bufferResult.fold(
+                onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
                 onFailure = { throwable ->
-                    Change(null) {
-                        ctx.raiseError("User info retrieval failed", throwable)
+                    Change(model) {
+                        ctx.logi(throwable) { "Failed retrieving image ${model.image}" }
                     }
                 }
             )
+
+            Event.SignOut -> Change(model) {
+                ctx.tearDownLogin()
+                ctx.revoke(model.accessToken)
+            }
         }
+    }
 }
