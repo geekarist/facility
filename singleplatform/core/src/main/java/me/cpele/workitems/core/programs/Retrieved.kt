@@ -35,6 +35,7 @@ object Retrieved {
 
     interface PeripheralCtx {
         suspend fun raiseError(msg: String, throwable: Throwable)
+        suspend fun finish()
     }
 
     fun <Ctx> init(
@@ -91,6 +92,7 @@ object Retrieved {
             Event.SignOut -> Change(model) {
                 ctx.tearDownLogin()
                 ctx.revoke(model.accessToken)
+                ctx.finish()
             }
         }
     }
