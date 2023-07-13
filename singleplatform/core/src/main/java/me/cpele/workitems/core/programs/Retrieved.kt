@@ -33,9 +33,8 @@ object Retrieved {
         val signOut: Prop.Button,
     )
 
-    interface PeripheralCtx {
-        suspend fun raiseError(msg: String, throwable: Throwable)
-        suspend fun finish()
+    interface Parent {
+        suspend fun takeResult(result: Result<Unit>)
     }
 
     fun <Ctx> init(
@@ -44,7 +43,7 @@ object Retrieved {
         infoResult: Result<Slack.UserInfo>,
     ): Change<Model?, Event>
             where Ctx : Platform,
-                  Ctx : PeripheralCtx = run {
+                  Ctx : Parent = run {
         infoResult.fold(
             onSuccess = { info ->
                 val newModel = Model(
@@ -64,7 +63,7 @@ object Retrieved {
             },
             onFailure = { throwable ->
                 Change(null) {
-                    ctx.raiseError("User info retrieval failed", throwable)
+                    ctx.takeResult(Result.failure(throwable))
                 }
             }
         )
@@ -73,7 +72,7 @@ object Retrieved {
     fun <Ctx> update(
         ctx: Ctx, model: Model?, event: Event
     ): Change<Model?, Event>
-            where Ctx : PeripheralCtx,
+            where Ctx : Parent,
                   Ctx : Platform,
                   Ctx : Slack = run {
         checkNotNull(model) {
@@ -90,9 +89,7 @@ object Retrieved {
             )
 
             Event.SignOut -> Change(model) {
-                ctx.tearDownLogin()
-                ctx.revoke(model.accessToken)
-                ctx.finish()
+                ctx.takeResult(Result.success(Unit))
             }
         }
     }
