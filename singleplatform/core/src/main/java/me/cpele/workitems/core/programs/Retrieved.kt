@@ -69,6 +69,16 @@ object Retrieved {
         )
     }
 
+    private fun view(model: Model, dispatch: (Event) -> Unit): Props =
+        Props(
+            image = model.imageBuffer?.let { Prop.Image(it.array) },
+            name = Prop.Text(model.realName),
+            availability = Prop.Text("Presence: ${model.presence}"),
+            token = Prop.Text("Access token: ${model.accessToken}"),
+            email = Prop.Text("Email: ${model.email}"),
+            signOut = Prop.Button("Sign out") { dispatch(Event.SignOut) }
+        )
+
     fun <Ctx> update(
         ctx: Ctx, model: Model?, event: Event
     ): Change<Model?, Event>
