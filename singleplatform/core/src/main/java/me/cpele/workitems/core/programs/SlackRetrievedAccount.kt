@@ -5,7 +5,7 @@ import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.Slack
 
-object Retrieved {
+object SlackRetrievedAccount {
 
     data class Model(
         val accessToken: String,
@@ -68,10 +68,7 @@ object Retrieved {
         ctx: Ctx, model: Model, event: Event
     ): Change<Model, Event>
             where Ctx : Platform,
-                  Ctx : Slack = run {
-        checkNotNull(model) {
-            "Can't update null retrieved account on event: $event"
-        }
+                  Ctx : Slack =
         when (event) {
             is Event.FetchedUserImage -> event.bufferResult.fold(
                 onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
@@ -86,5 +83,4 @@ object Retrieved {
                 // Managed in parent program ⇒ no op here
             }
         }
-    }
 }

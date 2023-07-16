@@ -7,7 +7,6 @@ import oolong.effect.none
 // TODO: Don't use Java URL encoder
 import java.net.URLEncoder
 import java.nio.charset.Charset
-import me.cpele.workitems.core.programs.Retrieved as RetrievedPgm
 
 private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
 
@@ -31,7 +30,7 @@ object SlackAccount {
         /** Authentication was successful */
         data class Authorized(val accessToken: String) : Model
 
-        data class WrapRetrieved(val subModel: RetrievedPgm.Model) : Model
+        data class Retrieved(val subModel: SlackRetrievedAccount.Model) : Model
     }
 
     // endregion
@@ -67,7 +66,7 @@ object SlackAccount {
             override val signOut: Prop.Button
         ) : Props, RetrievedProps
 
-        data class WrapRetrieved(val subProps: RetrievedPgm.Props) : Props
+        data class Retrieved(val subProps: SlackRetrievedAccount.Props) : Props
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
@@ -75,14 +74,14 @@ object SlackAccount {
         is Model.Invalid -> props(model, dispatch)
         is Model.Pending -> props(model, dispatch)
         is Model.Authorized -> props(model, dispatch)
-        is Model.WrapRetrieved -> props(model, dispatch)
+        is Model.Retrieved -> props(model, dispatch)
     }
 
     private fun props(
-        model: Model.WrapRetrieved,
+        model: Model.Retrieved,
         dispatch: (Event) -> Unit
-    ): Props = Props.WrapRetrieved(RetrievedPgm.view(model.subModel) { event ->
-        dispatch(Event.WrapRetrieved(event))
+    ): Props = Props.Retrieved(SlackRetrievedAccount.view(model.subModel) { event ->
+        dispatch(Event.Retrieved(event))
     })
 
     private fun props(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
@@ -154,7 +153,7 @@ object SlackAccount {
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
         }
 
-        data class WrapRetrieved(val subEvent: RetrievedPgm.Event) : Event
+        data class Retrieved(val subEvent: SlackRetrievedAccount.Event) : Event
     }
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
@@ -174,7 +173,7 @@ object SlackAccount {
         is Model.Pending -> change(ctx, model, event)
         is Model.Authorized -> change(ctx, model, event)
         is Model.Invalid -> change(ctx, model, event)
-        is Model.WrapRetrieved -> change(ctx, model, event)
+        is Model.Retrieved -> change(ctx, model, event)
     }
 
     private fun change(
@@ -297,9 +296,9 @@ object SlackAccount {
             }.let { accessToken ->
                 event.userInfoResult.fold(
                     onSuccess = { info ->
-                        val (subModel, subEffect) = RetrievedPgm.init(ctx.platform, accessToken, info)
-                        Change(Model.WrapRetrieved(subModel), map(subEffect) { subEvent ->
-                            Event.WrapRetrieved(subEvent)
+                        val (subModel, subEffect) = SlackRetrievedAccount.init(ctx.platform, accessToken, info)
+                        Change(Model.Retrieved(subModel), map(subEffect) { subEvent ->
+                            Event.Retrieved(subEvent)
                         })
                     },
                     onFailure = { throwable ->
@@ -330,28 +329,28 @@ object SlackAccount {
 
     private fun change(
         ctx: Ctx,
-        model: Model.WrapRetrieved,
+        model: Model.Retrieved,
         event: Event
     ): Change<Model, Event> = when (event) {
-        is Event.WrapRetrieved -> changeRetrievedOnSubEvent(ctx, model, event)
+        is Event.Retrieved -> changeRetrievedOnSubEvent(ctx, model, event)
         Event.Intent.SignOut -> changeRetrievedOnSignOut(ctx, model)
-        else -> error("Unknown event for wrapped retrieved account: $event")
+        else -> error("Unknown event for retrieved account: $event")
     }
 
     private fun changeRetrievedOnSubEvent(
         ctx: Ctx,
-        model: Model.WrapRetrieved,
-        event: Event.WrapRetrieved
+        model: Model.Retrieved,
+        event: Event.Retrieved
     ): Change<Model, Event> {
         val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
-        val (subModel, subEffect) = RetrievedPgm.update(subCtx, model.subModel, event.subEvent)
+        val (subModel, subEffect) = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
         return Change(
-            model = Model.WrapRetrieved(subModel),
+            model = Model.Retrieved(subModel),
             effect = map(subEffect) { subEvent ->
-                if (subEvent is RetrievedPgm.Event.SignOut) {
+                if (subEvent is SlackRetrievedAccount.Event.SignOut) {
                     Event.Intent.SignOut
                 } else {
-                    Event.WrapRetrieved(subEvent)
+                    Event.Retrieved(subEvent)
                 }
             }
         )
@@ -359,7 +358,7 @@ object SlackAccount {
 
     private fun changeRetrievedOnSignOut(
         ctx: Ctx,
-        model: Model.WrapRetrieved
+        model: Model.Retrieved
     ): Change<Model, Event> =
         Change(Model.Blank) {
             ctx.slack.tearDownLogin()

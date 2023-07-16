@@ -57,7 +57,7 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
                 is SlackAccount.Props.SignedIn -> SignedIn(props)
                 is SlackAccount.Props.SignedOut -> SignedOut(props)
                 is SlackAccount.Props.SigningIn -> SigningIn(props)
-                is SlackAccount.Props.WrapRetrieved -> SignedIn(props.subProps)
+                is SlackAccount.Props.Retrieved -> SignedIn(props.subProps)
             }
         }
     }
