@@ -25,13 +25,13 @@ object Retrieved {
 
     data class Props(
         /** Account image. When absent, `null` */
-        val image: Prop.Image?,
-        val name: Prop.Text,
-        val availability: Prop.Text,
-        val token: Prop.Text,
-        val email: Prop.Text,
-        val signOut: Prop.Button,
-    )
+        override val image: Prop.Image?,
+        override val name: Prop.Text,
+        override val availability: Prop.Text,
+        override val token: Prop.Text,
+        override val email: Prop.Text,
+        override val signOut: Prop.Button,
+    ) : RetrievedProps
 
     fun <Ctx : Platform> init(
         ctx: Ctx,
