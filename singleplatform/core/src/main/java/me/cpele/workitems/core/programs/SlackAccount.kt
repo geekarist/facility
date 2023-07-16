@@ -2,10 +2,12 @@ package me.cpele.workitems.core.programs
 
 import me.cpele.workitems.core.framework.*
 import oolong.Dispatch
+import oolong.effect.map
 import oolong.effect.none
 // TODO: Don't use Java URL encoder
 import java.net.URLEncoder
 import java.nio.charset.Charset
+import me.cpele.workitems.core.programs.Retrieved as RetrievedPgm
 
 private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
 
@@ -42,6 +44,8 @@ object SlackAccount {
         ) : Model {
             companion object
         }
+
+        data class WrapRetrieved(val subModel: RetrievedPgm.Model?) : Model
     }
 
     // endregion
@@ -76,23 +80,33 @@ object SlackAccount {
             val email: Prop.Text,
             val signOut: Prop.Button
         ) : Props
+
+        data class WrapRetrieved(val subProps: RetrievedPgm.Props?) : Props
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
-        is Model.Blank -> view(model, dispatch)
-        is Model.Invalid -> view(model, dispatch)
-        is Model.Pending -> view(model, dispatch)
-        is Model.Authorized -> view(model, dispatch)
-        is Model.Retrieved -> view(model, dispatch)
+        is Model.Blank -> props(model, dispatch)
+        is Model.Invalid -> props(model, dispatch)
+        is Model.Pending -> props(model, dispatch)
+        is Model.Authorized -> props(model, dispatch)
+        is Model.Retrieved -> props(model, dispatch)
+        is Model.WrapRetrieved -> props(model, dispatch)
     }
 
-    private fun view(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
+    private fun props(
+        model: Model.WrapRetrieved,
+        dispatch: (Event) -> Unit
+    ): Props = Props.WrapRetrieved(RetrievedPgm.view(model.subModel) { event ->
+        dispatch(Event.WrapRetrieved(event))
+    })
+
+    private fun props(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
         Props.SignedOut(
             Prop.Text("Something's wrong"),
             Prop.Text("Got invalid account. Please try signing in again."),
             Prop.Button("Retry") { dispatch(Event.Intent.SignIn) })
 
-    private fun view(
+    private fun props(
         @Suppress("UNUSED_PARAMETER") model: Model.Blank,
         dispatch: Dispatch<Event>
     ) = Props.SignedOut(
@@ -102,7 +116,7 @@ object SlackAccount {
             dispatch(Event.Intent.SignIn)
         })
 
-    private fun view(
+    private fun props(
         @Suppress("UNUSED_PARAMETER") model: Model.Pending,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
@@ -115,7 +129,7 @@ object SlackAccount {
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
 
-    private fun view(
+    private fun props(
         model: Model.Authorized,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
@@ -130,7 +144,7 @@ object SlackAccount {
         Prop.Text(model.accessToken)
     )
 
-    private fun view(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
+    private fun props(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
         Props.SignedIn(
             image = model.imageBuffer?.let { Prop.Image(it.array) },
             name = Prop.Text(model.realName),
@@ -165,6 +179,8 @@ object SlackAccount {
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
             data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
         }
+
+        data class WrapRetrieved(val subEvent: RetrievedPgm.Event) : Event
     }
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
@@ -185,6 +201,26 @@ object SlackAccount {
         is Model.Authorized -> change(ctx, model, event)
         is Model.Invalid -> change(ctx, model, event)
         is Model.Retrieved -> change(ctx, model, event)
+        is Model.WrapRetrieved -> change(ctx, model, event)
+    }
+
+    private fun change(
+        ctx: Ctx,
+        model: Model.WrapRetrieved,
+        event: Event
+    ): Change<Model, Event> = run {
+        check(event is Event.WrapRetrieved)
+        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform, RetrievedPgm.Parent {
+            override suspend fun takeResult(result: Result<Unit>) {
+                TODO("Not yet implemented")
+            }
+
+        }
+        val (subModel, subEffect) = RetrievedPgm.update(subCtx, model.subModel, event.subEvent)
+        Change(
+            model = Model.WrapRetrieved(subModel),
+            effect = map(subEffect) { Event.WrapRetrieved(it) }
+        )
     }
 
     private fun change(

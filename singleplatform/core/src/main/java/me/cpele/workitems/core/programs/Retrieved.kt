@@ -69,15 +69,17 @@ object Retrieved {
         )
     }
 
-    private fun view(model: Model, dispatch: (Event) -> Unit): Props =
-        Props(
-            image = model.imageBuffer?.let { Prop.Image(it.array) },
-            name = Prop.Text(model.realName),
-            availability = Prop.Text("Presence: ${model.presence}"),
-            token = Prop.Text("Access token: ${model.accessToken}"),
-            email = Prop.Text("Email: ${model.email}"),
-            signOut = Prop.Button("Sign out") { dispatch(Event.SignOut) }
-        )
+    fun view(model: Model?, dispatch: (Event) -> Unit): Props? =
+        model?.let { actualModel ->
+            Props(
+                image = actualModel.imageBuffer?.let { Prop.Image(it.array) },
+                name = Prop.Text(actualModel.realName),
+                availability = Prop.Text("Presence: ${actualModel.presence}"),
+                token = Prop.Text("Access token: ${actualModel.accessToken}"),
+                email = Prop.Text("Email: ${actualModel.email}"),
+                signOut = Prop.Button("Sign out") { dispatch(Event.SignOut) }
+            )
+        }
 
     fun <Ctx> update(
         ctx: Ctx, model: Model?, event: Event
