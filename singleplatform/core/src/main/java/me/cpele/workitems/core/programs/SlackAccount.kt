@@ -31,20 +31,6 @@ object SlackAccount {
         /** Authentication was successful */
         data class Authorized(val accessToken: String) : Model
 
-        /** Authentication retrieved */
-        data class Retrieved(
-            val accessToken: String,
-            val id: String,
-            val image: String,
-            val imageBuffer: ImageBuffer? = null,
-            val name: String,
-            val realName: String,
-            val email: String,
-            val presence: String
-        ) : Model {
-            companion object
-        }
-
         data class WrapRetrieved(val subModel: RetrievedPgm.Model) : Model
     }
 
@@ -89,7 +75,6 @@ object SlackAccount {
         is Model.Invalid -> props(model, dispatch)
         is Model.Pending -> props(model, dispatch)
         is Model.Authorized -> props(model, dispatch)
-        is Model.Retrieved -> props(model, dispatch)
         is Model.WrapRetrieved -> props(model, dispatch)
     }
 
@@ -144,16 +129,6 @@ object SlackAccount {
         Prop.Text(model.accessToken)
     )
 
-    private fun props(model: Model.Retrieved, dispatch: (Event) -> Unit): Props =
-        Props.SignedIn(
-            image = model.imageBuffer?.let { Prop.Image(it.array) },
-            name = Prop.Text(model.realName),
-            availability = Prop.Text("Presence: ${model.presence}"),
-            token = Prop.Text("Access token: ${model.accessToken}"),
-            email = Prop.Text("Email: ${model.email}"),
-            signOut = Prop.Button("Sign out") { dispatch(Event.Intent.SignOut) }
-        )
-
     // endregion
 
     // region Update
@@ -177,7 +152,6 @@ object SlackAccount {
             data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
             data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
-            data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
         }
 
         data class WrapRetrieved(val subEvent: RetrievedPgm.Event) : Event
@@ -200,28 +174,7 @@ object SlackAccount {
         is Model.Pending -> change(ctx, model, event)
         is Model.Authorized -> change(ctx, model, event)
         is Model.Invalid -> change(ctx, model, event)
-        is Model.Retrieved -> change(ctx, model, event)
         is Model.WrapRetrieved -> change(ctx, model, event)
-    }
-
-    private fun change(
-        ctx: Ctx,
-        model: Model.WrapRetrieved,
-        event: Event
-    ): Change<Model, Event> = run {
-        check(event is Event.WrapRetrieved)
-        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
-        val (subModel, subEffect) = RetrievedPgm.update(subCtx, model.subModel, event.subEvent)
-        Change(
-            model = Model.WrapRetrieved(subModel),
-            effect = map(subEffect) { subEvent ->
-                if (subEvent is RetrievedPgm.Event.SignOut) {
-                    Event.Intent.SignOut
-                } else {
-                    Event.WrapRetrieved(subEvent)
-                }
-            }
-        )
     }
 
     private fun change(
@@ -344,21 +297,10 @@ object SlackAccount {
             }.let { accessToken ->
                 event.userInfoResult.fold(
                     onSuccess = { info ->
-                        val newModel = Model.Retrieved( // Retrieved account
-                            accessToken = accessToken,
-                            id = info.id,
-                            image = info.image,
-                            name = info.name,
-                            realName = info.realName,
-                            email = info.email,
-                            presence = info.presence
-                        )
-                        Change(newModel) { dispatch ->
-                            // Move on to image retrieval
-                            val imageUrl = newModel.image
-                            val bufferResult = ctx.platform.fetch(imageUrl)
-                            dispatch(Event.Outcome.FetchedUserImage(bufferResult))
-                        }
+                        val (subModel, subEffect) = RetrievedPgm.init(ctx.platform, accessToken, info)
+                        Change(Model.WrapRetrieved(subModel), map(subEffect) { subEvent ->
+                            Event.WrapRetrieved(subEvent)
+                        })
                     },
                     onFailure = { throwable ->
                         Change(Model.Invalid(IllegalStateException("Expected valid user info", throwable))) {
@@ -388,27 +330,41 @@ object SlackAccount {
 
     private fun change(
         ctx: Ctx,
-        model: Model.Retrieved,
+        model: Model.WrapRetrieved,
         event: Event
     ): Change<Model, Event> = when (event) {
-        is Event.Outcome.FetchedUserImage -> run {
-            event.bufferResult.fold(
-                onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
-                onFailure = { throwable ->
-                    Change(model) {
-                        ctx.platform.logi(throwable) { "Failed retrieving image ${model.image}" }
-                    }
-                }
-            )
-        }
-
-        Event.Intent.SignOut -> Change(Model.Blank) {
-            ctx.slack.tearDownLogin()
-            ctx.slack.revoke(model.accessToken)
-        }
-
-        else -> error("Invalid event for retrieved account: $event")
+        is Event.WrapRetrieved -> changeRetrievedOnSubEvent(ctx, model, event)
+        Event.Intent.SignOut -> changeRetrievedOnSignOut(ctx, model)
+        else -> error("Unknown event for wrapped retrieved account: $event")
     }
+
+    private fun changeRetrievedOnSubEvent(
+        ctx: Ctx,
+        model: Model.WrapRetrieved,
+        event: Event.WrapRetrieved
+    ): Change<Model, Event> {
+        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
+        val (subModel, subEffect) = RetrievedPgm.update(subCtx, model.subModel, event.subEvent)
+        return Change(
+            model = Model.WrapRetrieved(subModel),
+            effect = map(subEffect) { subEvent ->
+                if (subEvent is RetrievedPgm.Event.SignOut) {
+                    Event.Intent.SignOut
+                } else {
+                    Event.WrapRetrieved(subEvent)
+                }
+            }
+        )
+    }
+
+    private fun changeRetrievedOnSignOut(
+        ctx: Ctx,
+        model: Model.WrapRetrieved
+    ): Change<Model, Event> =
+        Change(Model.Blank) {
+            ctx.slack.tearDownLogin()
+            ctx.slack.revoke(model.subModel.accessToken)
+        }
 
     // endregion
 }
