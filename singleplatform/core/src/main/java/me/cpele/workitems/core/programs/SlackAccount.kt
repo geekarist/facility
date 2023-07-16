@@ -45,7 +45,7 @@ object SlackAccount {
             companion object
         }
 
-        data class WrapRetrieved(val subModel: RetrievedPgm.Model?) : Model
+        data class WrapRetrieved(val subModel: RetrievedPgm.Model) : Model
     }
 
     // endregion
@@ -210,16 +210,17 @@ object SlackAccount {
         event: Event
     ): Change<Model, Event> = run {
         check(event is Event.WrapRetrieved)
-        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform, RetrievedPgm.Parent {
-            override suspend fun takeOutcome(result: Result<Unit>) {
-                TODO("Not yet implemented")
-            }
-
-        }
+        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
         val (subModel, subEffect) = RetrievedPgm.update(subCtx, model.subModel, event.subEvent)
         Change(
             model = Model.WrapRetrieved(subModel),
-            effect = map(subEffect) { Event.WrapRetrieved(it) }
+            effect = map(subEffect) { subEvent ->
+                if (subEvent is RetrievedPgm.Event.SignOut) {
+                    Event.Intent.SignOut
+                } else {
+                    Event.WrapRetrieved(subEvent)
+                }
+            }
         )
     }
 

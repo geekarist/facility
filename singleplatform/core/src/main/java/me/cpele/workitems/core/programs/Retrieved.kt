@@ -33,59 +33,41 @@ object Retrieved {
         val signOut: Prop.Button,
     )
 
-    interface Parent {
-        suspend fun takeOutcome(result: Result<Unit>)
-    }
-
-    fun <Ctx> init(
+    fun <Ctx : Platform> init(
         ctx: Ctx,
         accessToken: String,
-        infoResult: Result<Slack.UserInfo>,
-    ): Change<Model?, Event>
-            where Ctx : Platform,
-                  Ctx : Parent = run {
-        infoResult.fold(
-            onSuccess = { info ->
-                val newModel = Model(
-                    accessToken = accessToken,
-                    id = info.id,
-                    image = info.image,
-                    name = info.name,
-                    realName = info.realName,
-                    email = info.email,
-                    presence = info.presence
-                )
-                Change(newModel) { dispatch ->
-                    val imageUrl = newModel.image
-                    val bufferResult = ctx.fetch(imageUrl)
-                    dispatch(Event.FetchedUserImage(bufferResult))
-                }
-            },
-            onFailure = { throwable ->
-                Change(null) {
-                    ctx.takeOutcome(Result.failure(throwable))
-                }
-            }
+        info: Slack.UserInfo,
+    ): Change<Model, Event> = run {
+        val newModel = Model(
+            accessToken = accessToken,
+            id = info.id,
+            image = info.image,
+            name = info.name,
+            realName = info.realName,
+            email = info.email,
+            presence = info.presence
         )
+        Change(newModel) { dispatch ->
+            val imageUrl = newModel.image
+            val bufferResult = ctx.fetch(imageUrl)
+            dispatch(Event.FetchedUserImage(bufferResult))
+        }
     }
 
-    fun view(model: Model?, dispatch: (Event) -> Unit): Props? =
-        model?.let { actualModel ->
-            Props(
-                image = actualModel.imageBuffer?.let { Prop.Image(it.array) },
-                name = Prop.Text(actualModel.realName),
-                availability = Prop.Text("Presence: ${actualModel.presence}"),
-                token = Prop.Text("Access token: ${actualModel.accessToken}"),
-                email = Prop.Text("Email: ${actualModel.email}"),
-                signOut = Prop.Button("Sign out") { dispatch(Event.SignOut) }
-            )
-        }
+    fun view(model: Model, dispatch: (Event) -> Unit): Props =
+        Props(
+            image = model.imageBuffer?.let { Prop.Image(it.array) },
+            name = Prop.Text(model.realName),
+            availability = Prop.Text("Presence: ${model.presence}"),
+            token = Prop.Text("Access token: ${model.accessToken}"),
+            email = Prop.Text("Email: ${model.email}"),
+            signOut = Prop.Button("Sign out") { dispatch(Event.SignOut) }
+        )
 
     fun <Ctx> update(
-        ctx: Ctx, model: Model?, event: Event
-    ): Change<Model?, Event>
-            where Ctx : Parent,
-                  Ctx : Platform,
+        ctx: Ctx, model: Model, event: Event
+    ): Change<Model, Event>
+            where Ctx : Platform,
                   Ctx : Slack = run {
         checkNotNull(model) {
             "Can't update null retrieved account on event: $event"
@@ -101,7 +83,7 @@ object Retrieved {
             )
 
             Event.SignOut -> Change(model) {
-                ctx.takeOutcome(Result.success(Unit))
+                // Managed in parent program ⇒ no op here
             }
         }
     }
