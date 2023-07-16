@@ -34,7 +34,7 @@ object Retrieved {
     )
 
     interface Parent {
-        suspend fun takeResult(result: Result<Unit>)
+        suspend fun takeOutcome(result: Result<Unit>)
     }
 
     fun <Ctx> init(
@@ -63,7 +63,7 @@ object Retrieved {
             },
             onFailure = { throwable ->
                 Change(null) {
-                    ctx.takeResult(Result.failure(throwable))
+                    ctx.takeOutcome(Result.failure(throwable))
                 }
             }
         )
@@ -101,7 +101,7 @@ object Retrieved {
             )
 
             Event.SignOut -> Change(model) {
-                ctx.takeResult(Result.success(Unit))
+                ctx.takeOutcome(Result.success(Unit))
             }
         }
     }

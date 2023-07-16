@@ -211,7 +211,7 @@ object SlackAccount {
     ): Change<Model, Event> = run {
         check(event is Event.WrapRetrieved)
         val subCtx = object : Slack by ctx.slack, Platform by ctx.platform, RetrievedPgm.Parent {
-            override suspend fun takeResult(result: Result<Unit>) {
+            override suspend fun takeOutcome(result: Result<Unit>) {
                 TODO("Not yet implemented")
             }
 
