@@ -78,7 +78,7 @@ object SlackRetrievedAccount {
                     }
                 }
             )
-            // Managed in parent program ⇒ no-op effect here
-            Event.SignOut -> Change(model)
+
+            Event.SignOut -> error("Sign-out effect must be handled by caller")
         }
 }

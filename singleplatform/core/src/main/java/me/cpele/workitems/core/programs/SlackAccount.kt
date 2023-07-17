@@ -2,6 +2,7 @@ package me.cpele.workitems.core.programs
 
 import me.cpele.workitems.core.framework.*
 import oolong.Dispatch
+import oolong.dispatch.contramap
 import oolong.effect.map
 import oolong.effect.none
 // TODO: Don't use Java URL encoder
@@ -114,9 +115,19 @@ object SlackAccount {
     private fun props(
         model: Model.Retrieved,
         dispatch: (Event) -> Unit
-    ): Props = Props.Retrieved(SlackRetrievedAccount.view(model.subModel) { event ->
-        dispatch(Event.Retrieved(event))
-    })
+    ): Props = run {
+        fun wrapSubEvent(subEvent: SlackRetrievedAccount.Event) =
+            if (subEvent is SlackRetrievedAccount.Event.SignOut) {
+                Event.Intent.SignOut
+            } else {
+                Event.Retrieved(subEvent)
+            }
+
+        val subDispatch = contramap<Event, SlackRetrievedAccount.Event>(dispatch) {
+            wrapSubEvent(it)
+        }
+        Props.Retrieved(SlackRetrievedAccount.view(model.subModel, subDispatch))
+    }
 
     // endregion
 
@@ -324,24 +335,16 @@ object SlackAccount {
     ): Change<Model, Event> = when (event) {
         is Event.Retrieved -> {
             val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
-            val subChange = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
-            val newModel = Model.Retrieved(subChange.model)
-            fun mapSubEvent(subEvent: SlackRetrievedAccount.Event) =
-                if (subEvent is SlackRetrievedAccount.Event.SignOut) {
-                    Event.Intent.SignOut
-                } else {
-                    Event.Retrieved(subEvent)
-                }
-
-            val newEffect = map(subChange.effect) { mapSubEvent(it) }
-            Change(newModel, newEffect)
+            val (subModel, subEffect) = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
+            Change(model = Model.Retrieved(subModel), effect = map(subEffect) { Event.Retrieved(it) })
         }
 
         Event.Intent.SignOut -> Change(Model.Blank) {
             ctx.slack.tearDownLogin()
             ctx.slack.revoke(model.subModel.accessToken)
         }
-        else -> error("Unknown event for retrieved account: $event")
+
+        else -> error("Invalid event for retrieved account: $event")
     }
 
     // endregion
