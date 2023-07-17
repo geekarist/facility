@@ -346,6 +346,7 @@ object SlackAccount {
         Change(newModel, newEffect)
     }
 
+
     private fun changeRetrievedOnSignOut(
         ctx: Ctx,
         model: Model.Retrieved
