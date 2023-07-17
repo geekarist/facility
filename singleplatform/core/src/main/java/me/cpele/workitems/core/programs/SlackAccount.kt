@@ -322,39 +322,27 @@ object SlackAccount {
         model: Model.Retrieved,
         event: Event
     ): Change<Model, Event> = when (event) {
-        is Event.Retrieved -> changeRetrievedOnSubEvent(ctx, model, event)
-        Event.Intent.SignOut -> changeRetrievedOnSignOut(ctx, model)
-        else -> error("Unknown event for retrieved account: $event")
-    }
+        is Event.Retrieved -> {
+            val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
+            val subChange = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
+            val newModel = Model.Retrieved(subChange.model)
+            fun mapSubEvent(subEvent: SlackRetrievedAccount.Event) =
+                if (subEvent is SlackRetrievedAccount.Event.SignOut) {
+                    Event.Intent.SignOut
+                } else {
+                    Event.Retrieved(subEvent)
+                }
 
-    private fun changeRetrievedOnSubEvent(
-        ctx: Ctx,
-        model: Model.Retrieved,
-        event: Event.Retrieved
-    ): Change<Model, Event> = run {
-        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
-        val subChange = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
-        val newModel = Model.Retrieved(subChange.model)
-        fun mapSubEvent(subEvent: SlackRetrievedAccount.Event) =
-            if (subEvent is SlackRetrievedAccount.Event.SignOut) {
-                Event.Intent.SignOut
-            } else {
-                Event.Retrieved(subEvent)
-            }
+            val newEffect = map(subChange.effect) { mapSubEvent(it) }
+            Change(newModel, newEffect)
+        }
 
-        val newEffect = map(subChange.effect) { mapSubEvent(it) }
-        Change(newModel, newEffect)
-    }
-
-
-    private fun changeRetrievedOnSignOut(
-        ctx: Ctx,
-        model: Model.Retrieved
-    ): Change<Model, Event> =
-        Change(Model.Blank) {
+        Event.Intent.SignOut -> Change(Model.Blank) {
             ctx.slack.tearDownLogin()
             ctx.slack.revoke(model.subModel.accessToken)
         }
+        else -> error("Unknown event for retrieved account: $event")
+    }
 
     // endregion
 }
