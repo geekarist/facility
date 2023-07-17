@@ -78,9 +78,7 @@ object SlackRetrievedAccount {
                     }
                 }
             )
-
-            Event.SignOut -> Change(model) {
-                // Managed in parent program ⇒ no op here
-            }
+            // Managed in parent program ⇒ no-op effect here
+            Event.SignOut -> Change(model)
         }
 }
