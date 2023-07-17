@@ -115,19 +115,17 @@ object SlackAccount {
     private fun props(
         model: Model.Retrieved,
         dispatch: (Event) -> Unit
-    ): Props = run {
-        fun wrapSubEvent(subEvent: SlackRetrievedAccount.Event) =
-            if (subEvent is SlackRetrievedAccount.Event.SignOut) {
-                Event.Intent.SignOut
-            } else {
-                Event.Retrieved(subEvent)
-            }
-
-        val subDispatch = contramap<Event, SlackRetrievedAccount.Event>(dispatch) {
-            wrapSubEvent(it)
-        }
-        Props.Retrieved(SlackRetrievedAccount.view(model.subModel, subDispatch))
-    }
+    ): Props = Props.Retrieved(
+        SlackRetrievedAccount.view(
+            model = model.subModel,
+            dispatch = contramap(dispatch) { subEvent ->
+                if (subEvent is SlackRetrievedAccount.Event.SignOut) {
+                    Event.Intent.SignOut
+                } else {
+                    Event.Retrieved(subEvent)
+                }
+            })
+    )
 
     // endregion
 
