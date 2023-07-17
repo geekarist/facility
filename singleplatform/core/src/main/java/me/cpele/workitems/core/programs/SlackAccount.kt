@@ -341,19 +341,19 @@ object SlackAccount {
         ctx: Ctx,
         model: Model.Retrieved,
         event: Event.Retrieved
-    ): Change<Model, Event> {
+    ): Change<Model, Event> = run {
         val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
-        val (subModel, subEffect) = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
-        return Change(
-            model = Model.Retrieved(subModel),
-            effect = map(subEffect) { subEvent ->
-                if (subEvent is SlackRetrievedAccount.Event.SignOut) {
-                    Event.Intent.SignOut
-                } else {
-                    Event.Retrieved(subEvent)
-                }
+        val subChange = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
+        val newModel = Model.Retrieved(subChange.model)
+        fun mapSubEvent(subEvent: SlackRetrievedAccount.Event) =
+            if (subEvent is SlackRetrievedAccount.Event.SignOut) {
+                Event.Intent.SignOut
+            } else {
+                Event.Retrieved(subEvent)
             }
-        )
+
+        val newEffect = map(subChange.effect) { mapSubEvent(it) }
+        Change(newModel, newEffect)
     }
 
     private fun changeRetrievedOnSignOut(
