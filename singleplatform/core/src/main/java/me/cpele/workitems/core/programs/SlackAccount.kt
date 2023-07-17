@@ -56,16 +56,6 @@ object SlackAccount {
             }
         }
 
-        data class SignedIn(
-            /** Account image. When absent, `null` */
-            override val image: Prop.Image?,
-            override val name: Prop.Text,
-            override val availability: Prop.Text,
-            override val token: Prop.Text,
-            override val email: Prop.Text,
-            override val signOut: Prop.Button
-        ) : Props, RetrievedProps
-
         data class Retrieved(val subProps: SlackRetrievedAccount.Props) : Props
     }
 

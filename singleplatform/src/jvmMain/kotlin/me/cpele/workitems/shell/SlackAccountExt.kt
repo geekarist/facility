@@ -23,8 +23,8 @@ import androidx.compose.ui.unit.dp
 import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.Slack
-import me.cpele.workitems.core.programs.RetrievedProps
 import me.cpele.workitems.core.programs.SlackAccount
+import me.cpele.workitems.core.programs.SlackRetrievedAccount
 
 fun SlackAccount.main(vararg args: String) { // TODO: SlackAccount.main(args)
     if (args.contains("mock")) {
@@ -53,8 +53,6 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
             contentAlignment = Alignment.Center
         ) {
             when (props) {
-
-                is SlackAccount.Props.SignedIn -> SignedIn(props)
                 is SlackAccount.Props.SignedOut -> SignedOut(props)
                 is SlackAccount.Props.SigningIn -> SigningIn(props)
                 is SlackAccount.Props.Retrieved -> SignedIn(props.subProps)
@@ -64,7 +62,7 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 }
 
 @Composable
-private fun SignedIn(props: RetrievedProps) {
+private fun SignedIn(props: SlackRetrievedAccount.Props) {
     Card {
         val scrollState = rememberScrollState()
         ProvideTextStyle(TextStyle(textAlign = TextAlign.Center)) {
