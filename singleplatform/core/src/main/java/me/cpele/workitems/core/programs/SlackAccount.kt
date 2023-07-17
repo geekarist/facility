@@ -67,13 +67,6 @@ object SlackAccount {
         is Model.Retrieved -> props(model, dispatch)
     }
 
-    private fun props(
-        model: Model.Retrieved,
-        dispatch: (Event) -> Unit
-    ): Props = Props.Retrieved(SlackRetrievedAccount.view(model.subModel) { event ->
-        dispatch(Event.Retrieved(event))
-    })
-
     private fun props(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
         Props.SignedOut(
             Prop.Text("Something's wrong"),
@@ -117,6 +110,13 @@ object SlackAccount {
         Prop.Text("Here's your access token:"),
         Prop.Text(model.accessToken)
     )
+
+    private fun props(
+        model: Model.Retrieved,
+        dispatch: (Event) -> Unit
+    ): Props = Props.Retrieved(SlackRetrievedAccount.view(model.subModel) { event ->
+        dispatch(Event.Retrieved(event))
+    })
 
     // endregion
 
