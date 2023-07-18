@@ -185,10 +185,23 @@ object SlackAccount {
     ): Change<Model, Event> = when (model) {
         is Model.Blank -> change(ctx, model, event)
         is Model.Pending1 -> change(ctx, model, event)
-        is Model.Pending -> TODO()
+        is Model.Pending -> change(ctx, model, event)
         is Model.Authorized -> change(ctx, model, event)
         is Model.Invalid -> change(ctx, model, event)
         is Model.Retrieved -> change(ctx, model, event)
+    }
+
+    private fun change(
+        ctx: Ctx,
+        model: Model.Pending,
+        event: Event
+    ): Change<Model, Event> = run {
+        check(event is Event.Pending)
+        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
+        val subChange = SlackPendingAccount.update(subCtx, model.subModel, event.subEvent)
+        val newModel = Model.Pending(subChange.model)
+        val newEffect = map(subChange.effect, Event::Pending)
+        Change(newModel, newEffect)
     }
 
     private fun change(
