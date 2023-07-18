@@ -23,7 +23,9 @@ object SlackAccount {
         object Blank : Model
 
         /** Authentication started but not complete */
-        data class Pending(val redirectUri: String? = null) : Model
+        data class Pending1(val redirectUri: String? = null) : Model
+
+        data class Pending(val subModel: SlackPendingAccount.Model) : Model
 
         /** Authentication failed at some point */
         data class Invalid(val throwable: Throwable) : Model
@@ -57,12 +59,15 @@ object SlackAccount {
             }
         }
 
+        data class Pending(val subProps: SlackPendingAccount.Props) : Props
+
         data class Retrieved(val subProps: SlackRetrievedAccount.Props) : Props
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
         is Model.Blank -> props(model, dispatch)
         is Model.Invalid -> props(model, dispatch)
+        is Model.Pending1 -> props(model, dispatch)
         is Model.Pending -> props(model, dispatch)
         is Model.Authorized -> props(model, dispatch)
         is Model.Retrieved -> props(model, dispatch)
@@ -85,7 +90,7 @@ object SlackAccount {
         })
 
     private fun props(
-        @Suppress("UNUSED_PARAMETER") model: Model.Pending,
+        @Suppress("UNUSED_PARAMETER") model: Model.Pending1,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
         title = Prop.Text("Welcome to Slaccount"),
@@ -96,6 +101,14 @@ object SlackAccount {
         Prop.Text("We need your permission to let Slack give us info about you."),
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
+
+    private fun props(model: Model.Pending, dispatch: (Event) -> Unit): Props =
+        Props.Pending(
+            SlackPendingAccount.view(
+                model.subModel,
+                contramap(dispatch, Event::Pending)
+            )
+        )
 
     private fun props(
         model: Model.Authorized,
@@ -153,6 +166,8 @@ object SlackAccount {
         }
 
         data class Retrieved(val subEvent: SlackRetrievedAccount.Event) : Event
+
+        data class Pending(val subEvent: SlackPendingAccount.Event) : Event
     }
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
@@ -169,7 +184,8 @@ object SlackAccount {
         model: Model
     ): Change<Model, Event> = when (model) {
         is Model.Blank -> change(ctx, model, event)
-        is Model.Pending -> change(ctx, model, event)
+        is Model.Pending1 -> change(ctx, model, event)
+        is Model.Pending -> TODO()
         is Model.Authorized -> change(ctx, model, event)
         is Model.Invalid -> change(ctx, model, event)
         is Model.Retrieved -> change(ctx, model, event)
@@ -181,7 +197,7 @@ object SlackAccount {
         event: Event
     ): Change<Model, Event> = model.run {
         check(event is Event.Intent.SignIn)
-        Change(Model.Pending()) { dispatch ->
+        Change(Model.Pending1()) { dispatch ->
             ctx.platform.logi { "Got $event" }
             ctx.slack.requestAuthScopes().collect { status ->
                 ctx.platform.logi { "Got status $status" }
@@ -192,13 +208,13 @@ object SlackAccount {
 
     private fun change(
         ctx: Ctx,
-        model: Model.Pending,
+        model: Model.Pending1,
         event: Event
     ) = when (event) {
 
         is Event.Outcome.AuthScopeStatus -> when (event.status) {
             Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(
-                Model.Pending()
+                Model.Pending1()
             )
 
             is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
@@ -232,9 +248,9 @@ object SlackAccount {
         model: Model,
         status: Slack.AuthenticationScopeStatus.Success
     ): Change<Model, Event> = run {
-        check(model is Model.Pending)
+        check(model is Model.Pending1)
         checkNotNull(model.redirectUri)
-        Change(Model.Pending(model.redirectUri)) { dispatch ->
+        Change(Model.Pending1(model.redirectUri)) { dispatch ->
             ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
                 .flatMapCatching { clientSecret ->
                     ctx.slack.exchangeCodeForCredentials(
@@ -271,7 +287,7 @@ object SlackAccount {
             val userScopeParam = "users:read,users:read.email"
             "?scope=$scopeParam&user_scope=$userScopeParam&client_id=$clientId&redirect_uri=$redirectUri" to redirectUri
         }.let { (urlSuffix, redirectUri) -> // Take suffix, build full URL, make change
-            Change(Model.Pending(redirectUri)) {
+            Change(Model.Pending1(redirectUri)) {
                 val baseAuthUrl = ctx.slack.authUrlStr
                 val url = "$baseAuthUrl$urlSuffix"
                 ctx.platform.apply {
@@ -317,7 +333,7 @@ object SlackAccount {
         event: Event
     ): Change<Model, Event> = model.run {
         check(event is Event.Intent.SignIn)
-        Change(Model.Pending()) { dispatch ->
+        Change(Model.Pending1()) { dispatch ->
             ctx.platform.logi { "Got $event" }
             ctx.slack.requestAuthScopes().collect { status ->
                 ctx.platform.logi { "Got status $status" }
