@@ -72,26 +72,37 @@ object SlackPendingAccount {
 
             is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
             is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
-            is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
+            is Slack.AuthenticationScopeStatus.Failure -> {
+                // Handle upstream ⇒ no op
+                Change(model)
+                // Change<SlackAccount.Model, SlackAccount.Event>(
+                //     SlackAccount.Model.Invalid(event.status.throwable)
+                // ) {
+                //     ctx.tearDownLogin()
+                // }
+            }
         }
 
-        Event.SignInCancel -> Change(SlackAccount.Model.Blank) { ctx.tearDownLogin() }
-
-        is Event.AccessToken -> event.credentialsResult.fold(
-            onSuccess = { credentials ->
-                val token = credentials.userToken
-                Change(SlackAccount.Model.Authorized(token)) { dispatch ->
-                    val result = ctx.retrieveUser(credentials)
-                    val outcome = SlackAccount.Event.Outcome.UserInfo(result)
-                    dispatch(outcome)
-                }
-            },
-            onFailure = { thrown ->
-                Change(SlackAccount.Model.Invalid(thrown)) {
-                    ctx.logi(thrown) { "Failure exchanging code for access token" }
-                }
-            }
-        )
+        // Handled upstream ⇒ no op
+        is Event.AccessToken, // -> {
+            // event.credentialsResult.fold(
+            //     onSuccess = { credentials ->
+            //         // val token = credentials.userToken
+            //         // Change(SlackAccount.Model.Authorized(token)) { dispatch ->
+            //         //     val result = ctx.retrieveUser(credentials)
+            //         //     val outcome = SlackAccount.Event.Outcome.UserInfo(result)
+            //         //     dispatch(outcome)
+            //         // }
+            //     },
+            //     onFailure = { thrown ->
+            //         // Change(SlackAccount.Model.Invalid(thrown)) {
+            //         //     ctx.logi(thrown) { "Failure exchanging code for access token" }
+            //         // }
+            //     }
+            // )
+            // }
+        Event.SignInCancel // TODO: Tear down login // Change(SlackAccount.Model.Blank) { ctx.tearDownLogin() }
+        -> Change(model)
     }
 
     private fun <Ctx> updateOnAuthCodeSuccess(
@@ -116,14 +127,6 @@ object SlackPendingAccount {
                         Event.AccessToken(credentialsResult)
                     }.also(dispatch)
             }
-        }
-
-    private fun <Ctx : Slack> updateOnAuthScopeFailure(
-        status: Slack.AuthenticationScopeStatus.Failure,
-        ctx: Ctx
-    ): Change<SlackAccount.Model, SlackAccount.Event> =
-        Change(SlackAccount.Model.Invalid(status.throwable)) {
-            ctx.tearDownLogin()
         }
 
     private fun <Ctx> updateOnAuthCodeRouteExposed(
