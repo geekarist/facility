@@ -46,7 +46,7 @@ object SlackPendingAccount {
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
 
-    private fun <Ctx> init(
+    fun <Ctx> init(
         ctx: Ctx,
         event: Event
     ): Change<Model, Event>
