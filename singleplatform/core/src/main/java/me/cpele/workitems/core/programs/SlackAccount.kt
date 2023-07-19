@@ -106,7 +106,7 @@ object SlackAccount {
         Props.WrapPending(
             SlackPendingAccount.view(
                 model.subModel,
-                contramap(dispatch, Event::Pending)
+                contramap(dispatch, Event::WrapPending)
             )
         )
 
@@ -167,7 +167,7 @@ object SlackAccount {
 
         data class Retrieved(val subEvent: SlackRetrievedAccount.Event) : Event
 
-        data class Pending(val subEvent: SlackPendingAccount.Event) : Event
+        data class WrapPending(val subEvent: SlackPendingAccount.Event) : Event
     }
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
@@ -196,11 +196,11 @@ object SlackAccount {
         model: Model.WrapPending,
         event: Event
     ): Change<Model, Event> = run {
-        check(event is Event.Pending)
+        check(event is Event.WrapPending)
         val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
         val subChange = SlackPendingAccount.update(subCtx, model.subModel, event.subEvent)
         val newModel = Model.WrapPending(subChange.model)
-        val newEffect = map(subChange.effect, Event::Pending)
+        val newEffect = map(subChange.effect, Event::WrapPending)
         Change(newModel, newEffect)
     }
 
@@ -223,9 +223,39 @@ object SlackAccount {
         ctx: Ctx,
         model: Model.Pending,
         event: Event
-    ) = when (event) {
+    ): Change<Model, Event> = when (event) {
+        is Event.Outcome.AuthScopeStatus -> changeFromPendingOnAuthStatus(ctx, model, event)
+        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
+        is Event.Outcome.AccessToken -> changeFromPendingOnAccess(ctx, event)
+        else -> error("Invalid event for pending model: $event")
+    }
 
-        is Event.Outcome.AuthScopeStatus -> when (event.status) {
+    private fun changeFromPendingOnAccess(
+        ctx: Ctx,
+        event: Event.Outcome.AccessToken
+    ): Change<Model, Event> = event.credentialsResult.fold(
+        onSuccess = { credentials ->
+            val token = credentials.userToken
+            Change(Model.Authorized(token)) { dispatch ->
+                val result = ctx.slack.retrieveUser(credentials)
+                val outcome = Event.Outcome.UserInfo(result)
+                dispatch(outcome)
+            }
+        },
+        onFailure = { thrown ->
+            Change(Model.Invalid(thrown)) {
+                ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
+            }
+        }
+    )
+
+    private fun changeFromPendingOnAuthStatus(
+        ctx: Ctx,
+        model: Model,
+        event: Event
+    ): Change<Model, Event> = run {
+        check(event is Event.Outcome.AuthScopeStatus)
+        when (event.status) {
             Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(
                 Model.Pending()
             )
@@ -234,26 +264,6 @@ object SlackAccount {
             is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
             is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
         }
-
-        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
-
-        is Event.Outcome.AccessToken -> event.credentialsResult.fold(
-            onSuccess = { credentials ->
-                val token = credentials.userToken
-                Change(Model.Authorized(token)) { dispatch ->
-                    val result = ctx.slack.retrieveUser(credentials)
-                    val outcome = Event.Outcome.UserInfo(result)
-                    dispatch(outcome)
-                }
-            },
-            onFailure = { thrown ->
-                Change(Model.Invalid(thrown)) {
-                    ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
-                }
-            }
-        )
-
-        else -> error("Invalid event for pending model: $event")
     }
 
     private fun updateOnAuthCodeSuccess(
