@@ -8,7 +8,7 @@ interface Slack {
     val authUrlStr: String
 
     suspend fun fetchMessages(): Result<List<Message>>
-    suspend fun requestAuthScopes(): Flow<AuthenticationScopeStatus>
+    suspend fun requestAuthScopes(): Flow<Authorization>
     suspend fun tearDownLogin()
 
     @Deprecated(
@@ -49,15 +49,15 @@ interface Slack {
         companion object
     }
 
-    sealed interface AuthenticationScopeStatus {
+    sealed interface Authorization {
 
-        sealed interface Route : AuthenticationScopeStatus {
+        sealed interface Route : Authorization {
             object Init : Route
             object Started : Route
             data class Exposed(val url: URL) : Route
         }
 
-        data class Success(val code: String) : AuthenticationScopeStatus
-        data class Failure(val throwable: Throwable) : AuthenticationScopeStatus
+        data class Success(val code: String) : Authorization
+        data class Failure(val throwable: Throwable) : Authorization
     }
 }

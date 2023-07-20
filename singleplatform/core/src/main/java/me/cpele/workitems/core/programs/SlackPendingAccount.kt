@@ -28,7 +28,7 @@ object SlackPendingAccount {
     }
 
     sealed interface Event {
-        data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
+        data class AuthScopeStatus(val status: Slack.Authorization) : Event
         object SignInCancel : Event
         data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
     }
@@ -67,12 +67,12 @@ object SlackPendingAccount {
     ) where Ctx : Slack, Ctx : Platform = when (event) {
 
         is Event.AuthScopeStatus -> when (event.status) {
-            Slack.AuthenticationScopeStatus.Route.Init,
-            Slack.AuthenticationScopeStatus.Route.Started -> Change(Model())
+            Slack.Authorization.Route.Init,
+            Slack.Authorization.Route.Started -> Change(Model())
 
-            is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
-            is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
-            is Slack.AuthenticationScopeStatus.Failure -> {
+            is Slack.Authorization.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
+            is Slack.Authorization.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
+            is Slack.Authorization.Failure -> {
                 // Handle upstream ⇒ no op
                 Change(model)
                 // Change<SlackAccount.Model, SlackAccount.Event>(
@@ -108,7 +108,7 @@ object SlackPendingAccount {
     private fun <Ctx> updateOnAuthCodeSuccess(
         ctx: Ctx,
         model: Model,
-        status: Slack.AuthenticationScopeStatus.Success
+        status: Slack.Authorization.Success
     ): Change<Model, Event>
             where Ctx : Slack,
                   Ctx : Platform =
@@ -131,7 +131,7 @@ object SlackPendingAccount {
 
     private fun <Ctx> updateOnAuthCodeRouteExposed(
         ctx: Ctx,
-        status: Slack.AuthenticationScopeStatus.Route.Exposed
+        status: Slack.Authorization.Route.Exposed
     ): Change<Model, Event> where Ctx : Slack,
                                   Ctx : Platform =
         status.url.let { exposedUrl -> // URL-encode exposed URL

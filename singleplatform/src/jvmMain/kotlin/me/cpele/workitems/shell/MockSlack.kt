@@ -68,22 +68,22 @@ object MockSlack : Slack {
         TODO("Not yet implemented")
     }
 
-    override suspend fun requestAuthScopes(): Flow<Slack.AuthenticationScopeStatus> = callbackFlow {
-        send(Slack.AuthenticationScopeStatus.Route.Init)
+    override suspend fun requestAuthScopes(): Flow<Slack.Authorization> = callbackFlow {
+        send(Slack.Authorization.Route.Init)
         server = embeddedServer(Netty, host = "localhost", port = AUTH_SERVER_PORT) {
             routing {
                 setUpCodeAckRoute(
                     callbackRoutePath = "/fake-code-ack",
-                    onCode = { send(Slack.AuthenticationScopeStatus.Success(it)) },
-                    onFailure = { send(Slack.AuthenticationScopeStatus.Failure(it)) })
+                    onCode = { send(Slack.Authorization.Success(it)) },
+                    onFailure = { send(Slack.Authorization.Failure(it)) })
                 routingAuth("/fake-auth-url")
             }
         }
         server?.start()
-        send(Slack.AuthenticationScopeStatus.Route.Started)
+        send(Slack.Authorization.Route.Started)
         server?.environment?.config?.let { serverConfig ->
             val url = URL("http", "localhost", serverConfig.port, "/fake-code-ack")
-            send(Slack.AuthenticationScopeStatus.Route.Exposed(url))
+            send(Slack.Authorization.Route.Exposed(url))
         }
         awaitClose {
             launch { tearDownLogin() }

@@ -160,7 +160,7 @@ object SlackAccount {
 
         /** Result of an external operation e.g. response of a web-service call */
         sealed interface Outcome : Event {
-            data class AuthScopeStatus(val status: Slack.AuthenticationScopeStatus) : Event
+            data class AuthScopeStatus(val status: Slack.Authorization) : Event
             data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
         }
@@ -183,10 +183,10 @@ object SlackAccount {
         event: Event,
         model: Model
     ): Change<Model, Event> = when (model) {
-        is Model.Blank -> change(ctx, model, event)
+        is Model.Blank -> initPending(ctx, event)
         is Model.Pending -> change(ctx, model, event)
         is Model.WrapPending -> wrapChange(ctx, model, event)
-        is Model.Authorized -> change(ctx, model, event)
+        is Model.Authorized -> initNextFromAuthorized(ctx, model, event)
         is Model.Invalid -> change(ctx, model, event)
         is Model.Retrieved -> change(ctx, model, event)
     }
@@ -204,11 +204,10 @@ object SlackAccount {
         Change(newModel, newEffect)
     }
 
-    private fun change(
+    private fun initPending(
         ctx: Ctx,
-        model: Model.Blank,
         event: Event
-    ): Change<Model, Event> = model.run {
+    ): Change<Model, Event> = run {
         check(event is Event.Intent.SignIn)
         Change(Model.Pending()) { dispatch ->
             ctx.platform.logi { "Got $event" }
@@ -225,29 +224,42 @@ object SlackAccount {
         event: Event
     ): Change<Model, Event> = when (event) {
         is Event.Outcome.AuthScopeStatus -> changeFromPendingOnAuthStatus(ctx, model, event)
-        Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
-        is Event.Outcome.AccessToken -> changeFromPendingOnAccess(ctx, event)
+        Event.Intent.SignInCancel -> initBlank(ctx)
+        is Event.Outcome.AccessToken -> initNextFromPendingOnAccess(ctx, event)
         else -> error("Invalid event for pending model: $event")
     }
 
-    private fun changeFromPendingOnAccess(
+    private fun initNextFromPendingOnAccess(
         ctx: Ctx,
         event: Event.Outcome.AccessToken
     ): Change<Model, Event> = event.credentialsResult.fold(
         onSuccess = { credentials ->
             val token = credentials.userToken
-            Change(Model.Authorized(token)) { dispatch ->
-                val result = ctx.slack.retrieveUser(credentials)
-                val outcome = Event.Outcome.UserInfo(result)
-                dispatch(outcome)
-            }
+            initAuthorized(ctx, token, credentials)
         },
         onFailure = { thrown ->
-            Change(Model.Invalid(thrown)) {
-                ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
-            }
+            initInvalid(ctx, thrown)
         }
     )
+
+    private fun initInvalid(
+        ctx: Ctx,
+        thrown: Throwable
+    ): Change<Model, Event> =
+        Change(Model.Invalid(thrown)) {
+            ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
+        }
+
+    private fun initAuthorized(
+        ctx: Ctx,
+        token: String,
+        credentials: Slack.Credentials
+    ): Change<Model, Event> =
+        Change(Model.Authorized(token)) { dispatch ->
+            val result = ctx.slack.retrieveUser(credentials)
+            val outcome = Event.Outcome.UserInfo(result)
+            dispatch(outcome)
+        }
 
     private fun changeFromPendingOnAuthStatus(
         ctx: Ctx,
@@ -255,24 +267,25 @@ object SlackAccount {
         event: Event.Outcome.AuthScopeStatus
     ): Change<Model, Event> = run {
         when (event.status) {
-            Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(
-                Model.Pending()
-            )
+            Slack.Authorization.Route.Init,
+            Slack.Authorization.Route.Started ->
+                Change(Model.Pending())
 
-            is Slack.AuthenticationScopeStatus.Route.Exposed -> changeFromPendingOnAuthCodeRouteExposed(
-                ctx,
-                event.status
-            )
+            is Slack.Authorization.Route.Exposed ->
+                changeFromPendingOnAuthCodeRouteExposed(ctx, model, event.status)
 
-            is Slack.AuthenticationScopeStatus.Success -> changeFromPendingOnAuthCodeSuccess(ctx, model, event.status)
-            is Slack.AuthenticationScopeStatus.Failure -> changeFromPendingOnAuthScopeFailure(event.status, ctx)
+            is Slack.Authorization.Success ->
+                changeFromPendingOnAuthCodeSuccess(ctx, model, event.status)
+
+            is Slack.Authorization.Failure ->
+                initInvalidFromPendingOnAuthorizationFailure(event.status, ctx)
         }
     }
 
     private fun changeFromPendingOnAuthCodeSuccess(
         ctx: Ctx,
         model: Model.Pending,
-        status: Slack.AuthenticationScopeStatus.Success
+        status: Slack.Authorization.Success
     ): Change<Model, Event> = run {
         checkNotNull(model.redirectUri)
         Change(Model.Pending(model.redirectUri)) { dispatch ->
@@ -290,8 +303,8 @@ object SlackAccount {
         }
     }
 
-    private fun changeFromPendingOnAuthScopeFailure(
-        status: Slack.AuthenticationScopeStatus.Failure,
+    private fun initInvalidFromPendingOnAuthorizationFailure(
+        status: Slack.Authorization.Failure,
         ctx: Ctx
     ): Change<Model, Event> =
         Change(Model.Invalid(status.throwable)) {
@@ -300,8 +313,9 @@ object SlackAccount {
 
     private fun changeFromPendingOnAuthCodeRouteExposed(
         ctx: Ctx,
-        status: Slack.AuthenticationScopeStatus.Route.Exposed
-    ): Change<Model, Event> =
+        model: Model.Pending,
+        status: Slack.Authorization.Route.Exposed
+    ): Change<Model, Event> = model.run {
         status.url.let { exposedUrl -> // URL-encode exposed URL
             val decodedRedirectUri = exposedUrl.toExternalForm()
             val charset = Charset.defaultCharset().name()
@@ -321,15 +335,16 @@ object SlackAccount {
                 }
             }
         }
+    }
 
-    private fun change(
+    private fun initNextFromAuthorized(
         ctx: Ctx,
         model: Model.Authorized,
         event: Event
     ): Change<Model, Event> =
         when (event) {
 
-            Event.Intent.SignInCancel -> Change(Model.Blank) { ctx.slack.tearDownLogin() }
+            Event.Intent.SignInCancel -> initBlank(ctx)
 
             is Event.Outcome.UserInfo -> let {
                 model.accessToken
@@ -351,6 +366,9 @@ object SlackAccount {
 
             else -> error("Invalid event for authorized account: $event")
         }
+
+    private fun initBlank(ctx: Ctx): Change<Model, Event> =
+        Change(Model.Blank) { ctx.slack.tearDownLogin() }
 
     private fun change(
         ctx: Ctx,
@@ -378,13 +396,18 @@ object SlackAccount {
             Change(model = Model.Retrieved(subModel), effect = map(subEffect) { Event.Retrieved(it) })
         }
 
-        Event.Intent.SignOut -> Change(Model.Blank) {
-            ctx.slack.tearDownLogin()
-            ctx.slack.revoke(model.subModel.accessToken)
-        }
-
+        Event.Intent.SignOut -> initBlankOnSignOut(ctx, model.subModel.accessToken)
         else -> error("Invalid event for retrieved account: $event")
     }
+
+    private fun initBlankOnSignOut(
+        ctx: Ctx,
+        accessToken: String
+    ): Change<Model, Event> =
+        Change(Model.Blank) {
+            ctx.slack.tearDownLogin()
+            ctx.slack.revoke(accessToken)
+        }
 
     // endregion
 }
