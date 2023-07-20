@@ -251,27 +251,29 @@ object SlackAccount {
 
     private fun changeFromPendingOnAuthStatus(
         ctx: Ctx,
-        model: Model,
-        event: Event
+        model: Model.Pending,
+        event: Event.Outcome.AuthScopeStatus
     ): Change<Model, Event> = run {
-        check(event is Event.Outcome.AuthScopeStatus)
         when (event.status) {
             Slack.AuthenticationScopeStatus.Route.Init, Slack.AuthenticationScopeStatus.Route.Started -> Change(
                 Model.Pending()
             )
 
-            is Slack.AuthenticationScopeStatus.Route.Exposed -> updateOnAuthCodeRouteExposed(ctx, event.status)
-            is Slack.AuthenticationScopeStatus.Success -> updateOnAuthCodeSuccess(ctx, model, event.status)
-            is Slack.AuthenticationScopeStatus.Failure -> updateOnAuthScopeFailure(event.status, ctx)
+            is Slack.AuthenticationScopeStatus.Route.Exposed -> changeFromPendingOnAuthCodeRouteExposed(
+                ctx,
+                event.status
+            )
+
+            is Slack.AuthenticationScopeStatus.Success -> changeFromPendingOnAuthCodeSuccess(ctx, model, event.status)
+            is Slack.AuthenticationScopeStatus.Failure -> changeFromPendingOnAuthScopeFailure(event.status, ctx)
         }
     }
 
-    private fun updateOnAuthCodeSuccess(
+    private fun changeFromPendingOnAuthCodeSuccess(
         ctx: Ctx,
-        model: Model,
+        model: Model.Pending,
         status: Slack.AuthenticationScopeStatus.Success
     ): Change<Model, Event> = run {
-        check(model is Model.Pending)
         checkNotNull(model.redirectUri)
         Change(Model.Pending(model.redirectUri)) { dispatch ->
             ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
@@ -288,7 +290,7 @@ object SlackAccount {
         }
     }
 
-    private fun updateOnAuthScopeFailure(
+    private fun changeFromPendingOnAuthScopeFailure(
         status: Slack.AuthenticationScopeStatus.Failure,
         ctx: Ctx
     ): Change<Model, Event> =
@@ -296,7 +298,7 @@ object SlackAccount {
             ctx.slack.tearDownLogin()
         }
 
-    private fun updateOnAuthCodeRouteExposed(
+    private fun changeFromPendingOnAuthCodeRouteExposed(
         ctx: Ctx,
         status: Slack.AuthenticationScopeStatus.Route.Exposed
     ): Change<Model, Event> =
