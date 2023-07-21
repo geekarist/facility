@@ -49,8 +49,8 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform) {
 private fun SlackAccount.Ui(props: SlackAccount.Props) {
     MaterialTheme {
         Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            contentAlignment = Alignment.Center,
         ) {
             when (props) {
                 is SlackAccount.Props.SignedOut -> SignedOut(props)
@@ -88,8 +88,14 @@ private fun SignedIn(props: SlackRetrievedAccount.Props) {
                 Spacer(Modifier.height(16.dp))
                 Text(text = props.email.text, style = MaterialTheme.typography.body2.merge(LocalTextStyle.current))
                 Spacer(Modifier.height(32.dp))
-                Button(props.signOut.onClick) {
-                    Text(props.signOut.text)
+                Row {
+                    Button({}) {
+                        Text("Refresh")
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Button(props.signOut.onClick) {
+                        Text(props.signOut.text)
+                    }
                 }
                 Spacer(Modifier.height(16.dp))
             }
