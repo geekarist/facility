@@ -25,8 +25,6 @@ object SlackAccount {
         /** Authentication started but not complete */
         data class Pending(val redirectUri: String? = null) : Model
 
-        data class WrapPending(val subModel: SlackPendingAccount.Model) : Model
-
         /** Authentication failed at some point */
         data class Invalid(val throwable: Throwable) : Model
 
@@ -59,8 +57,6 @@ object SlackAccount {
             }
         }
 
-        data class WrapPending(val subProps: SlackPendingAccount.Props) : Props
-
         data class Retrieved(val subProps: SlackRetrievedAccount.Props) : Props
     }
 
@@ -68,7 +64,6 @@ object SlackAccount {
         is Model.Blank -> props(model, dispatch)
         is Model.Invalid -> props(model, dispatch)
         is Model.Pending -> props(model, dispatch)
-        is Model.WrapPending -> wrapProps(model, dispatch)
         is Model.Authorized -> props(model, dispatch)
         is Model.Retrieved -> props(model, dispatch)
     }
@@ -101,14 +96,6 @@ object SlackAccount {
         Prop.Text("We need your permission to let Slack give us info about you."),
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
-
-    private fun wrapProps(model: Model.WrapPending, dispatch: (Event) -> Unit): Props =
-        Props.WrapPending(
-            SlackPendingAccount.view(
-                model.subModel,
-                contramap(dispatch, Event::WrapPending)
-            )
-        )
 
     private fun props(
         model: Model.Authorized,
@@ -166,8 +153,6 @@ object SlackAccount {
         }
 
         data class Retrieved(val subEvent: SlackRetrievedAccount.Event) : Event
-
-        data class WrapPending(val subEvent: SlackPendingAccount.Event) : Event
     }
 
     fun init() = Change<Model, _>(Model.Blank, none<Event>())
@@ -185,23 +170,9 @@ object SlackAccount {
     ): Change<Model, Event> = when (model) {
         is Model.Blank -> initPending(ctx, event)
         is Model.Pending -> change(ctx, model, event)
-        is Model.WrapPending -> wrapChange(ctx, model, event)
         is Model.Authorized -> initNextFromAuthorized(ctx, model, event)
         is Model.Invalid -> change(ctx, model, event)
         is Model.Retrieved -> change(ctx, model, event)
-    }
-
-    private fun wrapChange(
-        ctx: Ctx,
-        model: Model.WrapPending,
-        event: Event
-    ): Change<Model, Event> = run {
-        check(event is Event.WrapPending)
-        val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
-        val subChange = SlackPendingAccount.update(subCtx, model.subModel, event.subEvent)
-        val newModel = Model.WrapPending(subChange.model)
-        val newEffect = map(subChange.effect, Event::WrapPending)
-        Change(newModel, newEffect)
     }
 
     private fun initPending(

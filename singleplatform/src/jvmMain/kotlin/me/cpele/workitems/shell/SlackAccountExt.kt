@@ -56,7 +56,6 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
                 is SlackAccount.Props.SignedOut -> SignedOut(props)
                 is SlackAccount.Props.SigningIn -> SigningIn(props)
                 is SlackAccount.Props.Retrieved -> SignedIn(props.subProps)
-                is SlackAccount.Props.WrapPending -> TODO()
             }
         }
     }
