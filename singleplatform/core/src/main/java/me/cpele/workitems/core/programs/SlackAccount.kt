@@ -29,7 +29,9 @@ object SlackAccount {
         data class Invalid(val throwable: Throwable) : Model
 
         /** Authentication was successful */
-        data class Authorized(val accessToken: String) : Model
+        data class Authorized(val credentials: Slack.Credentials) : Model {
+            val accessToken: String = credentials.userToken
+        }
 
         data class Retrieved(val subModel: SlackRetrievedAccount.Model) : Model
     }
@@ -118,13 +120,8 @@ object SlackAccount {
     ): Props = Props.Retrieved(
         SlackRetrievedAccount.view(
             model = model.subModel,
-            dispatch = contramap(dispatch) { subEvent ->
-                if (subEvent is SlackRetrievedAccount.Event.SignOut) {
-                    Event.Intent.SignOut
-                } else {
-                    Event.Retrieved(subEvent)
-                }
-            })
+            dispatch = contramap(dispatch, Event::Retrieved)
+        )
     )
 
     // endregion
@@ -140,7 +137,6 @@ object SlackAccount {
 
         /** User intent e.g. when user presses a button */
         sealed interface Intent : Event {
-            object SignOut : Event
             object SignIn : Event
             object SignInCancel : Event
         }
@@ -204,13 +200,8 @@ object SlackAccount {
         ctx: Ctx,
         event: Event.Outcome.AccessToken
     ): Change<Model, Event> = event.credentialsResult.fold(
-        onSuccess = { credentials ->
-            val token = credentials.userToken
-            initAuthorized(ctx, token, credentials)
-        },
-        onFailure = { thrown ->
-            initInvalid(ctx, thrown)
-        }
+        onSuccess = { credentials -> initAuthorized(ctx, credentials) },
+        onFailure = { thrown -> initInvalid(ctx, thrown) }
     )
 
     private fun initInvalid(
@@ -223,10 +214,9 @@ object SlackAccount {
 
     private fun initAuthorized(
         ctx: Ctx,
-        token: String,
         credentials: Slack.Credentials
     ): Change<Model, Event> =
-        Change(Model.Authorized(token)) { dispatch ->
+        Change(Model.Authorized(credentials)) { dispatch ->
             val result = ctx.slack.retrieveUser(credentials)
             val outcome = Event.Outcome.UserInfo(result)
             dispatch(outcome)
@@ -318,11 +308,11 @@ object SlackAccount {
             Event.Intent.SignInCancel -> initBlank(ctx)
 
             is Event.Outcome.UserInfo -> let {
-                model.accessToken
-            }.let { accessToken ->
+                model.credentials
+            }.let { credentials ->
                 event.userInfoResult.fold(
                     onSuccess = { info ->
-                        val (subModel, subEffect) = SlackRetrievedAccount.init(ctx.platform, accessToken, info)
+                        val (subModel, subEffect) = SlackRetrievedAccount.init(ctx.platform, credentials, info)
                         Change(Model.Retrieved(subModel), map(subEffect) { subEvent ->
                             Event.Retrieved(subEvent)
                         })
@@ -360,16 +350,20 @@ object SlackAccount {
         ctx: Ctx,
         model: Model.Retrieved,
         event: Event
-    ): Change<Model, Event> = when (event) {
-        is Event.Retrieved -> {
-            val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
-            val (subModel, subEffect) = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
-            Change(model = Model.Retrieved(subModel), effect = map(subEffect) { Event.Retrieved(it) })
+    ): Change<Model, Event> = run {
+        check(event is Event.Retrieved)
+        // Check sub-event for interception
+        when (event.subEvent) {
+            SlackRetrievedAccount.Event.Refresh -> initAuthorized(ctx, model.subModel.credentials)
+            SlackRetrievedAccount.Event.SignOut -> initBlankOnSignOut(ctx, model.subModel.accessToken)
+            is SlackRetrievedAccount.Event.FetchedUserImage -> {
+                val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
+                val (subModel, subEffect) = SlackRetrievedAccount.update(subCtx, model.subModel, event.subEvent)
+                Change(model = Model.Retrieved(subModel), effect = map(subEffect) { Event.Retrieved(it) })
+            }
         }
-
-        Event.Intent.SignOut -> initBlankOnSignOut(ctx, model.subModel.accessToken)
-        else -> error("Invalid event for retrieved account: $event")
     }
+
 
     private fun initBlankOnSignOut(
         ctx: Ctx,

@@ -89,8 +89,8 @@ private fun SignedIn(props: SlackRetrievedAccount.Props) {
                 Text(text = props.email.text, style = MaterialTheme.typography.body2.merge(LocalTextStyle.current))
                 Spacer(Modifier.height(32.dp))
                 Row {
-                    Button({}) {
-                        Text("Refresh")
+                    Button(props.refresh.onClick) {
+                        Text(props.refresh.text)
                     }
                     Spacer(Modifier.width(16.dp))
                     Button(props.signOut.onClick) {

@@ -8,7 +8,7 @@ import me.cpele.workitems.core.framework.Slack
 object SlackRetrievedAccount {
 
     data class Model(
-        val accessToken: String,
+        val credentials: Slack.Credentials,
         val id: String,
         val image: String,
         val imageBuffer: ImageBuffer? = null,
@@ -16,11 +16,14 @@ object SlackRetrievedAccount {
         val realName: String,
         val email: String,
         val presence: String
-    )
+    ) {
+        val accessToken: String = credentials.userToken
+    }
 
     sealed interface Event {
         data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
         object SignOut : Event
+        object Refresh : Event
     }
 
     data class Props(
@@ -30,16 +33,17 @@ object SlackRetrievedAccount {
         val availability: Prop.Text,
         val token: Prop.Text,
         val email: Prop.Text,
+        val refresh: Prop.Button,
         val signOut: Prop.Button,
     )
 
     fun <Ctx : Platform> init(
         ctx: Ctx,
-        accessToken: String,
+        credentials: Slack.Credentials,
         info: Slack.UserInfo,
     ): Change<Model, Event> = run {
         val newModel = Model(
-            accessToken = accessToken,
+            credentials = credentials,
             id = info.id,
             image = info.image,
             name = info.name,
@@ -61,6 +65,7 @@ object SlackRetrievedAccount {
             availability = Prop.Text("Presence: ${model.presence}"),
             token = Prop.Text("Access token: ${model.accessToken}"),
             email = Prop.Text("Email: ${model.email}"),
+            refresh = Prop.Button("Refresh") { dispatch(Event.Refresh) },
             signOut = Prop.Button("Sign out") { dispatch(Event.SignOut) }
         )
 
@@ -79,6 +84,7 @@ object SlackRetrievedAccount {
                 }
             )
 
-            Event.SignOut -> error("Sign-out effect must be handled by caller")
+            Event.SignOut -> error("Sign-out event must be handled by caller")
+            Event.Refresh -> error("Refresh event must be handled by caller")
         }
 }
