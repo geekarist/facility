@@ -92,7 +92,7 @@ private fun SignedIn(props: SlackRetrievedAccount.Props) {
                     Button({}) {
                         Text("Refresh")
                     }
-                    Spacer(Modifier.width(8.dp))
+                    Spacer(Modifier.width(16.dp))
                     Button(props.signOut.onClick) {
                         Text(props.signOut.text)
                     }
@@ -129,8 +129,8 @@ private fun SigningIn(props: SlackAccount.Props.SigningIn) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(text = props.title.text, style = MaterialTheme.typography.h4)
-        props.statuses.forEach {
-            Text(it.text)
+        props.statuses.forEach { status ->
+            Text(status.text, textAlign = TextAlign.Center)
         }
         CircularProgressIndicator()
         Button(props.cancel.onClick) {
