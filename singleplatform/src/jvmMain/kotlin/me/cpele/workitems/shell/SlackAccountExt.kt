@@ -26,7 +26,7 @@ import me.cpele.workitems.core.framework.Slack
 import me.cpele.workitems.core.programs.SlackAccount
 import me.cpele.workitems.core.programs.SlackRetrievedAccount
 
-fun SlackAccount.main(vararg args: String) { // TODO: SlackAccount.main(args)
+fun SlackAccount.main(vararg args: String) {
     if (args.contains("mock")) {
         SlackAccount.makeApp(MockSlack, DesktopPlatform)
     } else {
@@ -63,42 +63,40 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
 
 @Composable
 private fun SignedIn(props: SlackRetrievedAccount.Props) {
-    Card {
-        val scrollState = rememberScrollState()
-        ProvideTextStyle(TextStyle(textAlign = TextAlign.Center)) {
-            Column(
-                Modifier.verticalScroll(scrollState).padding(horizontal = 48.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(Modifier.height(16.dp))
-                var painter: Painter? by remember { mutableStateOf(null) }
-                val density = LocalDensity.current
-                LaunchedEffect(props.image, density) {
-                    painter = painter(props.image) ?: placeholderPainter(density)
-                }
-                painter?.let { actualPainter ->
-                    Image(painter = actualPainter, contentDescription = null, modifier = Modifier.width(256.dp))
-                    Spacer(Modifier.height(32.dp))
-                }
-                Text(text = props.name.text, style = MaterialTheme.typography.h4)
-                Spacer(Modifier.height(16.dp))
-                Text(props.availability.text)
-                Spacer(Modifier.height(16.dp))
-                Text(text = props.token.text, style = MaterialTheme.typography.body2.merge(LocalTextStyle.current))
-                Spacer(Modifier.height(16.dp))
-                Text(text = props.email.text, style = MaterialTheme.typography.body2.merge(LocalTextStyle.current))
-                Spacer(Modifier.height(32.dp))
-                Row {
-                    Button(props.refresh.onClick) {
-                        Text(props.refresh.text)
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Button(props.signOut.onClick) {
-                        Text(props.signOut.text)
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
+    val scrollState = rememberScrollState()
+    ProvideTextStyle(TextStyle(textAlign = TextAlign.Center)) {
+        Column(
+            Modifier.verticalScroll(scrollState).padding(horizontal = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(Modifier.height(16.dp))
+            var painter: Painter? by remember { mutableStateOf(null) }
+            val density = LocalDensity.current
+            LaunchedEffect(props.image, density) {
+                painter = painter(props.image) ?: placeholderPainter(density)
             }
+            painter?.let { actualPainter ->
+                Image(painter = actualPainter, contentDescription = null, modifier = Modifier.width(256.dp))
+                Spacer(Modifier.height(32.dp))
+            }
+            Text(text = props.name.text, style = LocalTextStyle.current.merge(MaterialTheme.typography.h4))
+            Spacer(Modifier.height(16.dp))
+            Text(props.availability.text)
+            Spacer(Modifier.height(16.dp))
+            Text(text = props.token.text, style = MaterialTheme.typography.body2.merge(LocalTextStyle.current))
+            Spacer(Modifier.height(16.dp))
+            Text(text = props.email.text, style = MaterialTheme.typography.body2.merge(LocalTextStyle.current))
+            Spacer(Modifier.height(32.dp))
+            Row {
+                Button(props.refresh.onClick) {
+                    Text(props.refresh.text)
+                }
+                Spacer(Modifier.width(16.dp))
+                Button(props.signOut.onClick) {
+                    Text(props.signOut.text)
+                }
+            }
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
