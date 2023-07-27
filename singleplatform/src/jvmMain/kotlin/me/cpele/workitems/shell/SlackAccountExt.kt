@@ -20,11 +20,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
 import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.Slack
 import me.cpele.workitems.core.programs.SlackAccount
 import me.cpele.workitems.core.programs.SlackRetrievedAccount
+import java.awt.Dimension
+import kotlin.math.roundToInt
 
 fun SlackAccount.main(vararg args: String) {
     if (args.contains("mock")) {
@@ -39,23 +42,32 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform) {
         init = ::init,
         update = makeUpdate(SlackAccount.Ctx(slack, platform)),
         view = ::view,
-        ui = {
-            Ui(it)
+        ui = { props ->
+            Ui(props)
         }
     )
 }
 
 @Composable
 private fun SlackAccount.Ui(props: SlackAccount.Props) {
-    MaterialTheme {
-        Box(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            when (props) {
-                is SlackAccount.Props.SignedOut -> SignedOut(props)
-                is SlackAccount.Props.SigningIn -> SigningIn(props)
-                is SlackAccount.Props.Retrieved -> SignedIn(props.subProps)
+    Window(
+        onCloseRequest = props.onWindowClose
+    ) {
+        with(LocalDensity.current) {
+            val minWidth = 600.dp.toPx().roundToInt()
+            val minHeight = 700.dp.toPx().roundToInt()
+            window.minimumSize = Dimension(minWidth, minHeight)
+        }
+        MaterialTheme {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                when (props) {
+                    is SlackAccount.Props.SignedOut -> SignedOut(props)
+                    is SlackAccount.Props.SigningIn -> SigningIn(props)
+                    is SlackAccount.Props.Retrieved -> SignedIn(props.subProps)
+                }
             }
         }
     }

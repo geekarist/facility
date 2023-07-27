@@ -16,7 +16,11 @@ import androidx.compose.ui.unit.dp
 import me.cpele.workitems.core.programs.WorkItems
 
 @Composable
-fun WorkItems.Ui(props: WorkItems.Props) {
+fun WorkItems.Ui(
+    props: WorkItems.Props,
+    @Suppress("UNUSED_PARAMETER")
+    exitApp: () -> Unit = {} // TODO: Define Window in this composable
+) {
     MaterialTheme {
         Box(Modifier.padding(16.dp).fillMaxSize()) {
             Text(modifier = Modifier.align(Alignment.TopEnd), text = props.status)
@@ -60,6 +64,6 @@ fun WorkItems.app() = app(
     init = makeInit(DefaultSlack(DesktopPlatform, NgrokIngress)),
     update = makeUpdate(DesktopPlatform),
     view = WorkItems::view
-) { WorkItems.Ui(it) }
+) { props -> WorkItems.Ui(props) }
 
 fun WorkItems.main(vararg args: String) = app()

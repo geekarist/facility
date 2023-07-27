@@ -2,14 +2,9 @@ package me.cpele.workitems.shell
 
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import me.cpele.workitems.core.framework.Change
 import oolong.runtime
-import java.awt.Dimension
-import kotlin.math.roundToInt
 
 fun <PropsT, ModelT, EventT> app(
     init: () -> Change<ModelT, EventT>,
@@ -24,16 +19,7 @@ fun <PropsT, ModelT, EventT> app(
             mutableStateOf(initProps)
         }
         val coroutineScope = rememberCoroutineScope()
-        Window(
-            onCloseRequest = ::exitApplication
-        ) {
-            with(LocalDensity.current) {
-                val minWidth = 600.dp.toPx().roundToInt()
-                val minHeight = 700.dp.toPx().roundToInt()
-                window.minimumSize = Dimension(minWidth, minHeight)
-            }
-            ui(props)
-        }
+        ui(props)
         LaunchedEffect(Unit) {
             runtime(
                 init = {

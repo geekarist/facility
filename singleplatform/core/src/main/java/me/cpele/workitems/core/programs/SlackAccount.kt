@@ -41,9 +41,17 @@ object SlackAccount {
     // region View
 
     sealed interface Props {
-        data class SignedOut(val title: Prop.Text, val desc: Prop.Text, val button: Prop.Button) : Props
+        val onWindowClose: () -> Unit
+
+        data class SignedOut(
+            override val onWindowClose: () -> Unit,
+            val title: Prop.Text,
+            val desc: Prop.Text,
+            val button: Prop.Button
+        ) : Props
 
         data class SigningIn(
+            override val onWindowClose: () -> Unit,
             val title: Prop.Text,
             val progress: Prop.Progress,
             val cancel: Prop.Button,
@@ -51,15 +59,19 @@ object SlackAccount {
         ) : Props {
             companion object {
                 operator fun invoke(
+                    onWindowClose: () -> Unit,
                     title: Prop.Text,
                     progress: Prop.Progress,
                     cancel: Prop.Button,
                     vararg status: Prop.Text
-                ) = SigningIn(title, progress, cancel, status.asList())
+                ) = SigningIn(onWindowClose, title, progress, cancel, status.asList())
             }
         }
 
-        data class Retrieved(val subProps: SlackRetrievedAccount.Props) : Props
+        data class Retrieved(
+            override val onWindowClose: () -> Unit,
+            val subProps: SlackRetrievedAccount.Props
+        ) : Props
     }
 
     fun view(model: Model, dispatch: Dispatch<Event>): Props = when (model) {
@@ -72,14 +84,16 @@ object SlackAccount {
 
     private fun props(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
         Props.SignedOut(
-            Prop.Text("Something's wrong"),
-            Prop.Text("Got invalid account. Please try signing in again."),
-            Prop.Button("Retry") { dispatch(Event.Intent.SignIn) })
+            onWindowClose = { dispatch(Event.Intent.Quit) },
+            title = Prop.Text("Something's wrong"),
+            desc = Prop.Text("Got invalid account. Please try signing in again."),
+            button = Prop.Button("Retry") { dispatch(Event.Intent.SignIn) })
 
     private fun props(
         @Suppress("UNUSED_PARAMETER") model: Model.Blank,
         dispatch: Dispatch<Event>
     ) = Props.SignedOut(
+        onWindowClose = { dispatch(Event.Intent.Quit) },
         title = Prop.Text(text = "Welcome to Slaccount"),
         desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
         button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
@@ -90,19 +104,21 @@ object SlackAccount {
         @Suppress("UNUSED_PARAMETER") model: Model.Pending,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
+        onWindowClose = { dispatch(Event.Intent.Quit) },
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
             dispatch(Event.Intent.SignInCancel)
         },
-        Prop.Text("We need your permission to let Slack give us info about you."),
-        Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
+        Prop.Text("Waiting for you to sign into Slack through a web-browser window..."),
+        Prop.Text("We need your permission to let Slack give us info about you.")
     )
 
     private fun props(
         model: Model.Authorized,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
+        onWindowClose = { dispatch(Event.Intent.Quit) },
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
@@ -118,6 +134,7 @@ object SlackAccount {
         model: Model.Retrieved,
         dispatch: (Event) -> Unit
     ): Props = Props.Retrieved(
+        onWindowClose = { dispatch(Event.Intent.Quit) },
         SlackRetrievedAccount.view(
             model = model.subModel,
             dispatch = contramap(dispatch, Event::Retrieved)
@@ -139,6 +156,7 @@ object SlackAccount {
         sealed interface Intent : Event {
             object SignIn : Event
             object SignInCancel : Event
+            object Quit : Event
         }
 
         /** Result of an external operation e.g. response of a web-service call */
@@ -163,13 +181,23 @@ object SlackAccount {
         ctx: Ctx,
         event: Event,
         model: Model
-    ): Change<Model, Event> = when (model) {
-        is Model.Blank -> initPending(ctx, event)
-        is Model.Pending -> change(ctx, model, event)
-        is Model.Authorized -> initNextFromAuthorized(ctx, model, event)
-        is Model.Invalid -> change(ctx, model, event)
-        is Model.Retrieved -> change(ctx, model, event)
-    }
+    ): Change<Model, Event> =
+        if (event is Event.Intent.Quit) {
+            changeOnQuitIntent(ctx, model)
+        } else {
+            when (model) {
+                is Model.Blank -> initPending(ctx, event)
+                is Model.Pending -> change(ctx, model, event)
+                is Model.Authorized -> initNextFromAuthorized(ctx, model, event)
+                is Model.Invalid -> change(ctx, model, event)
+                is Model.Retrieved -> change(ctx, model, event)
+            }
+        }
+
+    private fun changeOnQuitIntent(
+        ctx: Ctx,
+        model: Model
+    ): Change<Model, Event> = Change(model) { ctx.platform.exit() }
 
     private fun initPending(
         ctx: Ctx,

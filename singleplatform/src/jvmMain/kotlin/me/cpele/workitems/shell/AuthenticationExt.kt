@@ -88,7 +88,7 @@ fun Accounts.makeApp(platform: Platform, slack: Slack) = app(
     init = ::init,
     update = makeUpdate(slack, platform),
     view = ::view
-) { Ui(props = it) }
+) { props -> Ui(props = props) }
 
 fun Accounts.main(vararg args: String) = makeApp(
     DesktopPlatform,

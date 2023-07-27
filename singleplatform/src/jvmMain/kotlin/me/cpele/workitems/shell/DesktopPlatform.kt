@@ -6,6 +6,7 @@ import java.net.URI
 import java.net.URL
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.system.exitProcess
 
 object DesktopPlatform : Platform {
     override fun logw(thrown: Throwable?, makeMessage: () -> String) {
@@ -34,5 +35,9 @@ object DesktopPlatform : Platform {
 
     override suspend fun getEnvVar(name: String): Result<String> = Result.runCatching {
         System.getenv(name) ?: error("Required environment variable $name is not defined")
+    }
+
+    override suspend fun exit(status: Int) {
+        exitProcess(status)
     }
 }

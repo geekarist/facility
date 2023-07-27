@@ -7,4 +7,5 @@ interface Platform {
     fun openUri(url: String)
     fun fetch(url: String): Result<ByteArray>
     suspend fun getEnvVar(name: String): Result<String>
+    suspend fun exit(status: Int = 0)
 }
