@@ -1,5 +1,8 @@
 package me.cpele.workitems.core.programs
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class ImageBuffer(val array: ByteArray) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

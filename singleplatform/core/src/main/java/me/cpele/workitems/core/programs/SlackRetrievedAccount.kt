@@ -1,5 +1,6 @@
 package me.cpele.workitems.core.programs
 
+import kotlinx.serialization.Serializable
 import me.cpele.workitems.core.framework.Change
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.effects.Platform
@@ -7,6 +8,7 @@ import me.cpele.workitems.core.framework.effects.Slack
 
 object SlackRetrievedAccount {
 
+    @Serializable
     data class Model(
         val credentials: Slack.Credentials,
         val id: String,

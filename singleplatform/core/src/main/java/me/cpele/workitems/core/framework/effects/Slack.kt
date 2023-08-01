@@ -1,6 +1,7 @@
 package me.cpele.workitems.core.framework.effects
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.serialization.Serializable
 import java.net.URL
 
 interface Slack {
@@ -29,6 +30,7 @@ interface Slack {
         redirectUri: String
     ): Result<Credentials>
 
+    @Serializable
     data class Credentials(val botToken: String, val userToken: String, val userId: String)
 
     suspend fun retrieveUser(credentials: Credentials): Result<UserInfo>

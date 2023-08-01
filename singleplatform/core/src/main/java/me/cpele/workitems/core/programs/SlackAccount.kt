@@ -1,16 +1,23 @@
 package me.cpele.workitems.core.programs
 
-import me.cpele.workitems.core.framework.*
+// TODO: Don't use Java URL encoder
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import me.cpele.workitems.core.framework.Change
+import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.effects.AppRuntime
 import me.cpele.workitems.core.framework.effects.Platform
+import me.cpele.workitems.core.framework.effects.Preferences
 import me.cpele.workitems.core.framework.effects.Slack
+import me.cpele.workitems.core.framework.flatMapCatching
 import oolong.Dispatch
 import oolong.dispatch.contramap
 import oolong.effect.map
-import oolong.effect.none
-// TODO: Don't use Java URL encoder
 import java.net.URLEncoder
 import java.nio.charset.Charset
+import kotlin.math.min
 
 private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
 
@@ -21,21 +28,27 @@ object SlackAccount {
     /**
      * This model represents a Slack user account.
      */
+    @Serializable
     sealed interface Model {
         /** Authentication process wasn't even started */
+        @Serializable
         object Blank : Model
 
         /** Authentication started but not complete */
+        @Serializable
         data class Pending(val redirectUri: String? = null) : Model
 
         /** Authentication failed at some point */
-        data class Invalid(val throwable: Throwable) : Model
+        @Serializable
+        data class Invalid(@Contextual val throwable: Throwable) : Model
 
         /** Authentication was successful */
+        @Serializable
         data class Authorized(val credentials: Slack.Credentials) : Model {
             val accessToken: String = credentials.userToken
         }
 
+        @Serializable
         data class Retrieved(val subModel: SlackRetrievedAccount.Model) : Model
     }
 
@@ -148,7 +161,12 @@ object SlackAccount {
 
     // region Update
 
-    data class Ctx(val slack: Slack, val platform: Platform, val runtime: AppRuntime)
+    data class Ctx(
+        val slack: Slack,
+        val platform: Platform,
+        val runtime: AppRuntime,
+        val preferences: Preferences
+    )
 
     /**
      * This type represents a piece of data sent from the outside world to this program,
@@ -167,20 +185,28 @@ object SlackAccount {
             data class AuthScopeStatus(val status: Slack.Authorization) : Event
             data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
+            data class DeserializedModel(val model: Model) : Event
         }
 
         data class Retrieved(val subEvent: SlackRetrievedAccount.Event) : Event
     }
 
-    fun init() = Change<Model, _>(Model.Blank, none<Event>())
-
-    fun makeUpdate(
-        ctx: Ctx
-    ): (Event, Model) -> Change<Model, Event> = { event, model ->
-        update(ctx, event, model)
+    fun init(ctx: Ctx) = Change<Model, Event>(Model.Pending()) { dispatch ->
+        ctx.platform.logi { "Getting serialized model" }
+        val serializedModel = ctx.preferences.getString("slaccount-model") ?: Json.encodeToString(Model.Blank)
+        ctx.platform.logi {
+            val subStrMaxIdx = min(serializedModel.length - 1, 160)
+            val subStr = serializedModel.substring(0..subStrMaxIdx)
+            "Got serialized model: $subStr"
+        }
+        val deserializedModel = serializedModel.let { Json.decodeFromString<Model>(it) }
+        ctx.platform.logi { "Deserialized model" }
+        val event = Event.Outcome.DeserializedModel(deserializedModel)
+        ctx.platform.logi { "Dispatching event: $event" }
+        dispatch(event)
     }
 
-    private fun update(
+    fun update(
         ctx: Ctx,
         event: Event,
         model: Model
@@ -200,7 +226,21 @@ object SlackAccount {
     private fun changeOnQuitIntent(
         ctx: Ctx,
         model: Model
-    ): Change<Model, Event> = Change(model) { ctx.runtime.exit() }
+    ): Change<Model, Event> = Change(model) {
+        val persistableModel = when (model) {
+            is Model.Retrieved -> model.copy(model.subModel.copy(imageBuffer = null))
+            is Model.Authorized -> model
+            Model.Blank, is Model.Invalid, is Model.Pending -> Model.Blank
+        }
+        val serializedModel = Json.encodeToString(persistableModel)
+        ctx.platform.logi {
+            val subStrMaxIdx = min(serializedModel.length - 1, 160)
+            val subStr = serializedModel.substring(0..subStrMaxIdx)
+            "Storing serialized model: $subStr"
+        }
+        ctx.preferences.putString("slaccount-model", serializedModel)
+        ctx.runtime.exit()
+    }
 
     private fun initPending(
         ctx: Ctx,
@@ -224,8 +264,17 @@ object SlackAccount {
         is Event.Outcome.AuthScopeStatus -> changeFromPendingOnAuthStatus(ctx, model, event)
         Event.Intent.SignInCancel -> initBlank(ctx)
         is Event.Outcome.AccessToken -> initNextFromPendingOnAccess(ctx, event)
+        is Event.Outcome.DeserializedModel -> changeFromPendingOnDeserialized(event, ctx)
         else -> error("Invalid event for pending model: $event")
     }
+
+    private fun changeFromPendingOnDeserialized(
+        event: Event.Outcome.DeserializedModel,
+        ctx: Ctx
+    ): Change<Model, Event> =
+        Change(event.model) {
+            ctx.platform.logi { "Changing to deserialized model: ${event.model}" }
+        }
 
     private fun initNextFromPendingOnAccess(
         ctx: Ctx,
