@@ -145,7 +145,7 @@ object SlackAccount {
 
     // region Update
 
-    data class Ctx(val slack: Slack, val platform: Platform)
+    data class Ctx(val slack: Slack, val platform: Platform, val runtime: AppRuntime)
 
     /**
      * This type represents a piece of data sent from the outside world to this program,
@@ -197,7 +197,7 @@ object SlackAccount {
     private fun changeOnQuitIntent(
         ctx: Ctx,
         model: Model
-    ): Change<Model, Event> = Change(model) { ctx.platform.exit() }
+    ): Change<Model, Event> = Change(model) { ctx.runtime.exit() }
 
     private fun initPending(
         ctx: Ctx,

@@ -10,6 +10,7 @@ fun <PropsT, ModelT, EventT> app(
     init: () -> Change<ModelT, EventT>,
     update: (EventT, ModelT) -> Change<ModelT, EventT>,
     view: (ModelT, (EventT) -> Unit) -> PropsT,
+    setOnQuitListener: (() -> Unit) -> Unit = {},
     ui: @Composable (PropsT) -> Unit
 ) {
     application {
@@ -19,6 +20,7 @@ fun <PropsT, ModelT, EventT> app(
             mutableStateOf(initProps)
         }
         val coroutineScope = rememberCoroutineScope()
+        setOnQuitListener(::exitApplication)
         ui(props)
         LaunchedEffect(Unit) {
             runtime(

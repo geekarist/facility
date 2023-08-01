@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
+import me.cpele.workitems.core.framework.AppRuntime
 import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.Slack
@@ -38,10 +39,15 @@ fun SlackAccount.main(vararg args: String) {
 }
 
 private fun SlackAccount.makeApp(slack: Slack, platform: Platform) {
+    var onQuitListener = {}
+    val runtime = object : AppRuntime {
+        override suspend fun exit() = onQuitListener()
+    }
     app(
         init = ::init,
-        update = makeUpdate(SlackAccount.Ctx(slack, platform)),
+        update = makeUpdate(SlackAccount.Ctx(slack, platform, runtime)),
         view = ::view,
+        setOnQuitListener = { onQuitListener = it },
         ui = { props ->
             Ui(props)
         }
