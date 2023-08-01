@@ -16,8 +16,8 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import me.cpele.workitems.core.framework.Platform
-import me.cpele.workitems.core.framework.Slack
+import me.cpele.workitems.core.framework.effects.Platform
+import me.cpele.workitems.core.framework.effects.Slack
 import me.cpele.workitems.core.programs.Accounts
 
 @Composable

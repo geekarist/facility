@@ -1,6 +1,9 @@
 package me.cpele.workitems.core.programs
 
 import me.cpele.workitems.core.framework.*
+import me.cpele.workitems.core.framework.effects.AppRuntime
+import me.cpele.workitems.core.framework.effects.Platform
+import me.cpele.workitems.core.framework.effects.Slack
 import oolong.Dispatch
 import oolong.dispatch.contramap
 import oolong.effect.map

@@ -3,11 +3,11 @@ package me.cpele.workitems.core.programs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.cpele.workitems.core.framework.Change
-import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.Prop.of
-import me.cpele.workitems.core.framework.Slack
-import me.cpele.workitems.core.framework.Slack.Authorization
+import me.cpele.workitems.core.framework.effects.Platform
+import me.cpele.workitems.core.framework.effects.Slack
+import me.cpele.workitems.core.framework.effects.Slack.Authorization
 import oolong.effect
 import oolong.effect.none
 import java.net.URLEncoder

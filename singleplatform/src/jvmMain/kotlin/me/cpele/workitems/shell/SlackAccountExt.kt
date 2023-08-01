@@ -21,10 +21,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
-import me.cpele.workitems.core.framework.AppRuntime
-import me.cpele.workitems.core.framework.Platform
 import me.cpele.workitems.core.framework.Prop
-import me.cpele.workitems.core.framework.Slack
+import me.cpele.workitems.core.framework.effects.AppRuntime
+import me.cpele.workitems.core.framework.effects.Platform
+import me.cpele.workitems.core.framework.effects.Slack
 import me.cpele.workitems.core.programs.SlackAccount
 import me.cpele.workitems.core.programs.SlackRetrievedAccount
 import java.awt.Dimension

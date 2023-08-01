@@ -1,4 +1,4 @@
-package me.cpele.workitems.core.framework
+package me.cpele.workitems.core.framework.effects
 
 import kotlinx.coroutines.flow.Flow
 import java.net.URL

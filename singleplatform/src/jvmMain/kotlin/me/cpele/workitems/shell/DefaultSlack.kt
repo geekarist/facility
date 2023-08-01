@@ -17,8 +17,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import me.cpele.workitems.core.framework.Platform
-import me.cpele.workitems.core.framework.Slack
+import me.cpele.workitems.core.framework.effects.Platform
+import me.cpele.workitems.core.framework.effects.Slack
 import java.net.URL
 import java.net.URLDecoder
 import com.slack.api.Slack as RemoteSlack

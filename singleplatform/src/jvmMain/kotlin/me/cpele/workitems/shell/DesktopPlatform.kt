@@ -1,6 +1,6 @@
 package me.cpele.workitems.shell
 
-import me.cpele.workitems.core.framework.Platform
+import me.cpele.workitems.core.framework.effects.Platform
 import java.awt.Desktop
 import java.net.URI
 import java.net.URL
