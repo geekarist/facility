@@ -73,18 +73,17 @@ object SlackRetrievedAccount {
         ctx: Ctx, model: Model, event: Event
     ): Change<Model, Event>
             where Ctx : Platform,
-                  Ctx : Slack =
-        when (event) {
-            is Event.FetchedUserImage -> event.bufferResult.fold(
-                onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
-                onFailure = { throwable ->
-                    Change(model) {
-                        ctx.logi(throwable) { "Failed retrieving image ${model.image}" }
-                    }
-                }
-            )
-
-            Event.SignOut -> error("Sign-out event must be handled by caller")
-            Event.Refresh -> error("Refresh event must be handled by caller")
+                  Ctx : Slack = run {
+        check(event is Event.FetchedUserImage) {
+            "Event must be handled by caller: $event"
         }
+        event.bufferResult.fold(
+            onSuccess = { Change(model.copy(imageBuffer = ImageBuffer(it))) },
+            onFailure = { throwable ->
+                Change(model) {
+                    ctx.logi(throwable) { "Failed retrieving image ${model.image}" }
+                }
+            }
+        )
+    }
 }
