@@ -3,13 +3,10 @@ package me.cpele.workitems.core.programs
 // TODO: Don't use Java URL encoder
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import me.cpele.workitems.core.framework.Change
 import me.cpele.workitems.core.framework.Prop
 import me.cpele.workitems.core.framework.effects.AppRuntime
 import me.cpele.workitems.core.framework.effects.Platform
-import me.cpele.workitems.core.framework.effects.Preferences
 import me.cpele.workitems.core.framework.effects.Slack
 import me.cpele.workitems.core.framework.flatMapCatching
 import oolong.Dispatch
@@ -17,7 +14,6 @@ import oolong.dispatch.contramap
 import oolong.effect.map
 import java.net.URLEncoder
 import java.nio.charset.Charset
-import kotlin.math.min
 
 private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
 
@@ -165,7 +161,7 @@ object SlackAccount {
         val slack: Slack,
         val platform: Platform,
         val runtime: AppRuntime,
-        val preferences: Preferences
+        val session: Session
     )
 
     /**
@@ -185,7 +181,7 @@ object SlackAccount {
             data class AuthScopeStatus(val status: Slack.Authorization) : Event
             data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
-            data class DeserializedModel(val model: Model) : Event
+            data class RestoredModel(val model: Model) : Event
         }
 
         data class Retrieved(val subEvent: SlackRetrievedAccount.Event) : Event
@@ -193,15 +189,11 @@ object SlackAccount {
 
     fun init(ctx: Ctx) = Change<Model, Event>(Model.Pending()) { dispatch ->
         ctx.platform.logi { "Getting serialized model" }
-        val serializedModel = ctx.preferences.getString("slaccount-model") ?: Json.encodeToString(Model.Blank)
+        val persistedModel = ctx.session.retrieve() ?: Model.Blank
         ctx.platform.logi {
-            val subStrMaxIdx = min(serializedModel.length - 1, 160)
-            val subStr = serializedModel.substring(0..subStrMaxIdx)
-            "Got serialized model: $subStr"
+            "Got persisted model: $persistedModel"
         }
-        val deserializedModel = serializedModel.let { Json.decodeFromString<Model>(it) }
-        ctx.platform.logi { "Deserialized model" }
-        val event = Event.Outcome.DeserializedModel(deserializedModel)
+        val event = Event.Outcome.RestoredModel(persistedModel)
         ctx.platform.logi { "Dispatching event: $event" }
         dispatch(event)
     }
@@ -228,17 +220,11 @@ object SlackAccount {
         model: Model
     ): Change<Model, Event> = Change(model) {
         val persistableModel = when (model) {
-            is Model.Retrieved -> model.copy(model.subModel.copy(imageBuffer = null))
-            is Model.Authorized -> model
+            is Model.Retrieved, is Model.Authorized -> model
             Model.Blank, is Model.Invalid, is Model.Pending -> Model.Blank
         }
-        val serializedModel = Json.encodeToString(persistableModel)
-        ctx.platform.logi {
-            val subStrMaxIdx = min(serializedModel.length - 1, 160)
-            val subStr = serializedModel.substring(0..subStrMaxIdx)
-            "Storing serialized model: $subStr"
-        }
-        ctx.preferences.putString("slaccount-model", serializedModel)
+        ctx.platform.logi { "Storing model into session: $persistableModel" }
+        ctx.session.store(persistableModel)
         ctx.runtime.exit()
     }
 
@@ -264,12 +250,12 @@ object SlackAccount {
         is Event.Outcome.AuthScopeStatus -> changeFromPendingOnAuthStatus(ctx, model, event)
         Event.Intent.SignInCancel -> initBlank(ctx)
         is Event.Outcome.AccessToken -> initNextFromPendingOnAccess(ctx, event)
-        is Event.Outcome.DeserializedModel -> changeFromPendingOnDeserialized(event, ctx)
+        is Event.Outcome.RestoredModel -> changeFromPendingOnDeserialized(event, ctx)
         else -> error("Invalid event for pending model: $event")
     }
 
     private fun changeFromPendingOnDeserialized(
-        event: Event.Outcome.DeserializedModel,
+        event: Event.Outcome.RestoredModel,
         ctx: Ctx
     ): Change<Model, Event> =
         Change(event.model) {
