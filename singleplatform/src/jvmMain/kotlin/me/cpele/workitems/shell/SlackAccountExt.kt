@@ -22,10 +22,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import me.cpele.workitems.core.framework.Prop
-import me.cpele.workitems.core.framework.effects.AppRuntime
-import me.cpele.workitems.core.framework.effects.Platform
-import me.cpele.workitems.core.framework.effects.Preferences
-import me.cpele.workitems.core.framework.effects.Slack
+import me.cpele.workitems.core.framework.effects.*
 import me.cpele.workitems.core.programs.SlackAccount
 import me.cpele.workitems.core.programs.SlackRetrievedAccount
 import java.awt.Dimension
@@ -33,18 +30,23 @@ import kotlin.math.roundToInt
 
 fun SlackAccount.main(vararg args: String) {
     if (args.contains("mock")) {
-        SlackAccount.makeApp(MockSlack, DesktopPlatform, DesktopPreferences)
+        SlackAccount.makeApp(MockSlack, DesktopPlatform, DesktopPreferences, DesktopStore)
     } else {
-        SlackAccount.makeApp(DefaultSlack(DesktopPlatform, NgrokIngress), DesktopPlatform, DesktopPreferences)
+        SlackAccount.makeApp(
+            DefaultSlack(DesktopPlatform, NgrokIngress),
+            DesktopPlatform,
+            DesktopPreferences,
+            DesktopStore
+        )
     }
 }
 
-private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: Preferences) {
+private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: Preferences, store: Store) {
     var onQuitListener = {}
     val runtime = object : AppRuntime {
         override suspend fun exit() = onQuitListener()
     }
-    val ctx = SlackAccount.Ctx(slack, platform, runtime, preferences)
+    val ctx = SlackAccount.Ctx(slack, platform, runtime, preferences, store)
     app(
         init = { init(ctx) },
         update = { event, model ->

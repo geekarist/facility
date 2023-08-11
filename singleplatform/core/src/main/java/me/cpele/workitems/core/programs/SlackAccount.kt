@@ -7,10 +7,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.cpele.workitems.core.framework.Change
 import me.cpele.workitems.core.framework.Prop
-import me.cpele.workitems.core.framework.effects.AppRuntime
-import me.cpele.workitems.core.framework.effects.Platform
-import me.cpele.workitems.core.framework.effects.Preferences
-import me.cpele.workitems.core.framework.effects.Slack
+import me.cpele.workitems.core.framework.effects.*
 import me.cpele.workitems.core.framework.flatMapCatching
 import oolong.Dispatch
 import oolong.dispatch.contramap
@@ -165,7 +162,8 @@ object SlackAccount {
         val slack: Slack,
         val platform: Platform,
         val runtime: AppRuntime,
-        val preferences: Preferences
+        val preferences: Preferences,
+        val store: Store
     )
 
     /**
@@ -193,7 +191,7 @@ object SlackAccount {
 
     fun init(ctx: Ctx) = Change<Model, Event>(Model.Pending()) { dispatch ->
         ctx.platform.logi { "Getting serialized model" }
-        val serializedModel = ctx.preferences.getString("slaccount-model") ?: Json.encodeToString(Model.Blank)
+        val serializedModel = ctx.store.getString("slaccount-model") ?: Json.encodeToString(Model.Blank)
         ctx.platform.logi {
             val subStrMaxIdx = min(serializedModel.length - 1, 160)
             val subStr = serializedModel.substring(0..subStrMaxIdx)
@@ -238,7 +236,7 @@ object SlackAccount {
             val subStr = serializedModel.substring(0..subStrMaxIdx)
             "Storing serialized model: $subStr"
         }
-        ctx.preferences.putString("slaccount-model", serializedModel)
+        ctx.store.putString("slaccount-model", serializedModel)
         ctx.runtime.exit()
     }
 
