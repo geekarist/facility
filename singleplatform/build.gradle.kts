@@ -36,10 +36,10 @@ kotlin {
                 implementation("io.ktor:ktor-server-netty:2.2.3")
                 implementation("com.ngrok:ngrok-api-java:0.6.0")
                 implementation("org.jetbrains.kotlinx:kotlinx-html:0.8.1")
+                implementation("org.jetbrains.kotlinx:kotlinx-io-core:0.2.1")
             }
         }
 
-        @Suppress("UNUSED_VARIABLE")
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
@@ -48,11 +48,11 @@ kotlin {
                 implementation("org.oolong-kt:oolong:2.1.1")
                 implementation("com.slack.api:slack-api-client:1.27.3")
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.0")
+                implementation("net.harawata:appdirs:1.2.1")
             }
             dependsOn(commonMain)
         }
 
-        @Suppress("UNUSED_VARIABLE")
         val jvmTest by getting
     }
 }
