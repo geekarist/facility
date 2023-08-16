@@ -63,6 +63,7 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: 
 @Composable
 private fun SlackAccount.Ui(props: SlackAccount.Props) {
     Window(
+        title = props.windowTitle.text,
         onCloseRequest = props.onWindowClose
     ) {
         with(LocalDensity.current) {

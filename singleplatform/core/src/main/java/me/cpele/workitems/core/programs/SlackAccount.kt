@@ -54,9 +54,11 @@ object SlackAccount {
     // region View
 
     sealed interface Props {
+        val windowTitle: Prop.Text
         val onWindowClose: () -> Unit
 
         data class SignedOut(
+            override val windowTitle: Prop.Text,
             override val onWindowClose: () -> Unit,
             val title: Prop.Text,
             val desc: Prop.Text,
@@ -64,6 +66,7 @@ object SlackAccount {
         ) : Props
 
         data class SigningIn(
+            override val windowTitle: Prop.Text,
             override val onWindowClose: () -> Unit,
             val title: Prop.Text,
             val progress: Prop.Progress,
@@ -72,16 +75,18 @@ object SlackAccount {
         ) : Props {
             companion object {
                 operator fun invoke(
+                    windowTitle: Prop.Text,
                     onWindowClose: () -> Unit,
                     title: Prop.Text,
                     progress: Prop.Progress,
                     cancel: Prop.Button,
                     vararg status: Prop.Text
-                ) = SigningIn(onWindowClose, title, progress, cancel, status.asList())
+                ) = SigningIn(windowTitle, onWindowClose, title, progress, cancel, status.asList())
             }
         }
 
         data class Retrieved(
+            override val windowTitle: Prop.Text,
             override val onWindowClose: () -> Unit,
             val subProps: SlackRetrievedAccount.Props
         ) : Props
@@ -97,6 +102,7 @@ object SlackAccount {
 
     private fun props(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
         Props.SignedOut(
+            windowTitle = Prop.Text("Invalid account | Slaccount"),
             onWindowClose = { dispatch(Event.Intent.Quit) },
             title = Prop.Text("Something's wrong"),
             desc = Prop.Text("Got invalid account. Please try signing in again."),
@@ -106,6 +112,7 @@ object SlackAccount {
         @Suppress("UNUSED_PARAMETER") model: Model.Blank,
         dispatch: Dispatch<Event>
     ) = Props.SignedOut(
+        windowTitle = Prop.Text("Blank account | Slaccount"),
         onWindowClose = { dispatch(Event.Intent.Quit) },
         title = Prop.Text(text = "Welcome to Slaccount"),
         desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
@@ -117,20 +124,22 @@ object SlackAccount {
         @Suppress("UNUSED_PARAMETER") model: Model.Pending,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
+        windowTitle = Prop.Text("Pending account | Slaccount"),
         onWindowClose = { dispatch(Event.Intent.Quit) },
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
             dispatch(Event.Intent.SignInCancel)
         },
-        Prop.Text("Waiting for you to sign into Slack through a web-browser window..."),
-        Prop.Text("We need your permission to let Slack give us info about you.")
+        Prop.Text("We need your permission to let Slack give us info about you."),
+        Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
     )
 
     private fun props(
         model: Model.Authorized,
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
+        windowTitle = Prop.Text("Authorized account | Slaccount"),
         onWindowClose = { dispatch(Event.Intent.Quit) },
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
@@ -147,6 +156,7 @@ object SlackAccount {
         model: Model.Retrieved,
         dispatch: (Event) -> Unit
     ): Props = Props.Retrieved(
+        windowTitle = Prop.Text("Retrieved account | Slaccount"),
         onWindowClose = { dispatch(Event.Intent.Quit) },
         SlackRetrievedAccount.view(
             model = model.subModel,
