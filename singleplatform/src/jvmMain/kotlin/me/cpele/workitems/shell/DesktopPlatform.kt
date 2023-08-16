@@ -6,9 +6,12 @@ import java.net.URI
 import java.net.URL
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.math.min
 import kotlin.system.exitProcess
 
 object DesktopPlatform : Platform {
+    private const val MAX_MSG_SIZE = 1024
+
     override fun logw(thrown: Throwable?, makeMessage: () -> String) {
         val level = Level.WARNING
         log(makeMessage, level, thrown)
@@ -19,9 +22,13 @@ object DesktopPlatform : Platform {
         log(makeMessage, level, thrown)
     }
 
-    private inline fun log(makeMessage: () -> String, level: Level?, thrown: Throwable?) {
-        val msg = makeMessage()
-        Logger.getAnonymousLogger().log(level, msg, thrown)
+    private inline fun log(crossinline makeMessage: () -> String, level: Level?, thrown: Throwable?) {
+        val makeShorterMessage = {
+            val message = makeMessage()
+            val maxIdx = min(message.length - 1, MAX_MSG_SIZE)
+            message.substring(0..maxIdx)
+        }
+        Logger.getAnonymousLogger().log(level, thrown, makeShorterMessage)
     }
 
     override fun openUri(url: String) {
