@@ -226,9 +226,12 @@ object SlackAccount {
         model: Model
     ): Change<Model, Event> = Change(model) {
         val persistableModel = when (model) {
-            is Model.Retrieved -> model.copy(model.subModel.copy(imageBuffer = null))
+            is Model.Retrieved,
             is Model.Authorized -> model
-            Model.Blank, is Model.Invalid, is Model.Pending -> Model.Blank
+
+            Model.Blank,
+            is Model.Invalid,
+            is Model.Pending -> Model.Blank
         }
         val serializedModel = Json.encodeToString(persistableModel)
         ctx.platform.logi {
