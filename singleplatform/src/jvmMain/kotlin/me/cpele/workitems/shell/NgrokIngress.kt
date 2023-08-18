@@ -6,11 +6,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import me.cpele.workitems.core.framework.effects.Platform
 import java.net.URL
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
-object NgrokIngress : Ingress {
+class NgrokIngress(private val platform: Platform) : Ingress {
 
     private var processByTunnel = mapOf<Ingress.Tunnel, Process>()
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
@@ -48,21 +48,24 @@ object NgrokIngress : Ingress {
     private fun deserializeJson(line: String): Map<String, String?> = json.decodeFromString(line)
 
     override fun close(tunnel: Ingress.Tunnel?) {
+        platform.logi { "Closing tunnel: $tunnel" }
+        platform.logi { "${processByTunnel.size} tunnels currently held in map" }
         val process = processByTunnel.getOrDefault(tunnel, null)
+        platform.logi { "Process to close: ${process?.pid()}" }
         coroutineScope.launch {
+            platform.logi { "Destroying process..." }
             process?.destroy()
+            platform.logi { "Waiting for some time..." }
             delay(30.seconds)
+            platform.logi { "Destroying process!" }
             process?.destroyForcibly()
+            platform.logi { "Process still alive? ${process?.isAlive}" }
         }
+        platform.logi { "Releasing tunnel from map" }
         tunnel?.let {
+            platform.logi { "${processByTunnel.size} tunnels were held" }
             processByTunnel = processByTunnel.minus(tunnel)
+            platform.logi { "Now only ${processByTunnel.size} tunnels still held" }
         }
     }
-}
-
-fun main() {
-    NgrokIngress.open(protocol = "http", port = "8080") {
-        DesktopPlatform.logi { "Opened tunnel: $it" }
-    }
-    Thread.sleep(10.minutes.inWholeMilliseconds)
 }
