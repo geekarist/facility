@@ -92,5 +92,5 @@ fun Accounts.makeApp(platform: Platform, slack: Slack) = app(
 
 fun Accounts.main(vararg args: String) = makeApp(
     DesktopPlatform,
-    DefaultSlack(DesktopPlatform, NgrokIngress)
+    DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform))
 )

@@ -33,7 +33,7 @@ fun SlackAccount.main(vararg args: String) {
         SlackAccount.makeApp(MockSlack, DesktopPlatform, DesktopPreferences, DesktopStore)
     } else {
         SlackAccount.makeApp(
-            DefaultSlack(DesktopPlatform, NgrokIngress),
+            DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
             DesktopPlatform,
             DesktopPreferences,
             DesktopStore

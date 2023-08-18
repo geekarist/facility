@@ -61,7 +61,7 @@ fun WorkItems.Ui(
 }
 
 fun WorkItems.app() = app(
-    init = makeInit(DefaultSlack(DesktopPlatform, NgrokIngress)),
+    init = makeInit(DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform))),
     update = makeUpdate(DesktopPlatform),
     view = WorkItems::view
 ) { props -> WorkItems.Ui(props) }
