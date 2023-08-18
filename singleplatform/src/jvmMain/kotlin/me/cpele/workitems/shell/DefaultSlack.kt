@@ -99,7 +99,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         awaitClose {
             platform.logi { "Callback flow got closed or cancelled ⇒ Stopping server, closing ingress" }
             server?.stop()
-            ingress.close(tunnel)
+            ingress.close()
         }
     }.catch { throwable ->
         emit(Slack.Authorization.Failure(IllegalStateException(throwable)))
@@ -232,9 +232,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
     override suspend fun tearDownLogin() {
         server?.stop()
         server = null
-        tunnel?.let {
-            ingress.close(it)
-        }
+        ingress.close()
         tunnel = null
     }
 

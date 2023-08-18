@@ -12,7 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class NgrokIngress(private val platform: Platform) : Ingress {
 
-    private var processByTunnel = mapOf<Ingress.Tunnel, Process>()
+    private var runningProcess: Process? = null
     private val coroutineScope = CoroutineScope(Dispatchers.Default)
     private val json = Json {
         coerceInputValues = true
@@ -20,6 +20,9 @@ class NgrokIngress(private val platform: Platform) : Ingress {
     }
 
     override fun open(protocol: String, port: String, onTunnelOpened: (Ingress.Tunnel) -> Unit) {
+        check(runningProcess == null) {
+            "Already-running process: ${runningProcess?.pid()}"
+        }
         coroutineScope.launch(Dispatchers.IO) {
             DesktopPlatform.logi { "Launching tunnel command..." }
             val command = listOf("ngrok", "--log=stdout", "--log-format=json", protocol, port)
@@ -31,6 +34,7 @@ class NgrokIngress(private val platform: Platform) : Ingress {
                 "Command is: $commandStr"
             }
             DesktopPlatform.logi { "Reading command output" }
+            runningProcess = process
             process.inputStream.bufferedReader().useLines { lineSeq ->
                 lineSeq.mapNotNull { line ->
                     DesktopPlatform.logi { "Got line: $line" }
@@ -47,25 +51,18 @@ class NgrokIngress(private val platform: Platform) : Ingress {
 
     private fun deserializeJson(line: String): Map<String, String?> = json.decodeFromString(line)
 
-    override fun close(tunnel: Ingress.Tunnel?) {
-        platform.logi { "Closing tunnel: $tunnel" }
-        platform.logi { "${processByTunnel.size} tunnels currently held in map" }
-        val process = processByTunnel.getOrDefault(tunnel, null)
-        platform.logi { "Process to close: ${process?.pid()}" }
+    override fun close() {
+        val process = requireNotNull(runningProcess)
+        platform.logi { "Closing ingress" }
+        platform.logi { "Running process to close: ${process.pid()}" }
         coroutineScope.launch {
             platform.logi { "Destroying process..." }
-            process?.destroy()
+            process.destroy()
             platform.logi { "Waiting for some time..." }
             delay(30.seconds)
             platform.logi { "Destroying process!" }
-            process?.destroyForcibly()
-            platform.logi { "Process still alive? ${process?.isAlive}" }
-        }
-        platform.logi { "Releasing tunnel from map" }
-        tunnel?.let {
-            platform.logi { "${processByTunnel.size} tunnels were held" }
-            processByTunnel = processByTunnel.minus(tunnel)
-            platform.logi { "Now only ${processByTunnel.size} tunnels still held" }
+            process.destroyForcibly()
+            platform.logi { "Process still alive? ${process.isAlive}" }
         }
     }
 }

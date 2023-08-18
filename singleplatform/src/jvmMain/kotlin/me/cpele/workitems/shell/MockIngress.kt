@@ -5,7 +5,7 @@ object MockIngress : Ingress {
         TODO("Not yet implemented")
     }
 
-    override fun close(tunnel: Ingress.Tunnel?) {
+    override fun close() {
         TODO("Not yet implemented")
     }
 }
