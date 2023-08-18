@@ -21,6 +21,7 @@ import me.cpele.workitems.core.framework.effects.Platform
 import me.cpele.workitems.core.framework.effects.Slack
 import java.net.URL
 import java.net.URLDecoder
+import kotlin.time.Duration.Companion.seconds
 import com.slack.api.Slack as RemoteSlack
 
 class DefaultSlack(private val platform: Platform, private val ingress: Ingress) : Slack {
@@ -89,9 +90,11 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                 tunnel = serverTunnel
             }
         }
-        awaitClose {
-            server?.stop()
-            ingress.close(tunnel)
+        withTimeout(30.seconds) {
+            awaitClose {
+                server?.stop()
+                ingress.close(tunnel)
+            }
         }
     }.catch { throwable ->
         emit(Slack.Authorization.Failure(IllegalStateException(throwable)))
