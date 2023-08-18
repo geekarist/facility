@@ -90,11 +90,16 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                 tunnel = serverTunnel
             }
         }
-        withTimeout(30.seconds) {
-            awaitClose {
-                server?.stop()
-                ingress.close(tunnel)
-            }
+        launch {
+            val timeOut = 30.seconds
+            delay(timeOut)
+            val message = "Auth-scope request timed out after $timeOut"
+            this@callbackFlow.cancel(message)
+        }
+        awaitClose {
+            platform.logi { "Callback flow got closed or cancelled ⇒ Stopping server, closing ingress" }
+            server?.stop()
+            ingress.close(tunnel)
         }
     }.catch { throwable ->
         emit(Slack.Authorization.Failure(IllegalStateException(throwable)))
