@@ -90,13 +90,14 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                 tunnel = serverTunnel
             }
         }
-        launch {
+        val timeOutJob = launch {
             val timeOut = 30.seconds
             delay(timeOut)
             val message = "Auth-scope request timed out after $timeOut"
             this@callbackFlow.cancel(message)
         }
         awaitClose {
+            timeOutJob.cancel()
             platform.logi { "Callback flow got closed or cancelled ⇒ Stopping server, closing ingress" }
             server?.stop()
             ingress.close()
