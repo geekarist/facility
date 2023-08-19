@@ -91,7 +91,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
             }
         }
         val timeOutJob = launch {
-            val timeOut = 30.seconds
+            val timeOut = 60.seconds
             delay(timeOut)
             val message = "Auth-scope request timed out after $timeOut"
             this@callbackFlow.cancel(message)
