@@ -1,9 +1,6 @@
 package me.cpele.workitems.shell
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 import me.cpele.workitems.core.framework.effects.Platform
@@ -52,17 +49,26 @@ class NgrokIngress(private val platform: Platform) : Ingress {
     private fun deserializeJson(line: String): Map<String, String?> = json.decodeFromString(line)
 
     override fun close() {
-        val process = requireNotNull(runningProcess)
-        platform.logi { "Closing ingress" }
-        platform.logi { "Running process to close: ${process.pid()}" }
-        coroutineScope.launch {
-            platform.logi { "Destroying process..." }
-            process.destroy()
-            platform.logi { "Waiting for some time..." }
-            delay(30.seconds)
-            platform.logi { "Destroying process!" }
-            process.destroyForcibly()
-            platform.logi { "Process still alive? ${process.isAlive}" }
+        runningProcess?.let { process ->
+            platform.logi { "Closing ingress" }
+            runningProcess = null
+            platform.logi { "Process to close: ${process.pid()}" }
+            runBlocking {
+                if (process.isAlive) {
+                    platform.logi { "Destroying process..." }
+                    process.destroy()
+                    delay(1.seconds)
+                }
+                if (process.isAlive) {
+                    platform.logi { "Process still alive ⇒ waiting for 5 sec" }
+                    delay(5.seconds)
+                }
+                if (process.isAlive) {
+                    platform.logi { "Destroying process ⇒ destroying forcibly" }
+                    process.destroyForcibly()
+                }
+                platform.logi { "Process still alive? ${process.isAlive}" }
+            }
         }
     }
 }
