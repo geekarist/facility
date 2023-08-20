@@ -55,7 +55,7 @@ class NgrokIngress(private val platform: Platform) : Ingress {
             platform.logi { "Process to close: ${process.pid()}" }
             runBlocking {
                 if (process.isAlive) {
-                    platform.logi { "Destroying process..." }
+                    platform.logi { "Process still alive ⇒ destroying" }
                     process.destroy()
                     delay(1.seconds)
                 }
@@ -64,7 +64,7 @@ class NgrokIngress(private val platform: Platform) : Ingress {
                     delay(5.seconds)
                 }
                 if (process.isAlive) {
-                    platform.logi { "Destroying process ⇒ destroying forcibly" }
+                    platform.logi { "Process still alive ⇒ destroying forcibly" }
                     process.destroyForcibly()
                 }
                 platform.logi { "Process still alive? ${process.isAlive}" }
