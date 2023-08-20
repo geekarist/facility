@@ -10,7 +10,7 @@ import kotlin.time.Duration.Companion.seconds
 class NgrokIngress(private val platform: Platform) : Ingress {
 
     private var runningProcess: Process? = null
-    private val coroutineScope = CoroutineScope(Dispatchers.Default)
+    private val coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val json = Json {
         coerceInputValues = true
         isLenient = true
