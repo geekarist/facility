@@ -55,10 +55,14 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "me.cpele.workitems.shell.MainKt"
+        args.add("slack-account")
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "work-items"
             packageVersion = "1.0.0"
+            linux {
+                iconFile.set(project.file("core/src/main/resources/me/cpele/workitems/core/programs/app-icon.png"))
+            }
         }
     }
 }

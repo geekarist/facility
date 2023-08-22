@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.toPainter
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.loadImageBitmap
 import androidx.compose.ui.res.loadSvgPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.useResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -62,9 +63,14 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: 
 
 @Composable
 private fun SlackAccount.Ui(props: SlackAccount.Props) {
+    val windowIconPath = remember {
+        val path = SlackAccount::class.java.pkgResPath()
+        "$path/app-icon.png"
+    }
     Window(
         title = props.windowTitle.text,
-        onCloseRequest = props.onWindowClose
+        onCloseRequest = props.onWindowClose,
+        icon = painterResource(windowIconPath)
     ) {
         with(LocalDensity.current) {
             val minWidth = 600.dp.toPx().roundToInt()
@@ -84,6 +90,12 @@ private fun SlackAccount.Ui(props: SlackAccount.Props) {
             }
         }
     }
+}
+
+private fun Class<SlackAccount>.pkgResPath(): String {
+    val pkg = `package`.name
+    val path = pkg.replace('.', '/')
+    return path
 }
 
 @Composable
@@ -127,8 +139,7 @@ private fun SignedIn(props: SlackRetrievedAccount.Props) {
 }
 
 private fun placeholderPainter(density: Density): Painter {
-    val pkg = SlackAccount::class.java.`package`.name
-    val path = pkg.replace('.', '/')
+    val path = SlackAccount::class.java.pkgResPath()
     val placeholder = "$path/placeholder.svg"
     return useResource(placeholder) { inputStream ->
         loadSvgPainter(inputStream, density)
