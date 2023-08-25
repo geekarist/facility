@@ -62,6 +62,7 @@ compose.desktop {
             packageVersion = "1.0.0"
             linux {
                 iconFile.set(project.file("core/src/main/resources/me/cpele/workitems/core/programs/app-icon.png"))
+                installationPath = "/usr"
             }
         }
     }
