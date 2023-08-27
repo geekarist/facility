@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eux
+
+sudo apt remove --yes work-items
+sudo apt install --yes $(find . -name '*.deb')
