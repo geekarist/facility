@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Slaccount
+Comment=Slaccount
+Exec=/usr/bin/work-items
+Icon=/usr/lib/work-items/work-items.png
+Terminal=false
+Type=Application
+Categories=Unknown
+MimeType=
+StartupWMClass=Slaccount

@@ -65,6 +65,7 @@ compose.desktop {
                 iconFile.set(project.file("core/src/main/resources/me/cpele/workitems/core/programs/app-icon.png"))
                 installationPath = "/usr"
             }
+            appResourcesRootDir.set(project.layout.projectDirectory.dir("assets"))
         }
     }
 }
