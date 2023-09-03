@@ -57,7 +57,7 @@ compose.desktop {
         mainClass = "Slaccount"
         args.add("slack-account")
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Deb)
             packageName = "work-items"
             vendor = "me.cpele"
             packageVersion = "1.0.0"
