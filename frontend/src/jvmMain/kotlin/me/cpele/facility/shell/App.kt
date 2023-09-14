@@ -1,9 +1,9 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.window.application
-import me.cpele.workitems.core.framework.Change
+import me.cpele.facility.core.framework.Change
 import oolong.runtime
 
 fun <PropsT, ModelT, EventT> app(

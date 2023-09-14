@@ -1,4 +1,4 @@
-package me.cpele.workitems.core.programs
+package me.cpele.facility.core.programs
 
 import kotlinx.serialization.Serializable
 

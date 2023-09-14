@@ -1,4 +1,4 @@
-package me.cpele.workitems.core.framework.effects
+package me.cpele.facility.core.framework.effects
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable

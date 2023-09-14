@@ -1,4 +1,4 @@
-package me.cpele.workitems.core.framework
+package me.cpele.facility.core.framework
 
 import oolong.Effect
 

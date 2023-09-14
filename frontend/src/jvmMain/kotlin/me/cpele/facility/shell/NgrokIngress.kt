@@ -1,9 +1,9 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
 import kotlinx.coroutines.*
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
-import me.cpele.workitems.core.framework.effects.Platform
+import me.cpele.facility.core.framework.effects.Platform
 import java.net.URL
 import kotlin.time.Duration.Companion.seconds
 

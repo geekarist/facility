@@ -1,4 +1,4 @@
-package me.cpele.workitems.core.framework
+package me.cpele.facility.core.framework
 
 /**
  * Apply [block] to the encapsulated [InputT] value of [this] to obtain a [Result] of [OutputT].

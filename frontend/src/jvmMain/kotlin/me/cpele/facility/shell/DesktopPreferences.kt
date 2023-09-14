@@ -1,6 +1,6 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
-import me.cpele.workitems.core.framework.effects.Preferences
+import me.cpele.facility.core.framework.effects.Preferences
 import java.util.prefs.Preferences as JavaPrefs
 
 object DesktopPreferences : Preferences {

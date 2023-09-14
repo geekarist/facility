@@ -1,4 +1,4 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -22,10 +22,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
-import me.cpele.workitems.core.framework.Prop
-import me.cpele.workitems.core.framework.effects.*
-import me.cpele.workitems.core.programs.SlackAccount
-import me.cpele.workitems.core.programs.SlackRetrievedAccount
+import me.cpele.facility.core.framework.Prop
+import me.cpele.facility.core.framework.effects.*
+import me.cpele.facility.core.programs.SlackAccount
+import me.cpele.facility.core.programs.SlackRetrievedAccount
 import java.awt.Dimension
 import kotlin.math.roundToInt
 

@@ -1,17 +1,13 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
-import me.cpele.workitems.core.programs.Accounts
-import me.cpele.workitems.core.programs.SlackAccount
-import me.cpele.workitems.core.programs.WorkItems
+import me.cpele.facility.core.programs.SlackAccount
 
-const val MAIN_COMMAND_USAGE = "Usage: work-items <program-name> <program-command>"
+const val MAIN_COMMAND_USAGE = "Usage: facility <program-name> <program-command>"
 
 fun main(vararg args: String): Unit = args.firstOrNull()
     ?.let { programArg ->
         when (programArg) {
             "slack-account" -> SlackAccount::main
-            "accounts" -> Accounts::main
-            "work-items" -> WorkItems::main
             else -> {
                 { System.err.println(MAIN_COMMAND_USAGE) }
             }

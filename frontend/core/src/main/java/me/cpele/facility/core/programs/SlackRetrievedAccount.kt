@@ -1,10 +1,10 @@
-package me.cpele.workitems.core.programs
+package me.cpele.facility.core.programs
 
 import kotlinx.serialization.Serializable
-import me.cpele.workitems.core.framework.Change
-import me.cpele.workitems.core.framework.Prop
-import me.cpele.workitems.core.framework.effects.Platform
-import me.cpele.workitems.core.framework.effects.Slack
+import me.cpele.facility.core.framework.Change
+import me.cpele.facility.core.framework.Prop
+import me.cpele.facility.core.framework.effects.Platform
+import me.cpele.facility.core.framework.effects.Slack
 
 object SlackRetrievedAccount {
 

@@ -1,4 +1,4 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
 import java.net.URL
 

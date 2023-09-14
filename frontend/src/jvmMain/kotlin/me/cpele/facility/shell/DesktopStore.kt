@@ -1,4 +1,4 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -7,7 +7,7 @@ import kotlinx.io.files.sink
 import kotlinx.io.files.source
 import kotlinx.io.readString
 import kotlinx.io.writeString
-import me.cpele.workitems.core.framework.effects.Store
+import me.cpele.facility.core.framework.effects.Store
 import net.harawata.appdirs.AppDirsFactory
 import java.io.FileNotFoundException
 import java.nio.file.Files

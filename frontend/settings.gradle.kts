@@ -13,6 +13,6 @@ pluginManagement {
     }
 }
 
-rootProject.name = "work-items"
+rootProject.name = "facility-app"
 
 include(":core")

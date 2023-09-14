@@ -1,14 +1,14 @@
-package me.cpele.workitems.core.programs
+package me.cpele.facility.core.programs
 
 // TODO: Don't use Java URL encoder
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import me.cpele.workitems.core.framework.Change
-import me.cpele.workitems.core.framework.Prop
-import me.cpele.workitems.core.framework.effects.*
-import me.cpele.workitems.core.framework.flatMapCatching
+import me.cpele.facility.core.framework.Change
+import me.cpele.facility.core.framework.Prop
+import me.cpele.facility.core.framework.effects.*
+import me.cpele.facility.core.framework.flatMapCatching
 import oolong.Dispatch
 import oolong.dispatch.contramap
 import oolong.effect.map

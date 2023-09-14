@@ -1,4 +1,4 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
 import com.slack.api.methods.MethodsClient
 import com.slack.api.methods.request.search.SearchMessagesRequest
@@ -17,8 +17,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.catch
-import me.cpele.workitems.core.framework.effects.Platform
-import me.cpele.workitems.core.framework.effects.Slack
+import me.cpele.facility.core.framework.effects.Platform
+import me.cpele.facility.core.framework.effects.Slack
 import java.net.URL
 import java.net.URLDecoder
 import kotlin.time.Duration.Companion.seconds

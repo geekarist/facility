@@ -1,4 +1,4 @@
-package me.cpele.workitems.core.framework.effects
+package me.cpele.facility.core.framework.effects
 
 // TODO: Suspend functions
 interface Platform {

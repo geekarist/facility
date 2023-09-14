@@ -2,5 +2,5 @@
 
 set -eux
 
-sudo apt remove --yes work-items
+sudo apt remove --yes facility work-items || echo "No package installed ⇒ ignoring"
 sudo apt install --yes $(find . -name '*.deb')

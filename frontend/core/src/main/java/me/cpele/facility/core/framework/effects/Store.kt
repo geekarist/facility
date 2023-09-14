@@ -1,4 +1,4 @@
-package me.cpele.workitems.core.framework.effects
+package me.cpele.facility.core.framework.effects
 
 interface Store {
     suspend fun getString(key: String): String?

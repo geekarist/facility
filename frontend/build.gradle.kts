@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.compose") version "1.3.1"
 }
 
-group = "me.cpele.workitems"
+group = "me.cpele.facility"
 version = "1.0-SNAPSHOT"
 
 repositories {
@@ -54,15 +54,14 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "Slaccount"
-        args.add("slack-account")
+        mainClass = "Facility"
         nativeDistributions {
             targetFormats(TargetFormat.Deb)
-            packageName = "work-items"
+            packageName = "facility"
             vendor = "me.cpele"
             packageVersion = "1.0.0"
             linux {
-                iconFile.set(project.file("core/src/main/resources/me/cpele/workitems/core/programs/app-icon.png"))
+                iconFile.set(project.file("core/src/main/resources/me/cpele/facility/core/programs/app-icon.png"))
                 installationPath = "/usr"
             }
             appResourcesRootDir.set(project.layout.projectDirectory.dir("assets"))

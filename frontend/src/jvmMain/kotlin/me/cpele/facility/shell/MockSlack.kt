@@ -1,4 +1,4 @@
-package me.cpele.workitems.shell
+package me.cpele.facility.shell
 
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
-import me.cpele.workitems.core.framework.effects.Slack
+import me.cpele.facility.core.framework.effects.Slack
 import java.net.URL
 import kotlin.time.Duration.Companion.seconds
 
