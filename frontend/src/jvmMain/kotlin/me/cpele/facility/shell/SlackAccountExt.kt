@@ -32,6 +32,13 @@ import kotlin.math.roundToInt
 fun SlackAccount.main(vararg args: String) = run {
     if (args.contains("mock")) {
         SlackAccount.makeApp(MockSlack, DesktopPlatform, DesktopPreferences, DesktopStore)
+    } else if (args.contains("set-up-desktop")) {
+        SlackAccount.makeApp(
+            DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
+            DesktopPlatform,
+            DesktopPreferences,
+            DesktopStore
+        )
     } else {
         SlackAccount.makeApp(
             DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
