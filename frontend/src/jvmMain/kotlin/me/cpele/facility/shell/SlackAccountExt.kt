@@ -29,7 +29,7 @@ import me.cpele.facility.core.programs.SlackRetrievedAccount
 import java.awt.Dimension
 import kotlin.math.roundToInt
 
-fun SlackAccount.main(vararg args: String) {
+fun SlackAccount.main(vararg args: String) = run {
     if (args.contains("mock")) {
         SlackAccount.makeApp(MockSlack, DesktopPlatform, DesktopPreferences, DesktopStore)
     } else {
@@ -62,7 +62,7 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: 
 }
 
 @Composable
-private fun SlackAccount.Ui(props: SlackAccount.Props) {
+private fun SlackAccount.Ui(props: SlackAccount.Props) = run {
     val windowIconPath = remember {
         val path = SlackAccount::class.java.pkgResPath()
         "$path/app-icon.png"
