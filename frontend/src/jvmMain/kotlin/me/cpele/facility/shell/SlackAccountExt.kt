@@ -69,7 +69,7 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: 
 }
 
 @Composable
-private fun SlackAccount.Ui(props: SlackAccount.Props) = run {
+fun SlackAccount.Ui(props: SlackAccount.Props) = run {
     val windowIconPath = remember {
         val path = SlackAccount::class.java.pkgResPath()
         "$path/app-icon.png"

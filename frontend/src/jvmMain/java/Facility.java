@@ -1,8 +1,7 @@
-import me.cpele.facility.core.programs.SlackAccount;
-import me.cpele.facility.shell.SlackAccountExtKt;
+import me.cpele.facility.shell.FacilityExtKt;
 
 public class Facility {
     public static void main(String[] args) {
-        SlackAccountExtKt.main(SlackAccount.INSTANCE, args);
+        FacilityExtKt.main(me.cpele.facility.core.programs.Facility.INSTANCE, args);
     }
 }
