@@ -3,12 +3,24 @@ package me.cpele.facility.shell
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.window.Window
+import me.cpele.facility.core.framework.effects.AppRuntime
 import me.cpele.facility.core.programs.Facility
 import me.cpele.facility.core.programs.SlackAccount
 
-fun Facility.main(vararg args: String) {
+fun Facility.main() {
+    val appInit = {
+        init(
+            DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
+            DesktopPlatform,
+            object : AppRuntime {
+                override suspend fun exit() {}
+            },
+            DesktopPreferences,
+            DesktopStore
+        )
+    }
     app(
-        init = Facility::init,
+        init = appInit,
         update = Facility::update,
         view = Facility::view,
         setOnQuitListener = {},
@@ -23,3 +35,5 @@ private fun Facility.Ui(props: Facility.Props) = run {
         SlackAccount.Ui(props.slackAccount)
     }
 }
+
+private fun main() = Facility.main()
