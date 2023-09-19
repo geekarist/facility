@@ -36,4 +36,7 @@ private fun Facility.Ui(props: Facility.Props) = run {
     }
 }
 
+/**
+ * Workaround to run the program easily from the IDE, because [Facility.main] fails when launched that way.
+ */
 private fun main() = Facility.main()
