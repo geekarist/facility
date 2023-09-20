@@ -8,7 +8,7 @@ import me.cpele.facility.core.programs.Facility
 import me.cpele.facility.core.programs.SlackAccount
 
 fun Facility.main() {
-    val appInit = {
+    val desktopInit = {
         init(
             DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
             DesktopPlatform,
@@ -20,7 +20,7 @@ fun Facility.main() {
         )
     }
     app(
-        init = appInit,
+        init = desktopInit,
         update = Facility::update,
         view = Facility::view,
         setOnQuitListener = {},
@@ -37,6 +37,6 @@ private fun Facility.Ui(props: Facility.Props) = run {
 }
 
 /**
- * Workaround to run the program easily from the IDE, because [Facility.main] fails when launched that way.
+ * Workaround to run the program easily from the IDE, because [Facility.main] fails when launched directly.
  */
 private fun main() = Facility.main()
