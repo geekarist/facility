@@ -6,6 +6,7 @@ import androidx.compose.ui.window.Window
 import me.cpele.facility.core.framework.effects.AppRuntime
 import me.cpele.facility.core.programs.Facility
 import me.cpele.facility.core.programs.SlackAccount
+import kotlin.system.exitProcess
 
 fun Facility.main() {
     val desktopInit = {
@@ -21,8 +22,16 @@ fun Facility.main() {
     }
     app(
         init = desktopInit,
-        update = Facility::update,
-        view = Facility::view,
+        update = makeUpdate(
+            Facility.Ctx.of(
+                DesktopPlatform,
+                DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
+                AppRuntime.of { exitProcess(0) },
+                DesktopPreferences,
+                DesktopStore
+            )
+        ),
+        view = ::view,
         setOnQuitListener = {},
         ui = { props -> Ui(props) }
     )
@@ -30,7 +39,7 @@ fun Facility.main() {
 
 @Composable
 private fun Facility.Ui(props: Facility.Props) = run {
-    Window(onCloseRequest = {}) {
+    Window(onCloseRequest = props.onWindowClose) {
         Text("Hello Facility")
         SlackAccount.Ui(props.slackAccount)
     }
