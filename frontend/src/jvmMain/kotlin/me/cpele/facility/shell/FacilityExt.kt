@@ -20,7 +20,7 @@ fun Facility.main() {
             DesktopPreferences,
             DesktopStore
         )
-        init(ctx)
+        init()
     }
     app(
         init = desktopInit,

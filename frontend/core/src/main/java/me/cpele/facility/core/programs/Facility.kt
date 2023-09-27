@@ -7,7 +7,7 @@ import oolong.effect.map
 import me.cpele.facility.core.programs.SlackAccount.Event as SlackAccountSubEvent
 
 object Facility {
-    data class Model(val slackAccount: SlackAccount.Model?)
+    data class Model(val slackAccount: SlackAccount.Model? = null)
 
     sealed interface Event {
         object CloseRequest : Event
@@ -15,20 +15,7 @@ object Facility {
         data class SlackAccount(val subEvent: SlackAccountSubEvent) : Event
     }
 
-    fun init(ctx: Ctx): Change<Model, Event> = run {
-        val subCtx = SlackAccount.Ctx(
-            slack = ctx,
-            platform = ctx,
-            runtime = ctx,
-            preferences = ctx,
-            store = ctx
-        )
-        val subChange = SlackAccount.init(subCtx)
-        Change(
-            model = Model(slackAccount = subChange.model),
-            effect = map(subChange.effect, Event::SlackAccount)
-        )
-    }
+    fun init(): Change<Model, Event> = Change(model = Model())
 
     fun makeUpdate(ctx: Ctx): (Event, Model) -> Change<Model, Event> = { event, model ->
         when (event) {
@@ -69,17 +56,16 @@ object Facility {
     class Props(val onWindowClose: () -> Unit, val slackAccount: SlackAccount.Props?)
 
     fun view(model: Model, dispatch: (Event) -> Unit): Props {
-        checkNotNull(model.slackAccount) {
-            "Missing sub model in model: $model"
+        val slackAccountProps = model.slackAccount?.let { subModel ->
+            SlackAccount.view(
+                model.slackAccount,
+                contramap(dispatch, Event::SlackAccount)
+            )
         }
-        val slackAccountProps = SlackAccount.view(
-            model.slackAccount,
-            contramap(dispatch, Event::SlackAccount)
-        )
         return Props(
             slackAccount = slackAccountProps,
             onWindowClose = {
-                slackAccountProps.onWindowClose()
+                slackAccountProps?.onWindowClose?.invoke()
                 dispatch(Event.CloseRequest)
             }
         )
