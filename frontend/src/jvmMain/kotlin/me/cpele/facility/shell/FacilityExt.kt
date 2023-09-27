@@ -43,7 +43,9 @@ fun Facility.main() {
 private fun Facility.Ui(props: Facility.Props) = run {
     Window(onCloseRequest = props.onWindowClose) {
         Text("Hello Facility")
-        SlackAccount.Ui(props.slackAccount)
+        props.slackAccount?.let { subProps ->
+            SlackAccount.Ui(subProps)
+        }
     }
 }
 

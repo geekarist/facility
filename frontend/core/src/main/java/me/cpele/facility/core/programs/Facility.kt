@@ -65,7 +65,7 @@ object Facility {
         }
     }
 
-    class Props(val onWindowClose: () -> Unit, val slackAccount: SlackAccount.Props)
+    class Props(val onWindowClose: () -> Unit, val slackAccount: SlackAccount.Props?)
 
     fun view(model: Model, dispatch: (Event) -> Unit): Props {
         val slackAccountProps = SlackAccount.view(
