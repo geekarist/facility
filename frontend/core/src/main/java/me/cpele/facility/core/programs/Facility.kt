@@ -7,7 +7,7 @@ import oolong.effect.map
 import me.cpele.facility.core.programs.SlackAccount.Event as SlackAccountSubEvent
 
 object Facility {
-    data class Model(val slackAccount: SlackAccount.Model)
+    data class Model(val slackAccount: SlackAccount.Model?)
 
     sealed interface Event {
         object CloseRequest : Event
@@ -38,6 +38,7 @@ object Facility {
 
             is Event.SlackAccount -> {
                 val subModel = model.slackAccount
+                checkNotNull(subModel) { "Missing sub model in model: $model" }
                 val subEvent = event.subEvent
                 val subCtx = SlackAccount.Ctx(ctx, ctx, ctx, ctx, ctx)
                 val subChange = SlackAccount.update(subCtx, subEvent, subModel)
@@ -68,6 +69,9 @@ object Facility {
     class Props(val onWindowClose: () -> Unit, val slackAccount: SlackAccount.Props?)
 
     fun view(model: Model, dispatch: (Event) -> Unit): Props {
+        checkNotNull(model.slackAccount) {
+            "Missing sub model in model: $model"
+        }
         val slackAccountProps = SlackAccount.view(
             model.slackAccount,
             contramap(dispatch, Event::SlackAccount)
