@@ -15,21 +15,18 @@ object Facility {
         data class SlackAccount(val subEvent: SlackAccountSubEvent) : Event
     }
 
-    fun init(
-        slack: Slack,
-        platform: Platform,
-        runtime: AppRuntime,
-        preferences: Preferences,
-        store: Store
-    ): Change<Model, Event> = run {
-        val slackAccountInit = SlackAccount.init(
-            SlackAccount.Ctx(
-                slack, platform, runtime, preferences, store
-            )
+    fun init(ctx: Ctx): Change<Model, Event> = run {
+        val subCtx = SlackAccount.Ctx(
+            slack = ctx,
+            platform = ctx,
+            runtime = ctx,
+            preferences = ctx,
+            store = ctx
         )
+        val subChange = SlackAccount.init(subCtx)
         Change(
-            Model(slackAccountInit.model),
-            map(slackAccountInit.effect, Event::SlackAccount)
+            model = Model(slackAccount = subChange.model),
+            effect = map(subChange.effect, Event::SlackAccount)
         )
     }
 
@@ -45,9 +42,7 @@ object Facility {
                 val subCtx = SlackAccount.Ctx(ctx, ctx, ctx, ctx, ctx)
                 val subChange = SlackAccount.update(subCtx, subEvent, subModel)
                 val newModel = model.copy(slackAccount = subChange.model)
-                val newEffect = map<SlackAccount.Event, Event>(subChange.effect) { newSubEvent: SlackAccount.Event ->
-                    Event.SlackAccount(newSubEvent)
-                }
+                val newEffect = map(subChange.effect, Event::SlackAccount)
                 Change(newModel, newEffect)
             }
         }

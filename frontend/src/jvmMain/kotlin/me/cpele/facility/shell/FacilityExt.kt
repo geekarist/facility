@@ -5,25 +5,27 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.window.Window
 import me.cpele.facility.core.framework.effects.AppRuntime
 import me.cpele.facility.core.programs.Facility
+import me.cpele.facility.core.programs.Facility.Ctx
 import me.cpele.facility.core.programs.SlackAccount
 import kotlin.system.exitProcess
 
 fun Facility.main() {
     val desktopInit = {
-        init(
-            DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
+        val ctx = Ctx.of(
             DesktopPlatform,
+            DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
             object : AppRuntime {
                 override suspend fun exit() {}
             },
             DesktopPreferences,
             DesktopStore
         )
+        init(ctx)
     }
     app(
         init = desktopInit,
         update = makeUpdate(
-            Facility.Ctx.of(
+            Ctx.of(
                 DesktopPlatform,
                 DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
                 AppRuntime.of { exitProcess(0) },
