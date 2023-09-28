@@ -9,28 +9,28 @@ import me.cpele.facility.core.programs.SlackAccount.Event as SlackAccountSubEven
 object Facility {
     data class Model(val slackAccount: SlackAccount.Model? = null)
 
-    sealed interface Event {
-        object CloseRequest : Event
+    sealed interface Message {
+        object Close : Message
 
-        data class SlackAccount(val subEvent: SlackAccountSubEvent) : Event
+        data class SlackAccount(val subEvent: SlackAccountSubEvent) : Message
     }
 
-    fun init(): Change<Model, Event> = Change(model = Model())
+    fun init(): Change<Model, Message> = Change(model = Model())
 
-    fun makeUpdate(ctx: Ctx): (Event, Model) -> Change<Model, Event> = { event, model ->
-        when (event) {
-            Event.CloseRequest -> Change(model) {
+    fun makeUpdate(ctx: Ctx): (Message, Model) -> Change<Model, Message> = { message, model ->
+        when (message) {
+            Message.Close -> Change(model) {
                 ctx.exit()
             }
 
-            is Event.SlackAccount -> {
+            is Message.SlackAccount -> {
                 val subModel = model.slackAccount
                 checkNotNull(subModel) { "Missing sub model in model: $model" }
-                val subEvent = event.subEvent
+                val subEvent = message.subEvent
                 val subCtx = SlackAccount.Ctx(ctx, ctx, ctx, ctx, ctx)
                 val subChange = SlackAccount.update(subCtx, subEvent, subModel)
                 val newModel = model.copy(slackAccount = subChange.model)
-                val newEffect = map(subChange.effect, Event::SlackAccount)
+                val newEffect = map(subChange.effect, Message::SlackAccount)
                 Change(newModel, newEffect)
             }
         }
@@ -55,18 +55,18 @@ object Facility {
 
     class Props(val onWindowClose: () -> Unit, val slackAccount: SlackAccount.Props?)
 
-    fun view(model: Model, dispatch: (Event) -> Unit): Props {
+    fun view(model: Model, dispatch: (Message) -> Unit): Props {
         val slackAccountProps = model.slackAccount?.let { subModel ->
             SlackAccount.view(
                 model.slackAccount,
-                contramap(dispatch, Event::SlackAccount)
+                contramap(dispatch, Message::SlackAccount)
             )
         }
         return Props(
             slackAccount = slackAccountProps,
             onWindowClose = {
                 slackAccountProps?.onWindowClose?.invoke()
-                dispatch(Event.CloseRequest)
+                dispatch(Message.Close)
             }
         )
     }
