@@ -1,5 +1,6 @@
 package me.cpele.facility.shell
 
+import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.window.Window
@@ -42,7 +43,12 @@ fun Facility.main() {
 @Composable
 private fun Facility.Ui(props: Facility.Props) = run {
     Window(onCloseRequest = props.onWindowClose) {
-        Text("Hello Facility")
+        Button(
+            onClick = props.openSlackAccount.onClick,
+            enabled = props.openSlackAccount.isEnabled
+        ) {
+            Text(text = props.openSlackAccount.text)
+        }
         props.slackAccount?.let { subProps ->
             SlackAccount.Ui(subProps)
         }

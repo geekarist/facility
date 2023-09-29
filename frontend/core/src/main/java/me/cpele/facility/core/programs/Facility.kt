@@ -1,6 +1,7 @@
 package me.cpele.facility.core.programs
 
 import me.cpele.facility.core.framework.Change
+import me.cpele.facility.core.framework.Prop
 import me.cpele.facility.core.framework.effects.*
 import oolong.dispatch.contramap
 import oolong.effect.map
@@ -11,6 +12,7 @@ object Facility {
 
     sealed interface Message {
         object Close : Message
+        object OpenSlackAccount : Message
 
         data class SlackAccount(val subEvent: SlackAccountSubEvent) : Message
     }
@@ -22,6 +24,8 @@ object Facility {
             Message.Close -> Change(model) {
                 ctx.exit()
             }
+
+            Message.OpenSlackAccount -> TODO()
 
             is Message.SlackAccount -> {
                 val subModel = model.slackAccount
@@ -53,7 +57,11 @@ object Facility {
         }
     }
 
-    class Props(val onWindowClose: () -> Unit, val slackAccount: SlackAccount.Props?)
+    class Props(
+        val onWindowClose: () -> Unit,
+        val slackAccount: SlackAccount.Props?,
+        val openSlackAccount: Prop.Button
+    )
 
     fun view(model: Model, dispatch: (Message) -> Unit): Props {
         val slackAccountProps = model.slackAccount?.let { subModel ->
@@ -63,6 +71,9 @@ object Facility {
             )
         }
         return Props(
+            openSlackAccount = Prop.Button("Slack account") {
+                dispatch(Message.OpenSlackAccount)
+            },
             slackAccount = slackAccountProps,
             onWindowClose = {
                 slackAccountProps?.onWindowClose?.invoke()
