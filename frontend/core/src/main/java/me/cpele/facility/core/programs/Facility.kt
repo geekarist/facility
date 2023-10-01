@@ -20,13 +20,17 @@ object Facility {
     fun init(): Change<Model, Message> = Change(model = Model())
 
     fun makeUpdate(ctx: Ctx): (Message, Model) -> Change<Model, Message> = { message, model ->
+        val subCtx = SlackAccount.Ctx(ctx, ctx, object : AppRuntime {
+            override suspend fun exit() = Unit // Sub-context must not exit app
+        }, ctx, ctx)
+
         when (message) {
             Message.Close -> Change(model) {
                 ctx.exit()
             }
 
             Message.OpenSlackAccount -> {
-                val subChange = SlackAccount.init(SlackAccount.Ctx(ctx, ctx, ctx, ctx, ctx))
+                val subChange = SlackAccount.init(subCtx)
                 val newModel = model.copy(slackAccount = subChange.model)
                 val newEffect = map(subChange.effect, Message::SlackAccount)
                 Change(newModel, newEffect)
@@ -36,7 +40,6 @@ object Facility {
                 val subModel = model.slackAccount
                 checkNotNull(subModel) { "Missing sub model in model: $model" }
                 val subEvent = message.subEvent
-                val subCtx = SlackAccount.Ctx(ctx, ctx, ctx, ctx, ctx)
                 val subChange = SlackAccount.update(subCtx, subEvent, subModel)
                 val newModel = model.copy(slackAccount = subChange.model)
                 val newEffect = map(subChange.effect, Message::SlackAccount)

@@ -11,20 +11,8 @@ import me.cpele.facility.core.programs.SlackAccount
 import kotlin.system.exitProcess
 
 fun Facility.main() {
-    val desktopInit = {
-        val ctx = Ctx.of(
-            DesktopPlatform,
-            DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform)),
-            object : AppRuntime {
-                override suspend fun exit() {}
-            },
-            DesktopPreferences,
-            DesktopStore
-        )
-        init()
-    }
     app(
-        init = desktopInit,
+        init = ::init,
         update = makeUpdate(
             Ctx.of(
                 DesktopPlatform,
