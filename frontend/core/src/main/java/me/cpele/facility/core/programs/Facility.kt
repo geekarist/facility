@@ -20,9 +20,7 @@ object Facility {
     fun init(): Change<Model, Message> = Change(model = Model())
 
     fun makeUpdate(ctx: Ctx): (Message, Model) -> Change<Model, Message> = { message, model ->
-        val subCtx = SlackAccount.Ctx(ctx, ctx, object : AppRuntime {
-            override suspend fun exit() = Unit // Sub-context must not exit app
-        }, ctx, ctx)
+        val subCtx = SlackAccount.Ctx(ctx, ctx, ctx, ctx)
 
         when (message) {
             Message.Close -> Change(model) {
@@ -37,13 +35,17 @@ object Facility {
             }
 
             is Message.SlackAccount -> {
-                val subModel = model.slackAccount
-                checkNotNull(subModel) { "Missing sub model in model: $model" }
-                val subEvent = message.subEvent
-                val subChange = SlackAccount.update(subCtx, subEvent, subModel)
-                val newModel = model.copy(slackAccount = subChange.model)
-                val newEffect = map(subChange.effect, Message::SlackAccount)
-                Change(newModel, newEffect)
+                if (message.subEvent == SlackAccount.Event.Intent.Quit) {
+                    Change(model.copy(slackAccount = null))
+                } else {
+                    val subModel = model.slackAccount
+                    checkNotNull(subModel) { "Missing sub model in model: $model" }
+                    val subEvent = message.subEvent
+                    val subChange = SlackAccount.update(subCtx, subEvent, subModel)
+                    val newModel = model.copy(slackAccount = subChange.model)
+                    val newEffect = map(subChange.effect, Message::SlackAccount)
+                    Change(newModel, newEffect)
+                }
             }
         }
     }
@@ -74,7 +76,7 @@ object Facility {
     fun view(model: Model, dispatch: (Message) -> Unit): Props {
         val slackAccountProps = model.slackAccount?.let { subModel ->
             SlackAccount.view(
-                model.slackAccount,
+                subModel,
                 contramap(dispatch, Message::SlackAccount)
             )
         }

@@ -7,7 +7,10 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import me.cpele.facility.core.framework.Change
 import me.cpele.facility.core.framework.Prop
-import me.cpele.facility.core.framework.effects.*
+import me.cpele.facility.core.framework.effects.Platform
+import me.cpele.facility.core.framework.effects.Preferences
+import me.cpele.facility.core.framework.effects.Slack
+import me.cpele.facility.core.framework.effects.Store
 import me.cpele.facility.core.framework.flatMapCatching
 import oolong.Dispatch
 import oolong.dispatch.contramap
@@ -103,7 +106,7 @@ object SlackAccount {
     private fun props(@Suppress("UNUSED_PARAMETER") model: Model.Invalid, dispatch: Dispatch<Event>) =
         Props.SignedOut(
             windowTitle = Prop.Text("Invalid account | Slaccount"),
-            onWindowClose = { dispatch(Event.Intent.Quit) },
+            onWindowClose = { dispatch(Event.Intent.Persist) },
             title = Prop.Text("Something's wrong"),
             desc = Prop.Text("Got invalid account. Please try signing in again."),
             button = Prop.Button("Retry") { dispatch(Event.Intent.SignIn) })
@@ -113,7 +116,7 @@ object SlackAccount {
         dispatch: Dispatch<Event>
     ) = Props.SignedOut(
         windowTitle = Prop.Text("Blank account | Slaccount"),
-        onWindowClose = { dispatch(Event.Intent.Quit) },
+        onWindowClose = { dispatch(Event.Intent.Persist) },
         title = Prop.Text(text = "Welcome to Slaccount"),
         desc = Prop.Text(text = "Please sign in with your Slack account to display your personal info"),
         button = Prop.Button(text = "Sign into Slack", isEnabled = true) {
@@ -125,7 +128,7 @@ object SlackAccount {
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
         windowTitle = Prop.Text("Pending account | Slaccount"),
-        onWindowClose = { dispatch(Event.Intent.Quit) },
+        onWindowClose = { dispatch(Event.Intent.Persist) },
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
@@ -140,7 +143,7 @@ object SlackAccount {
         dispatch: Dispatch<Event>
     ) = Props.SigningIn(
         windowTitle = Prop.Text("Authorized account | Slaccount"),
-        onWindowClose = { dispatch(Event.Intent.Quit) },
+        onWindowClose = { dispatch(Event.Intent.Persist) },
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
@@ -157,7 +160,7 @@ object SlackAccount {
         dispatch: (Event) -> Unit
     ): Props = Props.Retrieved(
         windowTitle = Prop.Text("Retrieved account | Slaccount"),
-        onWindowClose = { dispatch(Event.Intent.Quit) },
+        onWindowClose = { dispatch(Event.Intent.Persist) },
         SlackRetrievedAccount.view(
             model = model.subModel,
             dispatch = contramap(dispatch, Event::Retrieved)
@@ -171,7 +174,6 @@ object SlackAccount {
     data class Ctx(
         val slack: Slack,
         val platform: Platform,
-        val runtime: AppRuntime,
         val preferences: Preferences,
         val store: Store
     )
@@ -185,6 +187,7 @@ object SlackAccount {
         sealed interface Intent : Event {
             object SignIn : Event
             object SignInCancel : Event
+            object Persist : Event
             object Quit : Event
         }
 
@@ -219,8 +222,8 @@ object SlackAccount {
         event: Event,
         model: Model
     ): Change<Model, Event> =
-        if (event is Event.Intent.Quit) {
-            changeOnQuitIntent(ctx, model)
+        if (event is Event.Intent.Persist) {
+            changeOnPersistIntent(ctx, model)
         } else {
             when (model) {
                 is Model.Blank -> initPending(ctx, event)
@@ -231,10 +234,10 @@ object SlackAccount {
             }
         }
 
-    private fun changeOnQuitIntent(
+    private fun changeOnPersistIntent(
         ctx: Ctx,
         model: Model
-    ): Change<Model, Event> = Change(model) {
+    ): Change<Model, Event> = Change(model) { dispatch ->
         val persistableModel = when (model) {
             is Model.Retrieved,
             is Model.Authorized -> model
@@ -250,7 +253,7 @@ object SlackAccount {
             "Storing serialized model: $subStr"
         }
         ctx.store.putString("slaccount-model", serializedModel)
-        ctx.runtime.exit()
+        dispatch(Event.Intent.Quit)
     }
 
     private fun initPending(

@@ -23,7 +23,10 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import me.cpele.facility.core.framework.Prop
-import me.cpele.facility.core.framework.effects.*
+import me.cpele.facility.core.framework.effects.Platform
+import me.cpele.facility.core.framework.effects.Preferences
+import me.cpele.facility.core.framework.effects.Slack
+import me.cpele.facility.core.framework.effects.Store
 import me.cpele.facility.core.programs.SlackAccount
 import me.cpele.facility.core.programs.SlackRetrievedAccount
 import java.awt.Dimension
@@ -50,18 +53,13 @@ fun SlackAccount.main(vararg args: String) = run {
 }
 
 private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: Preferences, store: Store) {
-    var onQuitListener = {}
-    val runtime = object : AppRuntime {
-        override suspend fun exit() = onQuitListener()
-    }
-    val ctx = SlackAccount.Ctx(slack, platform, runtime, preferences, store)
+    val ctx = SlackAccount.Ctx(slack, platform, preferences, store)
     app(
         init = { init(ctx) },
         update = { event, model ->
             update(ctx, event, model)
         },
         view = ::view,
-        setOnQuitListener = { onQuitListener = it },
         ui = { props ->
             Ui(props)
         }
