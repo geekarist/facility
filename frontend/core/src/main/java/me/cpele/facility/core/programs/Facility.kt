@@ -35,11 +35,14 @@ object Facility {
             }
 
             is Message.SlackAccount -> {
-                if (message.subEvent == SlackAccount.Event.Intent.Quit) {
+                ctx.logi { "Got sub-event: ${message.subEvent}" }
+                if (message.subEvent == SlackAccount.Event.Outcome.Persisted) {
+                    ctx.logi { "Got 'persisted' sub-event ⇒ Clearing Slack account model" }
                     Change(model.copy(slackAccount = null))
                 } else {
+                    ctx.logi { "Got non-'persisted' sub-event ⇒ Passing to sub-program" }
                     val subModel = model.slackAccount
-                    checkNotNull(subModel) { "Missing sub model in model: $model" }
+                    checkNotNull(subModel) { "Missing sub-model in model: $model" }
                     val subEvent = message.subEvent
                     val subChange = SlackAccount.update(subCtx, subEvent, subModel)
                     val newModel = model.copy(slackAccount = subChange.model)

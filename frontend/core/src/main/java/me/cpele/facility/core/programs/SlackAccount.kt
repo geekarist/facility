@@ -17,6 +17,8 @@ import oolong.dispatch.contramap
 import oolong.effect.map
 import java.net.URLEncoder
 import java.nio.charset.Charset
+import java.util.logging.Level
+import java.util.logging.Logger
 import kotlin.math.min
 
 private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
@@ -188,7 +190,6 @@ object SlackAccount {
             object SignIn : Event
             object SignInCancel : Event
             object Persist : Event
-            object Quit : Event
         }
 
         /** Result of an external operation e.g. response of a web-service call */
@@ -197,6 +198,7 @@ object SlackAccount {
             data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
             data class DeserializedModel(val model: Model) : Event
+            object Persisted : Event
         }
 
         data class Retrieved(val subEvent: SlackRetrievedAccount.Event) : Event
@@ -223,6 +225,7 @@ object SlackAccount {
         model: Model
     ): Change<Model, Event> =
         if (event is Event.Intent.Persist) {
+            Logger.getAnonymousLogger().log(Level.INFO, "Got event: $event")
             changeOnPersistIntent(ctx, model)
         } else {
             when (model) {
@@ -237,7 +240,7 @@ object SlackAccount {
     private fun changeOnPersistIntent(
         ctx: Ctx,
         model: Model
-    ): Change<Model, Event> = Change(model) { dispatch ->
+    ): Change<Model, Event> = Change(model) { dispatch: (Event) -> Unit ->
         val persistableModel = when (model) {
             is Model.Retrieved,
             is Model.Authorized -> model
@@ -253,7 +256,15 @@ object SlackAccount {
             "Storing serialized model: $subStr"
         }
         ctx.store.putString("slaccount-model", serializedModel)
-        dispatch(Event.Intent.Quit)
+
+        Logger.getAnonymousLogger().log(Level.INFO, "Model persisted, now dispatch")
+        if (model is Model.Pending) {
+            Logger.getAnonymousLogger().log(Level.INFO, "Model is pending ⇒ dispatch cancel")
+            dispatch(Event.Intent.SignInCancel)
+        }
+        Logger.getAnonymousLogger()
+            .log(Level.INFO, "Finished changing model ⇒ dispatch ${Event.Outcome.Persisted}")
+        dispatch(Event.Outcome.Persisted)
     }
 
     private fun initPending(
@@ -423,7 +434,11 @@ object SlackAccount {
         }
 
     private fun initBlank(ctx: Ctx): Change<Model, Event> =
-        Change(Model.Blank) { ctx.slack.tearDownLogin() }
+        Change(Model.Blank) {
+            Logger.getAnonymousLogger().log(Level.INFO, "Tearing down login")
+            ctx.slack.tearDownLogin()
+            // yield() // Let other coroutines run to actually tear down _now_
+        }
 
     private fun change(
         ctx: Ctx,

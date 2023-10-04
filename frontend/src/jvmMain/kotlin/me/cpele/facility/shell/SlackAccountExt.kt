@@ -30,6 +30,8 @@ import me.cpele.facility.core.framework.effects.Store
 import me.cpele.facility.core.programs.SlackAccount
 import me.cpele.facility.core.programs.SlackRetrievedAccount
 import java.awt.Dimension
+import java.util.logging.Level
+import java.util.logging.Logger
 import kotlin.math.roundToInt
 
 fun SlackAccount.main(vararg args: String) = run {
@@ -74,7 +76,10 @@ fun SlackAccount.Ui(props: SlackAccount.Props) = run {
     }
     Window(
         title = props.windowTitle.text,
-        onCloseRequest = props.onWindowClose,
+        onCloseRequest = {
+            Logger.getAnonymousLogger().log(Level.INFO, "Closing window requested")
+            props.onWindowClose()
+        },
         icon = painterResource(windowIconPath)
     ) {
         with(LocalDensity.current) {
