@@ -18,11 +18,11 @@ class NgrokIngress(private val platform: Platform) : Ingress {
 
     override fun open(protocol: String, port: String, onTunnelOpened: (Ingress.Tunnel) -> Unit) {
         check(runningProcess == null) {
-            "Already-running process: ${runningProcess?.pid()}"
+            "Process already running: ${runningProcess?.pid()}"
         }
         coroutineScope.launch(Dispatchers.IO) {
             DesktopPlatform.logi { "Launching tunnel command..." }
-            val command = listOf("ngrok", "--log=stdout", "--log-format=json", protocol, port)
+            val command = listOf("ngrok", protocol, "--log=stdout", "--log-format=json", port)
             val process = ProcessBuilder(command)
                 .redirectErrorStream(true)
                 .start()
@@ -67,7 +67,7 @@ class NgrokIngress(private val platform: Platform) : Ingress {
                     platform.logi { "Process still alive ⇒ destroying forcibly" }
                     process.destroyForcibly()
                 }
-                platform.logi { "Process still alive? ${process.isAlive}" }
+                platform.logi { "Process destroyed ⇒ still alive? ${process.isAlive}" }
             }
         }
     }
