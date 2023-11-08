@@ -134,7 +134,7 @@ object SlackAccount {
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
-            dispatch(Event.Intent.SignInCancel)
+            dispatch(Event.Intent.SignInCancel())
         },
         Prop.Text("We need your permission to let Slack give us info about you."),
         Prop.Text("Waiting for you to sign into Slack through a web-browser window...")
@@ -149,7 +149,7 @@ object SlackAccount {
         title = Prop.Text("Welcome to Slaccount"),
         progress = Prop.Progress(value = Math.random().toFloat()),
         cancel = Prop.Button(text = "Cancel") {
-            dispatch(Event.Intent.SignInCancel)
+            dispatch(Event.Intent.SignInCancel())
         },
         Prop.Text("Almost done!"),
         Prop.Text("We're waiting for Slack to give us info about your account."),
@@ -188,7 +188,7 @@ object SlackAccount {
         /** User intent e.g. when user presses a button */
         sealed interface Intent : Event {
             object SignIn : Event
-            object SignInCancel : Event
+            data class SignInCancel(val persisting: Boolean = false) : Event
             object Persist : Event
         }
 
@@ -260,11 +260,12 @@ object SlackAccount {
         Logger.getAnonymousLogger().log(Level.INFO, "Model persisted, now dispatch")
         if (model is Model.Pending) {
             Logger.getAnonymousLogger().log(Level.INFO, "Model is pending ⇒ dispatch cancel")
-            dispatch(Event.Intent.SignInCancel)
+            dispatch(Event.Intent.SignInCancel(persisting = true))
+        } else {
+            Logger.getAnonymousLogger()
+                .log(Level.INFO, "Finished changing model ⇒ dispatch ${Event.Outcome.Persisted}")
+            dispatch(Event.Outcome.Persisted)
         }
-        Logger.getAnonymousLogger()
-            .log(Level.INFO, "Finished changing model ⇒ dispatch ${Event.Outcome.Persisted}")
-        dispatch(Event.Outcome.Persisted)
     }
 
     private fun initPending(
@@ -287,7 +288,7 @@ object SlackAccount {
         event: Event
     ): Change<Model, Event> = when (event) {
         is Event.Outcome.AuthScopeStatus -> changeFromPendingOnAuthStatus(ctx, model, event)
-        Event.Intent.SignInCancel -> initBlank(ctx)
+        is Event.Intent.SignInCancel -> initBlank(ctx, event)
         is Event.Outcome.AccessToken -> initNextFromPendingOnAccess(ctx, event)
         is Event.Outcome.DeserializedModel -> changeFromPendingOnDeserialized(event, ctx)
         else -> error("Invalid event for pending model: $event")
@@ -410,7 +411,7 @@ object SlackAccount {
     ): Change<Model, Event> =
         when (event) {
 
-            Event.Intent.SignInCancel -> initBlank(ctx)
+            is Event.Intent.SignInCancel -> initBlank(ctx, event)
 
             is Event.Outcome.UserInfo -> let {
                 model.credentials
@@ -433,11 +434,13 @@ object SlackAccount {
             else -> error("Invalid event for authorized account: $event")
         }
 
-    private fun initBlank(ctx: Ctx): Change<Model, Event> =
-        Change(Model.Blank) {
+    private fun initBlank(ctx: Ctx, event: Event.Intent.SignInCancel): Change<Model, Event> =
+        Change(Model.Blank) { dispatch ->
             Logger.getAnonymousLogger().log(Level.INFO, "Tearing down login")
             ctx.slack.tearDownLogin()
-            // yield() // Let other coroutines run to actually tear down _now_
+            if (event.persisting) {
+                dispatch(Event.Outcome.Persisted)
+            }
         }
 
     private fun change(
