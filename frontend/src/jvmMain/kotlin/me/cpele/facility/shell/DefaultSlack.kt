@@ -30,6 +30,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
 
     private var server: ApplicationEngine? = null
     private var tunnel: Ingress.Tunnel? = null
+    private var timeOutJob: Job? = null
 
     override suspend fun fetchMessages() = Result.runCatching {
         withContext(Dispatchers.IO) {
@@ -90,14 +91,15 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                 tunnel = serverTunnel
             }
         }
-        val timeOutJob = launch {
+        timeOutJob?.cancel()
+        timeOutJob = launch {
             val timeOut = 60.seconds
             delay(timeOut)
             val message = "Auth-scope request timed out after $timeOut"
             this@callbackFlow.cancel(message)
         }
         awaitClose {
-            timeOutJob.cancel()
+            timeOutJob?.cancel()
             platform.logi { "Callback flow got closed or cancelled ⇒ Stopping server, closing ingress" }
             server?.stop()
             ingress.close()
@@ -235,6 +237,8 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
         server = null
         ingress.close()
         tunnel = null
+        timeOutJob?.cancel("Got explicit tear-down request ⇒ Canceling time-out job")
+        timeOutJob = null
     }
 
     data class Message(override val text: String) : Slack.Message
