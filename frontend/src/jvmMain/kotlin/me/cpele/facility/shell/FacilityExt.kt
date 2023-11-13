@@ -37,9 +37,9 @@ private fun Facility.Ui(props: Facility.Props) = run {
         ) {
             Text(text = props.openSlackAccount.text)
         }
-        props.slackAccount?.let { subProps ->
-            SlackAccount.Ui(subProps)
-        }
+    }
+    props.slackAccount?.let { subProps ->
+        SlackAccount.Ui(subProps)
     }
 }
 

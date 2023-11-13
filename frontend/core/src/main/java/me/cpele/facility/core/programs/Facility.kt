@@ -28,7 +28,11 @@ object Facility {
             }
 
             Message.OpenSlackAccount -> {
-                val subChange = SlackAccount.init(subCtx)
+                val subChange = if (model.slackAccount == null) {
+                    SlackAccount.init(subCtx)
+                } else {
+                    Change(model.slackAccount)
+                }
                 val newModel = model.copy(slackAccount = subChange.model)
                 val newEffect = map(subChange.effect, Message::SlackAccount)
                 Change(newModel, newEffect)
