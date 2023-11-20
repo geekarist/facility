@@ -70,6 +70,9 @@ private fun SlackAccount.makeApp(slack: Slack, platform: Platform, preferences: 
 
 @Composable
 fun SlackAccount.Ui(props: SlackAccount.Props) = run {
+    LaunchedEffect(props) {
+        Logger.getAnonymousLogger().log(Level.INFO, "Slack-account props changed ⇒ recomposing UI. Props: $props")
+    }
     val windowIconPath = remember {
         val path = SlackAccount::class.java.pkgResPath()
         "$path/app-icon.png"

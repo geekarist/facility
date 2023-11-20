@@ -65,4 +65,6 @@ object Prop {
         button = button,
         onClose = onClose
     )
+
+    data class CheckBoxField(val label: String, val checked: Boolean, val onToggle: () -> Unit)
 }

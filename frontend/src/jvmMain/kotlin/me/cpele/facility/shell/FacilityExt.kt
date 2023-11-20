@@ -2,6 +2,7 @@ package me.cpele.facility.shell
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
+import androidx.compose.material.Checkbox
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -59,6 +60,13 @@ private fun Facility.Ui(props: Facility.Props) = run {
                     """.trimIndent()
                 )
                 Spacer(Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(props.mockRemote.label, style = MaterialTheme.typography.body2)
+                    Checkbox(checked = props.mockRemote.checked, onCheckedChange = { props.mockRemote.onToggle() })
+                }
+                Spacer(Modifier.height(8.dp))
                 Button(
                     onClick = props.openSlackAccount.onClick,
                     enabled = props.openSlackAccount.isEnabled

@@ -8,11 +8,12 @@ import oolong.effect.map
 import me.cpele.facility.core.programs.SlackAccount.Event as SlackAccountSubEvent
 
 object Facility {
-    data class Model(val slackAccount: SlackAccount.Model? = null)
+    data class Model(val slackAccount: SlackAccount.Model? = null, val mock: Boolean = false)
 
     sealed interface Message {
         object Close : Message
         object OpenSlackAccount : Message
+        object ToggleMock : Message
 
         data class SlackAccount(val subEvent: SlackAccountSubEvent) : Message
     }
@@ -54,6 +55,8 @@ object Facility {
                     Change(newModel, newEffect)
                 }
             }
+
+            Message.ToggleMock -> Change(model.copy(mock = !model.mock))
         }
     }
 
@@ -77,7 +80,8 @@ object Facility {
     class Props(
         val onWindowClose: () -> Unit,
         val slackAccount: SlackAccount.Props?,
-        val openSlackAccount: Prop.Button
+        val openSlackAccount: Prop.Button,
+        val mockRemote: Prop.CheckBoxField
     )
 
     fun view(model: Model, dispatch: (Message) -> Unit): Props {
@@ -88,6 +92,13 @@ object Facility {
             )
         }
         return Props(
+            mockRemote = Prop.CheckBoxField(
+                label = "Mock remote services?",
+                checked = model.mock,
+                onToggle = {
+                    dispatch(Message.ToggleMock)
+                }
+            ),
             openSlackAccount = Prop.Button("Slack account") {
                 dispatch(Message.OpenSlackAccount)
             },
