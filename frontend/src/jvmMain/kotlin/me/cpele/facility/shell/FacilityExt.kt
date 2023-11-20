@@ -1,11 +1,6 @@
 package me.cpele.facility.shell
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -13,9 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Companion
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import me.cpele.facility.core.framework.effects.AppRuntime
 import me.cpele.facility.core.programs.Facility
@@ -52,22 +46,19 @@ private fun Facility.Ui(props: Facility.Props) = run {
         Box(contentAlignment = Companion.Center, modifier = Modifier.fillMaxSize()) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.wrapContentSize()
+                modifier = Modifier.wrapContentSize().padding(16.dp)
             ) {
                 Text(style = MaterialTheme.typography.h3, text = "Facility")
+                Spacer(Modifier.height(16.dp))
                 Text(
                     style = MaterialTheme.typography.body1,
                     textAlign = TextAlign.Center,
                     text = """
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
-                    sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-                    Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris 
-                    nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in 
-                    reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-                    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia 
-                    deserunt mollit anim id est laborum.
+                        Welcome to Facility.
+                        This is a launcher program for several smaller composable utility programs.
                     """.trimIndent()
                 )
+                Spacer(Modifier.height(16.dp))
                 Button(
                     onClick = props.openSlackAccount.onClick,
                     enabled = props.openSlackAccount.isEnabled
