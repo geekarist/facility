@@ -23,6 +23,8 @@ import kotlin.math.min
 
 private const val SLACK_CLIENT_ID = "961165435895.5012210604118"
 
+private const val STORAGE_KEY = "slaccount-model"
+
 object SlackAccount {
 
     // region Model
@@ -190,6 +192,7 @@ object SlackAccount {
             object SignIn : Event
             data class SignInCancel(val persisting: Boolean = false) : Event
             object Persist : Event
+            object Reset : Event
         }
 
         /** Result of an external operation e.g. response of a web-service call */
@@ -206,7 +209,7 @@ object SlackAccount {
 
     fun init(ctx: Ctx) = Change<Model, Event>(Model.Pending()) { dispatch ->
         ctx.platform.logi { "Getting serialized model" }
-        val serializedModel = ctx.store.getString("slaccount-model") ?: Json.encodeToString(Model.Blank)
+        val serializedModel = ctx.store.getString(STORAGE_KEY) ?: Json.encodeToString(Model.Blank)
         ctx.platform.logi {
             val subStrMaxIdx = min(serializedModel.length - 1, 160)
             val subStr = serializedModel.substring(0..subStrMaxIdx)
@@ -223,12 +226,17 @@ object SlackAccount {
         ctx: Ctx,
         event: Event,
         model: Model
-    ): Change<Model, Event> =
-        if (event is Event.Intent.Persist) {
-            Logger.getAnonymousLogger().log(Level.INFO, "Got event: $event")
-            changeOnPersistIntent(ctx, model)
-        } else {
-            when (model) {
+    ): Change<Model, Event> = run {
+        Logger.getAnonymousLogger().log(Level.INFO, "Got event: $event")
+        when (event) {
+            is Event.Intent.Persist -> changeOnPersistIntent(ctx, model)
+            is Event.Intent.Reset -> Change(Model.Blank) { dispatch ->
+                ctx.store.clear(STORAGE_KEY)
+                ctx.slack.tearDownLogin()
+                dispatch(Event.Outcome.Persisted)
+            }
+
+            else -> when (model) {
                 is Model.Blank -> initPending(ctx, event)
                 is Model.Pending -> change(ctx, model, event)
                 is Model.Authorized -> initNextFromAuthorized(ctx, model, event)
@@ -236,6 +244,7 @@ object SlackAccount {
                 is Model.Retrieved -> change(ctx, model, event)
             }
         }
+    }
 
     private fun changeOnPersistIntent(
         ctx: Ctx,
@@ -255,7 +264,7 @@ object SlackAccount {
             val subStr = serializedModel.substring(0..subStrMaxIdx)
             "Storing serialized model: $subStr"
         }
-        ctx.store.putString("slaccount-model", serializedModel)
+        ctx.store.putString(STORAGE_KEY, serializedModel)
 
         Logger.getAnonymousLogger().log(Level.INFO, "Model persisted, now dispatch")
         if (model is Model.Pending) {

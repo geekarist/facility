@@ -56,7 +56,9 @@ object Facility {
                 }
             }
 
-            Message.ToggleMock -> Change(model.copy(mock = !model.mock))
+            Message.ToggleMock -> Change(model.copy(mock = !model.mock)) {
+                it.invoke(Message.SlackAccount(SlackAccount.Event.Intent.Reset))
+            }
         }
     }
 
