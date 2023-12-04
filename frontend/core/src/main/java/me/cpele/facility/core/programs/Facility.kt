@@ -20,7 +20,8 @@ object Facility {
 
     fun init(): Change<Model, Message> = Change(model = Model())
 
-    fun makeUpdate(ctx: Ctx): (Message, Model) -> Change<Model, Message> = { message, model ->
+    fun makeUpdate(supplyCtx: (mock: Boolean) -> Ctx): (Message, Model) -> Change<Model, Message> = { message, model ->
+        val ctx = supplyCtx(model.mock)
         val subCtx = SlackAccount.Ctx(ctx, ctx, ctx, ctx)
 
         when (message) {

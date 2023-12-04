@@ -13,28 +13,31 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import me.cpele.facility.core.framework.effects.AppRuntime
+import me.cpele.facility.core.framework.effects.Slack
 import me.cpele.facility.core.programs.Facility
 import me.cpele.facility.core.programs.Facility.Ctx
 import me.cpele.facility.core.programs.SlackAccount
 import kotlin.system.exitProcess
 
-fun Facility.main(vararg args: String) {
-    val slack = if (args.contains("mock")) {
-        MockSlack
-    } else {
-        DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform))
+fun Facility.main() {
+    val supplySlack: (Boolean) -> Slack = { mock: Boolean ->
+        if (mock) {
+            MockSlack
+        } else {
+            DefaultSlack(DesktopPlatform, NgrokIngress(DesktopPlatform))
+        }
     }
     app(
         init = ::init,
-        update = makeUpdate(
+        update = makeUpdate { mock ->
             Ctx.of(
                 DesktopPlatform,
-                slack,
+                supplySlack(mock),
                 AppRuntime.of { exitProcess(0) },
                 DesktopPreferences,
                 DesktopStore
             )
-        ),
+        },
         view = ::view,
         setOnQuitListener = {},
         ui = { props -> Ui(props) }
@@ -84,4 +87,4 @@ private fun Facility.Ui(props: Facility.Props) = run {
 /**
  * Workaround to run the program easily from the IDE, because [Facility.main] fails when launched directly.
  */
-fun main(args: Array<String>) = Facility.main(*args)
+fun main(args: Array<String>) = Facility.main()
