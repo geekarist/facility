@@ -10,6 +10,7 @@ interface Slack {
 
     suspend fun fetchMessages(): Result<List<Message>>
     suspend fun requestAuthScopes(): Flow<Authorization>
+    @Deprecated("Tearing down login should be part of auth-scope request")
     suspend fun tearDownLogin()
 
     @Deprecated(
@@ -52,6 +53,7 @@ interface Slack {
     }
 
     sealed interface Authorization {
+        object Requested : Authorization
 
         sealed interface Route : Authorization {
             object Init : Route

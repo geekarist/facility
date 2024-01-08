@@ -1,6 +1,9 @@
 package me.cpele.facility.core.programs
 
 // TODO: Don't use Java URL encoder
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.job
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -197,7 +200,7 @@ object SlackAccount {
 
         /** Result of an external operation e.g. response of a web-service call */
         sealed interface Outcome : Event {
-            data class AuthScopeStatus(val status: Slack.Authorization) : Event
+            data class AuthScopeStatus(val status: Slack.Authorization, val job: Job) : Event
             data class AccessToken(val credentialsResult: Result<Slack.Credentials>) : Event
             data class UserInfo(val userInfoResult: Result<Slack.UserInfo>) : Event
             data class DeserializedModel(val model: Model) : Event
@@ -284,10 +287,12 @@ object SlackAccount {
         check(event is Event.Intent.SignIn)
         Change(Model.Pending()) { dispatch ->
             ctx.platform.logi { "Got $event" }
-            ctx.slack.requestAuthScopes().collect { status ->
-                ctx.platform.logi { "Got status $status" }
-                dispatch(Event.Outcome.AuthScopeStatus(status))
-            }
+            launch {
+                ctx.slack.requestAuthScopes().collect { status ->
+                    ctx.platform.logi { "Got status $status" }
+                    dispatch(Event.Outcome.AuthScopeStatus(status, coroutineContext.job))
+                }
+            }.join()
         }
     }
 
@@ -343,6 +348,7 @@ object SlackAccount {
         event: Event.Outcome.AuthScopeStatus
     ): Change<Model, Event> = run {
         when (event.status) {
+            Slack.Authorization.Requested,
             Slack.Authorization.Route.Init,
             Slack.Authorization.Route.Started ->
                 Change(Model.Pending())
@@ -462,7 +468,7 @@ object SlackAccount {
             ctx.platform.logi { "Got $event" }
             ctx.slack.requestAuthScopes().collect { status ->
                 ctx.platform.logi { "Got status $status" }
-                dispatch(Event.Outcome.AuthScopeStatus(status))
+                dispatch(Event.Outcome.AuthScopeStatus(status, coroutineContext.job))
             }
         }
     }

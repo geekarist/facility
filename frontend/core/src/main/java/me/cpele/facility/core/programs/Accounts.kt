@@ -140,6 +140,8 @@ object Accounts {
                 model,
                 exchangeEffect(event.status.code, "todo-redirect-uri")
             )
+
+            Authorization.Requested -> TODO()
         }
     }
 

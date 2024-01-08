@@ -50,6 +50,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
     }
 
     override suspend fun requestAuthScopes(): Flow<Slack.Authorization> = callbackFlow {
+        send(Slack.Authorization.Requested)
         server?.stop()
         server = embeddedServer(factory = Netty, port = 8080) {
             routing {
@@ -59,6 +60,7 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                     platform.logi { msg }
                 }
                 get("/code-ack") {
+                    send(Slack.Authorization.Route.Init)
                     try {
                         call.parameters["code"]
                             ?.let { code ->
