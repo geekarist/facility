@@ -43,7 +43,7 @@ object SlackAccount {
 
         /** Authentication started but not complete */
         @Serializable
-        data class Pending(val redirectUri: String? = null) : Model
+        data class Pending(val redirectUri: String? = null, val job: Job? = null) : Model
 
         /** Authentication failed at some point */
         @Serializable
@@ -351,13 +351,13 @@ object SlackAccount {
             Slack.Authorization.Requested,
             Slack.Authorization.Route.Init,
             Slack.Authorization.Route.Started ->
-                Change(Model.Pending())
+                Change(Model.Pending(job = event.job))
 
             is Slack.Authorization.Route.Exposed ->
-                changeFromPendingOnAuthCodeRouteExposed(ctx, model, event.status)
+                changeFromPendingOnAuthCodeRouteExposed(ctx, model, event.status, event.job)
 
             is Slack.Authorization.Success ->
-                changeFromPendingOnAuthCodeSuccess(ctx, model, event.status)
+                changeFromPendingOnAuthCodeSuccess(ctx, model, event.status, event.job)
 
             is Slack.Authorization.Failure ->
                 initInvalidFromPendingOnAuthorizationFailure(event.status, ctx)
@@ -367,10 +367,11 @@ object SlackAccount {
     private fun changeFromPendingOnAuthCodeSuccess(
         ctx: Ctx,
         model: Model.Pending,
-        status: Slack.Authorization.Success
+        status: Slack.Authorization.Success,
+        job: Job
     ): Change<Model, Event> = run {
         checkNotNull(model.redirectUri)
-        Change(Model.Pending(model.redirectUri)) { dispatch ->
+        Change(Model.Pending(model.redirectUri, job)) { dispatch ->
             ctx.platform.getEnvVar("SLACK_CLIENT_SECRET")
                 .flatMapCatching { clientSecret ->
                     ctx.slack.exchangeCodeForCredentials(
@@ -396,7 +397,8 @@ object SlackAccount {
     private fun changeFromPendingOnAuthCodeRouteExposed(
         ctx: Ctx,
         model: Model.Pending,
-        status: Slack.Authorization.Route.Exposed
+        status: Slack.Authorization.Route.Exposed,
+        job: Job
     ): Change<Model, Event> = model.run {
         status.url.let { exposedUrl -> // URL-encode exposed URL
             val decodedRedirectUri = exposedUrl.toExternalForm()
@@ -408,7 +410,7 @@ object SlackAccount {
             val userScopeParam = "users:read,users:read.email"
             "?scope=$scopeParam&user_scope=$userScopeParam&client_id=$clientId&redirect_uri=$redirectUri" to redirectUri
         }.let { (urlSuffix, redirectUri) -> // Take suffix, build full URL, make change
-            Change(Model.Pending(redirectUri)) {
+            Change(Model.Pending(redirectUri, job)) {
                 val baseAuthUrl = ctx.slack.authUrlStr
                 val url = "$baseAuthUrl$urlSuffix"
                 ctx.platform.apply {
