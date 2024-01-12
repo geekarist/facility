@@ -235,6 +235,9 @@ object SlackAccount {
             is Event.Intent.Persist -> changeOnPersistIntent(ctx, model)
             is Event.Intent.Reset -> Change(Model.Blank) { dispatch ->
                 ctx.store.clear(STORAGE_KEY)
+                if (model is Model.Pending) {
+                    model.job?.cancel()
+                }
                 ctx.slack.tearDownLogin()
                 dispatch(Event.Outcome.Persisted)
             }
