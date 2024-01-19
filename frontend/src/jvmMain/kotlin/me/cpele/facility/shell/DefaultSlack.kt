@@ -82,13 +82,22 @@ class DefaultSlack(private val platform: Platform, private val ingress: Ingress)
                 }
             }
         }
-        server?.start()
+        platform.logi { "Starting server" }
+        try {
+            server?.start()
+        } catch (e: Exception) {
+            platform.logi(e) { "Server start failed" }
+            throw e
+        }
+        platform.logi { "Server started" }
         send(Slack.Authorization.Route.Started)
+        platform.logi { "Opening ingress" }
         ingress.open("http", "8080") { serverTunnel ->
             launch {
                 val url = URL(serverTunnel.url, "/code-ack?tunnel=${serverTunnel.url.host}")
                 platform.logi { "Server tunnel opened at URL: $url" }
                 val staticUrl = wrap(url)
+                platform.logi { "Ingress opened on $staticUrl" }
                 send(Slack.Authorization.Route.Exposed(staticUrl))
                 tunnel = serverTunnel
             }

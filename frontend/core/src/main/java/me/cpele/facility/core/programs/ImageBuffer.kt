@@ -18,6 +18,6 @@ data class ImageBuffer(val array: ByteArray) {
     }
 
     override fun toString(): String {
-        return "ImageBuffer(array=${array.contentToString()})"
+        return "ImageBuffer(array=${array.contentToString().take(96)})"
     }
 }

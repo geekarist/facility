@@ -52,6 +52,12 @@ object Prop {
         override fun hashCode(): Int {
             return buffer.contentHashCode()
         }
+
+        override fun toString(): String {
+            return "Image(buffer=${buffer.contentToString().take(96)})"
+        }
+
+
     }
 
     fun Dialog.Companion.of(

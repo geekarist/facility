@@ -231,14 +231,23 @@ object SlackAccount {
         model: Model
     ): Change<Model, Event> = run {
         Logger.getAnonymousLogger().log(Level.INFO, "Got event: $event")
+        if (event is Event.Outcome.AuthScopeStatus && event.status is Slack.Authorization.Failure) {
+            Logger.getAnonymousLogger().log(Level.INFO, "Got Slack authorization failure", event.status.throwable)
+        }
         when (event) {
             is Event.Intent.Persist -> changeOnPersistIntent(ctx, model)
             is Event.Intent.Reset -> Change(Model.Blank) { dispatch ->
                 ctx.store.clear(STORAGE_KEY)
+                Logger.getAnonymousLogger().info("Current model: $model")
                 if (model is Model.Pending) {
+                    Logger.getAnonymousLogger().info("Pending model ⇒ Cancel job: ${model.job}")
                     model.job?.cancel()
+                    Logger.getAnonymousLogger().info("Job canceled: ${model.job}")
+                } else {
+                    Logger.getAnonymousLogger().info("Non-pending model ⇒ Leave job be")
                 }
                 ctx.slack.tearDownLogin()
+                Logger.getAnonymousLogger().info("Dispatching persisted outcome")
                 dispatch(Event.Outcome.Persisted)
             }
 

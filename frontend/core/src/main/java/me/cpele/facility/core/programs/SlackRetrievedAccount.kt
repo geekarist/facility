@@ -20,10 +20,21 @@ object SlackRetrievedAccount {
         val presence: String
     ) {
         val accessToken: String = credentials.userToken
+        override fun toString(): String {
+            return "Model(credentials=$credentials, id='$id', image='$image', imageBuffer=${
+                imageBuffer.toString().take(96)
+            }, name='$name', realName='$realName', email='$email', presence='$presence', accessToken='$accessToken')"
+        }
     }
 
     sealed interface Event {
-        data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event
+        data class FetchedUserImage(val bufferResult: Result<ByteArray>) : Event {
+            override fun toString(): String {
+                val bufStr = bufferResult.toString().take(96)
+                return "FetchedUserImage(bufferResult=$bufStr)"
+            }
+        }
+
         object SignOut : Event
         object Refresh : Event
     }
