@@ -315,7 +315,7 @@ object SlackAccount {
     ): Change<Model, Event> = when (event) {
         is Event.Outcome.AuthScopeStatus -> changeFromPendingOnAuthStatus(ctx, model, event)
         is Event.Intent.SignInCancel -> initBlank(ctx, event)
-        is Event.Outcome.AccessToken -> initNextFromPendingOnAccess(ctx, event)
+        is Event.Outcome.AccessToken -> initNextFromPendingOnAccess(ctx, model, event)
         is Event.Outcome.DeserializedModel -> changeFromPendingOnDeserialized(event, ctx)
         else -> error("Invalid event for pending model: $event")
     }
@@ -330,25 +330,32 @@ object SlackAccount {
 
     private fun initNextFromPendingOnAccess(
         ctx: Ctx,
+        model: Model.Pending,
         event: Event.Outcome.AccessToken
     ): Change<Model, Event> = event.credentialsResult.fold(
-        onSuccess = { credentials -> initAuthorized(ctx, credentials) },
-        onFailure = { thrown -> initInvalid(ctx, thrown) }
+        onSuccess = { credentials -> initAuthorized(ctx, model, credentials) },
+        onFailure = { thrown -> initInvalid(ctx, model, thrown) }
     )
 
     private fun initInvalid(
         ctx: Ctx,
+        model: Model.Pending,
         thrown: Throwable
     ): Change<Model, Event> =
         Change(Model.Invalid(thrown)) {
+            model.job?.cancel()
             ctx.platform.logi(thrown) { "Failure exchanging code for access token" }
         }
 
     private fun initAuthorized(
         ctx: Ctx,
+        model: Model,
         credentials: Slack.Credentials
     ): Change<Model, Event> =
         Change(Model.Authorized(credentials)) { dispatch ->
+            if (model is Model.Pending) {
+                model.job?.cancel()
+            }
             val result = ctx.slack.retrieveUser(credentials)
             val outcome = Event.Outcome.UserInfo(result)
             dispatch(outcome)
@@ -495,7 +502,7 @@ object SlackAccount {
         check(event is Event.Retrieved)
         // Check sub-event for interception
         when (event.subEvent) {
-            SlackRetrievedAccount.Event.Refresh -> initAuthorized(ctx, model.subModel.credentials)
+            SlackRetrievedAccount.Event.Refresh -> initAuthorized(ctx, model, model.subModel.credentials)
             SlackRetrievedAccount.Event.SignOut -> initBlankOnSignOut(ctx, model.subModel.accessToken)
             is SlackRetrievedAccount.Event.FetchedUserImage -> {
                 val subCtx = object : Slack by ctx.slack, Platform by ctx.platform {}
